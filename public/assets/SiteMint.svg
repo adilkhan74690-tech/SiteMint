@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" width="100%" height="100%">
+  <defs>
+    <!-- S-Curve Emerald-to-Teal Gradient -->
+    <linearGradient id="s-gradient-full" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    
+    <!-- Mint Leaf Gradient -->
+    <linearGradient id="leaf-gradient-full" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#059669" />
+      <stop offset="100%" stop-color="#10b981" />
+    </linearGradient>
+  </defs>
+
+  <!-- Group for the Icon on the left (now clean and transparent) -->
+  <g transform="translate(10, 10)">
+    <!-- S path -->
+    <path d="M42,22 C32,22 25,25 25,32 C25,40 45,37 45,45 C45,53 35,55 26,55" 
+          fill="none" 
+          stroke="url(#s-gradient-full)" 
+          stroke-width="8" 
+          stroke-linecap="round" 
+          stroke-linejoin="round" />
+          
+    <!-- Mint Leaf -->
+    <g transform="translate(42, 44) rotate(-15)">
+      <path d="M0,0 C4,-5 11,-5 12,1 C7,2 3,7 0,0 Z" fill="url(#leaf-gradient-full)" />
+      <path d="M0,0 Q6,0.7 12,1" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5" />
+    </g>
+  </g>
+
+  <!-- Typography on the right -->
+  <!-- "Site" in white, "Mint" in Emerald -->
+  <text x="85" y="44" font-family="'Inter', system-ui, sans-serif" font-size="28" font-weight="800" letter-spacing="-0.75" fill="#ffffff">
+    Site<tspan fill="#10b981">Mint</tspan>
+  </text>
+  
+  <!-- Tagline below: "MINT YOUR BUSINESS ONLINE." -->
+  <text x="86" y="58" font-family="'JetBrains Mono', monospace" font-size="7.5" font-weight="600" letter-spacing="3" fill="#64748b" opacity="0.9">
+    MINT YOUR BUSINESS ONLINE.
+  </text>
+</svg>

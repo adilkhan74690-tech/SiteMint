@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <defs>
+    <!-- S-Curve Emerald-to-Teal Gradient -->
+    <linearGradient id="s-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    
+    <!-- Mint Leaf Gradient -->
+    <linearGradient id="leaf-gradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#059669" />
+      <stop offset="100%" stop-color="#10b981" />
+    </linearGradient>
+  </defs>
+
+  <!-- Stylized Elegant 'S' Browser Path (Minimalist thick-line design, centered, transparent bg) -->
+  <path d="M68,34 C54,34 44,38 44,49 C44,60 76,57 76,68 C76,79 60,81 46,81" 
+        fill="none" 
+        stroke="url(#s-gradient)" 
+        stroke-width="11" 
+        stroke-linecap="round" 
+        stroke-linejoin="round" />
+        
+  <!-- Sprouting Mint Leaf at the Bottom-Right curve of 'S' -->
+  <g transform="translate(71, 66) rotate(-15)">
+    <path d="M0,0 C6,-8 16,-8 18,2 C10,4 4,10 0,0 Z" fill="url(#leaf-gradient)" />
+    <!-- Leaf Center Vein -->
+    <path d="M0,0 Q9,1 18,2" fill="none" stroke="#ffffff" stroke-width="1.2" opacity="0.5" />
+  </g>
+</svg>
