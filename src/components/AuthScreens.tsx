@@ -349,24 +349,7 @@ export default function AuthScreens({ currentView, onNavigate, onLoginSuccess }:
                 <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-mint to-cyan transition-transform duration-300 -z-10" />
               </button>
 
-              <div className="relative flex items-center justify-center my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-zinc-800/80"></div>
-                </div>
-                <span className="relative bg-[#09090B] px-3 text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
-                  Sandbox Testing
-                </span>
-              </div>
 
-              {/* Easy testing helper */}
-              <button
-                type="button"
-                onClick={handleUseDemo}
-                className="w-full py-2.5 rounded-xl border border-zinc-800/60 bg-zinc-900/30 text-xs font-semibold text-zinc-400 hover:text-white hover:bg-zinc-900/60 transition-all flex items-center justify-center gap-2"
-                id="btn-use-demo-auth"
-              >
-                Fill Demo Credentials
-              </button>
 
               <p className="text-center text-xs text-zinc-400 mt-6 pt-4 border-t border-zinc-900/60">
                 New to the platform?{" "}
@@ -593,13 +576,6 @@ export default function AuthScreens({ currentView, onNavigate, onLoginSuccess }:
                 >
                   <LucideIcon name="ArrowLeft" className="w-3.5 h-3.5" />
                   Back to Log In
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onNavigate("reset-password")}
-                  className="text-xs font-semibold text-mint hover:underline"
-                >
-                  Direct Reset Demo
                 </button>
               </div>
             </form>
