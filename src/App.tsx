@@ -17,9 +17,11 @@ import Logo from "./components/Logo";
 import AuthScreens from "./components/AuthScreens";
 import OnboardingFlow from "./components/OnboardingFlow";
 import OwnerDashboard from "./components/OwnerDashboard";
+import SuperAdminDashboard from "./components/SuperAdminDashboard";
 import GymTemplate from "./components/GymTemplate";
 import RestaurantTemplate from "./components/RestaurantTemplate";
 import SalonTemplate from "./components/SalonTemplate";
+import ClothingTemplate from "./components/ClothingTemplate";
 import SearchAndCommandPalette from "./components/SearchAndCommandPalette";
 import ErrorPages from "./components/ErrorPages";
 import LucideIcon from "./components/LucideIcon";
@@ -31,7 +33,7 @@ export default function App() {
 
   // Dynamic Router States
   const [currentView, setCurrentView] = useState<
-    "landing" | "login" | "register" | "forgot-password" | "reset-password" | "onboarding" | "dashboard" | "preview-gym" | "preview-restaurant" | "preview-salon" | "preview-404" | "preview-403" | "preview-500"
+    "landing" | "login" | "register" | "forgot-password" | "reset-password" | "onboarding" | "dashboard" | "super-admin" | "preview-gym" | "preview-restaurant" | "preview-salon" | "preview-clothing" | "preview-404" | "preview-403" | "preview-500"
   >("landing");
   const [userEmail, setUserEmail] = useState("");
 
@@ -59,6 +61,55 @@ export default function App() {
     }
     localStorage.setItem("sitemint-theme", theme);
   }, [theme]);
+
+  // Subdomain routing detection
+  useEffect(() => {
+    const hostname = window.location.hostname;
+    const parts = hostname.split(".");
+    let detectedSubdomain = "";
+    
+    if (parts.length > 2) {
+      if (parts[0] !== "www") {
+        detectedSubdomain = parts[0];
+      }
+    } else if (parts.length === 2 && parts[1] === "localhost") {
+      detectedSubdomain = parts[0];
+    }
+    
+    // Also support sandbox test urls e.g. localhost:3000/?subdomain=xxx
+    const searchParams = new URLSearchParams(window.location.search);
+    const querySubdomain = searchParams.get("subdomain");
+    const activeSubdomain = querySubdomain || detectedSubdomain;
+
+    if (activeSubdomain) {
+      setLoading(true);
+      fetch(`/api/businesses/settings?subdomain=${activeSubdomain}`)
+        .then((res) => res.json())
+        .then((result) => {
+          setLoading(false);
+          if (result.status === "success" && result.data?.business) {
+            const templateCode = result.data.theme_settings?.template?.code || "gym";
+            if (templateCode === "gym") {
+              setCurrentView("preview-gym");
+            } else if (templateCode === "restaurant") {
+              setCurrentView("preview-restaurant");
+            } else if (templateCode === "salon") {
+              setCurrentView("preview-salon");
+            } else if (templateCode === "clothing") {
+              setCurrentView("preview-clothing");
+            } else {
+              setCurrentView("preview-404");
+            }
+          } else {
+            setCurrentView("preview-404");
+          }
+        })
+        .catch(() => {
+          setLoading(false);
+          setCurrentView("preview-404");
+        });
+    }
+  }, []);
 
   // Handle Cmd+K / Ctrl+K keyboard shortcut
   useEffect(() => {
@@ -113,8 +164,11 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleLoginSuccess = (email: string) => {
+  const handleLoginSuccess = (email: string, role?: string) => {
     setUserEmail(email);
+    if (role === "SUPER_ADMIN") {
+      setCurrentView("super-admin");
+    }
   };
 
   const handleLogout = () => {
@@ -162,6 +216,7 @@ export default function App() {
         <div className="flex flex-col min-h-screen relative" id="main-app-layout">
           {/* Universal Glass Navbar */}
           {currentView !== "dashboard" && 
+           currentView !== "super-admin" && 
            currentView !== "preview-gym" && 
            currentView !== "preview-restaurant" && 
            currentView !== "preview-salon" && 
@@ -285,6 +340,24 @@ export default function App() {
               </motion.div>
             )}
 
+            {/* Premium Super Admin Dashboard layout */}
+            {currentView === "super-admin" && (
+              <motion.div
+                key="super-admin-view"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4 }}
+                className="flex flex-col flex-grow"
+              >
+                <SuperAdminDashboard
+                  userEmail={userEmail || "test@gmail.com"}
+                  onLogout={handleLogout}
+                  onNavigate={handleNavigate}
+                />
+              </motion.div>
+            )}
+
             {/* Gym Independent Live Template */}
             {currentView === "preview-gym" && (
               <motion.div
@@ -328,6 +401,22 @@ export default function App() {
                 className="flex flex-col flex-grow"
               >
                 <SalonTemplate 
+                  onBackToHub={() => handleNavigate("landing")}
+                />
+              </motion.div>
+            )}
+
+            {/* Clothing Independent Live Template */}
+            {currentView === "preview-clothing" && (
+              <motion.div
+                key="preview-clothing-view"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="flex flex-col flex-grow"
+              >
+                <ClothingTemplate 
                   onBackToHub={() => handleNavigate("landing")}
                 />
               </motion.div>

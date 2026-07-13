@@ -42,7 +42,7 @@ export function authenticateUser(req: Request, res: Response, next: NextFunction
 /**
  * Middleware to restrict access to specific roles.
  */
-export function requireRole(allowedRoles: Array<"owner" | "manager" | "staff">) {
+export function requireRole(allowedRoles: string[]) {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
       res.status(401).json({

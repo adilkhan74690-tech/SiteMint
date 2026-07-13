@@ -348,8 +348,8 @@ export default function TemplateShowcase({ onOpenCheckout, onNavigateToDemo }: T
                             <button
                               onClick={() => {
                                 const cat = selectedTemplate.categoryId;
-                                if (cat === "gym" || cat === "restaurant" || cat === "salon") {
-                                  onNavigateToDemo(`preview-${cat}`);
+                                if (cat === "gym" || cat === "restaurant" || cat === "salon" || cat === "clothing") {
+                                  onNavigateToDemo(`preview-${cat}` as any);
                                 } else {
                                   onNavigateToDemo(`preview-gym`);
                                 }

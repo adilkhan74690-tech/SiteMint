@@ -6,8 +6,8 @@ import Logo from "./Logo";
 
 interface AuthScreensProps {
   currentView: "login" | "register" | "forgot-password" | "reset-password";
-  onNavigate: (view: "landing" | "login" | "register" | "forgot-password" | "reset-password" | "onboarding" | "dashboard") => void;
-  onLoginSuccess: (email: string) => void;
+  onNavigate: (view: any) => void;
+  onLoginSuccess: (email: string, role?: string) => void;
 }
 
 export default function AuthScreens({ currentView, onNavigate, onLoginSuccess }: AuthScreensProps) {
@@ -64,9 +64,11 @@ export default function AuthScreens({ currentView, onNavigate, onLoginSuccess }:
         localStorage.setItem("sitemint_token", result.data.token);
       }
 
-      setIsLoading(false);
-      onLoginSuccess(email || result.data?.user?.email || "adil.khan@company.com");
-      if (result.data?.user?.onboarded === false) {
+      const role = result.data?.user?.role;
+      onLoginSuccess(email || result.data?.user?.email || "adil.khan@company.com", role);
+      if (role === "SUPER_ADMIN") {
+        onNavigate("super-admin" as any);
+      } else if (result.data?.user?.onboarded === false) {
         onNavigate("onboarding");
       } else {
         onNavigate("dashboard");

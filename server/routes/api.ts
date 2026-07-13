@@ -9,7 +9,13 @@ import {
   getBusinessSettings,
   updateThemeSettings,
   getTemplates,
-  onboardBusiness
+  onboardBusiness,
+  publishBusiness,
+  listCustomers,
+  listStaff,
+  addStaff,
+  updateStaff,
+  deleteStaff
 } from "../controllers/businessController.js";
 import {
   listProducts,
@@ -52,6 +58,15 @@ import {
   validateThemeSettings
 } from "../middleware/validationMiddleware.js";
 import { upload } from "../middleware/uploadMiddleware.js";
+import {
+  getAdminMetrics,
+  getBusinesses,
+  updateBusinessStatus,
+  deleteBusiness,
+  listAnnouncements,
+  createAnnouncement,
+  deleteAnnouncement
+} from "../controllers/adminController.js";
 
 const router = Router();
 
@@ -62,6 +77,17 @@ router.post("/auth/register", validateRegister, registerBusiness);
 router.post("/auth/login", validateLogin, loginUser);
 router.post("/auth/refresh", refreshSessionToken);
 router.post("/auth/logout", logoutUser);
+
+// ==========================================
+// 1b. Super Admin Control Routes
+// ==========================================
+router.get("/admin/metrics", authenticateUser, requireRole(["SUPER_ADMIN"]), getAdminMetrics);
+router.get("/admin/businesses", authenticateUser, requireRole(["SUPER_ADMIN"]), getBusinesses);
+router.put("/admin/businesses/:id/status", authenticateUser, requireRole(["SUPER_ADMIN"]), updateBusinessStatus);
+router.delete("/admin/businesses/:id", authenticateUser, requireRole(["SUPER_ADMIN"]), deleteBusiness);
+router.get("/admin/announcements", authenticateUser, listAnnouncements);
+router.post("/admin/announcements", authenticateUser, requireRole(["SUPER_ADMIN"]), createAnnouncement);
+router.delete("/admin/announcements/:id", authenticateUser, requireRole(["SUPER_ADMIN"]), deleteAnnouncement);
 
 // ==========================================
 // 2. Business & Tenant Branding Routes
@@ -75,6 +101,18 @@ router.put(
   requireRole(["owner", "manager"]),
   validateThemeSettings,
   updateThemeSettings
+);
+router.put(
+  "/businesses/publish",
+  authenticateUser,
+  requireRole(["owner", "manager"]),
+  publishBusiness
+);
+router.get(
+  "/customers",
+  authenticateUser,
+  enforceTenantIsolation,
+  listCustomers
 );
 
 // ==========================================
@@ -183,5 +221,13 @@ router.patch(
   authenticateUser,
   markNotificationAsRead
 );
+
+// ==========================================
+// 7. Staff Management Routes
+// ==========================================
+router.get("/staff", authenticateUser, listStaff);
+router.post("/staff", authenticateUser, requireRole(["owner", "manager"]), addStaff);
+router.put("/staff/:id", authenticateUser, requireRole(["owner", "manager"]), updateStaff);
+router.delete("/staff/:id", authenticateUser, requireRole(["owner", "manager"]), deleteStaff);
 
 export default router;

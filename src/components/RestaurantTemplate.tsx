@@ -40,6 +40,7 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
   const [brandName, setBrandName] = useState(initialBrandName);
   const [accentColor, setAccentColor] = useState(initialThemeAccent);
   const [typography, setTypography] = useState("Playfair Display");
+  const [logoUrl, setLogoUrl] = useState<string>("");
 
   // Client Session Auth
   const [customerEmail, setCustomerEmail] = useState<string>("");
@@ -54,13 +55,23 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
 
   useEffect(() => {
     // Dynamic fetch matching template category code
-    fetch("/api/businesses/settings?subdomain=bistro-deluxe")
+    const queryParams = new URLSearchParams(window.location.search);
+    const querySubdomain = queryParams.get("subdomain");
+    const hostnameSubdomain = window.location.hostname.split(".")[0];
+    const subdomain = querySubdomain || (hostnameSubdomain !== "localhost" && hostnameSubdomain !== "www" && hostnameSubdomain !== "sitemint" ? hostnameSubdomain : null) || "bistro-deluxe";
+
+    fetch(`/api/businesses/settings?subdomain=${subdomain}`)
       .then((r) => r.json())
       .then((res) => {
         if (res.status === "success" && res.data.business) {
           setBusinessId(res.data.business.id);
           setBrandName(res.data.business.name);
           setUpiId(res.data.business.upi_id || "bistrodeluxe@upi");
+          setLogoUrl(res.data.business.logo_url || "");
+          if (res.data.theme_settings) {
+            setAccentColor(res.data.theme_settings.primary_color || initialThemeAccent);
+            setTypography(res.data.theme_settings.font_family || "Playfair Display");
+          }
         }
       })
       .catch((err) => console.error("Error loading business configurations:", err));
@@ -235,9 +246,13 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
       {/* ----------------- LOCAL MOCK STOREFRONT NAVBAR ----------------- */}
       <nav className="bg-[#0A050D]/90 backdrop-blur-md border-b border-zinc-900/40 sticky top-14 z-40 px-6 py-4 flex items-center justify-between" id="rest-nav">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-serif font-bold text-sm" style={{ backgroundColor: accentColor }}>
-            L
-          </div>
+          {logoUrl ? (
+            <img src={logoUrl} alt="Logo" className="w-7 h-7 rounded-lg object-cover" />
+          ) : (
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-serif font-bold text-sm" style={{ backgroundColor: accentColor }}>
+              L
+            </div>
+          )}
           <span className="text-lg font-black tracking-tight text-white font-serif italic">
             {brandName}
           </span>

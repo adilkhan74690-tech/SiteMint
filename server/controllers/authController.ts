@@ -147,10 +147,10 @@ export async function loginUser(req: Request, res: Response, next: NextFunction)
     });
     return;
   }  try {
-    let sql = "SELECT u.*, b.status as business_status, b.upi_id as business_upi FROM `users` u JOIN `businesses` b ON u.business_id = b.id WHERE u.email = ?";
+    let sql = "SELECT u.*, b.status as business_status, b.upi_id as business_upi FROM `users` u LEFT JOIN `businesses` b ON u.business_id = b.id WHERE u.email = ?";
     let params = [email];
 
-    if (subdomain) {
+    if (subdomain && subdomain !== "undefined" && subdomain !== "null") {
       sql += " AND b.subdomain = ?";
       params.push(subdomain);
     }

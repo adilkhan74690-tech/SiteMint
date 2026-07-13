@@ -7,7 +7,7 @@ export interface TokenPayload {
   userId: string | number;
   businessId: string | number;
   email: string;
-  role: "owner" | "manager" | "staff";
+  role: "owner" | "manager" | "staff" | "SUPER_ADMIN" | "OWNER" | "MANAGER" | "STAFF" | "CUSTOMER" | string;
 }
 
 /**
