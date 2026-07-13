@@ -121,18 +121,54 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
   const [currentStep, setCurrentStep] = useState(1);
 
   // Step 1: Business Information state
-  const [businessName, setBusinessName] = useState("Vanguard Athletic Lab");
-  const [tagline, setTagline] = useState("Elite body mechanics and custom strength audits");
-  const [phone, setPhone] = useState("+1 (555) 382-9216");
-  const [address, setAddress] = useState("458 Innovation Way, Sector 12");
-  const [description, setDescription] = useState(
-    "A boutique coaching studio providing dedicated body diagnostic evaluations, high-performance athletic programming, and nutritional engineering."
-  );
+  const [businessName, setBusinessName] = useState("");
+  const [tagline, setTagline] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [description, setDescription] = useState("");
   
   // Custom SiteMint Onboarding Fields
-  const [subdomain, setSubdomain] = useState("vanguard-athletic-lab");
-  const [upiId, setUpiId] = useState("vanguard@upi");
-  const [logoUrl, setLogoUrl] = useState("https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=128&q=80");
+  const [subdomain, setSubdomain] = useState("");
+  const [upiId, setUpiId] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+    if (!validTypes.includes(file.type)) {
+      alert("Invalid file format. Please upload PNG, JPG, or WebP.");
+      return;
+    }
+
+    const token = localStorage.getItem("sitemint_token");
+    const formData = new FormData();
+    formData.append("file", file);
+
+    setIsUploadingLogo(true);
+    try {
+      const response = await fetch("/api/feedback/media", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to upload logo.");
+      }
+
+      setLogoUrl(result.data.url);
+    } catch (err: any) {
+      alert("Logo upload error: " + err.message);
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
 
   // Keep subdomain in sync with business name until user edits it manually
   const [isSubdomainDirty, setIsSubdomainDirty] = useState(false);
@@ -203,31 +239,6 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
   // Autocomplete templates info depending on category selected
   const handleCategorySelect = (category: typeof CATEGORIES[0]) => {
     setSelectedCategory(category);
-    // Autofill matching dummy template data for seamless immersion
-    if (category.id === "salon") {
-      setBusinessName("Svelte Hair & Co");
-      setTagline("Organic hair artistry and styling rituals");
-      setDescription("A luxurious, eco-conscious sanctuary for hair design, organic color therapies, and bespoke style rituals.");
-      setUpiId("sveltehair@upi");
-    } else if (category.id === "restaurant") {
-      setBusinessName("Bistro Deluxe");
-      setTagline("Artisan plates, local grapes, timeless taste");
-      setDescription("A warm, sophisticated neighborhood dining room showcasing seasonal local ingredients, natural wines, and classic techniques.");
-      setUpiId("bistrodeluxe@upi");
-    } else if (category.id === "spa") {
-      setBusinessName("Solitude Wellness Spa");
-      setTagline("Luxury sensory escape and hot stone restorative therapy");
-      setDescription("A secluded premium spa offering custom aromatherapy bodywork, multi-step facial peels, and peaceful water therapy.");
-    } else if (category.id === "cafe") {
-      setBusinessName("Obsidian Brew Bar");
-      setTagline("Single-origin cold drip & artisanal baking");
-      setDescription("A third-wave micro-roastery featuring rare single-origins, pour-over bars, and fresh daily sourdough pastries.");
-    } else if (category.id === "gym") {
-      setBusinessName("Vanguard Athletic Lab");
-      setTagline("Elite body mechanics and custom strength audits");
-      setDescription("A boutique coaching studio providing dedicated body diagnostic evaluations, high-performance athletic programming, and nutritional engineering.");
-      setUpiId("vanguard@upi");
-    }
   };
 
   const handleNext = () => {
@@ -389,7 +400,7 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
                         type="text"
                         value={businessName}
                         onChange={(e) => setBusinessName(e.target.value)}
-                        placeholder="e.g., Vanguard Wellness Lab"
+                        placeholder="Enter your business name"
                         className="w-full bg-zinc-900/60 border border-zinc-800 text-white placeholder-zinc-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-mint focus:ring-1 focus:ring-mint transition-all"
                         id="onboarding-input-name"
                       />
@@ -401,7 +412,7 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
                         type="text"
                         value={tagline}
                         onChange={(e) => setTagline(e.target.value)}
-                        placeholder="e.g., Artisan plates, local grapes, timeless taste."
+                        placeholder="Enter your business tagline"
                         className="w-full bg-zinc-900/60 border border-zinc-800 text-white placeholder-zinc-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-mint focus:ring-1 focus:ring-mint transition-all"
                         id="onboarding-input-tagline"
                       />
@@ -413,7 +424,7 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
                         type="text"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
-                        placeholder="+1 (555) 019-2831"
+                        placeholder="Enter your business phone number"
                         className="w-full bg-zinc-900/60 border border-zinc-800 text-white placeholder-zinc-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-mint focus:ring-1 focus:ring-mint transition-all"
                         id="onboarding-input-phone"
                       />
@@ -425,7 +436,7 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
                         type="text"
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
-                        placeholder="804 Broadway Ave, New York"
+                        placeholder="Enter your business address"
                         className="w-full bg-zinc-900/60 border border-zinc-800 text-white placeholder-zinc-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-mint focus:ring-1 focus:ring-mint transition-all"
                         id="onboarding-input-address"
                       />
@@ -437,7 +448,7 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         rows={3}
-                        placeholder="Provide a stunning narrative about what services your business excels at. This will compile directly on your website about column..."
+                        placeholder="Describe your business"
                         className="w-full bg-zinc-900/60 border border-zinc-800 text-white placeholder-zinc-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-mint focus:ring-1 focus:ring-mint transition-all resize-none"
                         id="onboarding-input-description"
                       />
@@ -453,7 +464,7 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
                             setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-"));
                             setIsSubdomainDirty(true);
                           }}
-                          placeholder="vanguard-athletic-lab"
+                          placeholder="Choose your unique business URL"
                           className="w-full bg-zinc-900/60 border border-zinc-800 text-white placeholder-zinc-500 rounded-xl pl-4 pr-24 py-3 text-sm focus:outline-none focus:border-mint focus:ring-1 focus:ring-mint transition-all font-mono"
                           id="onboarding-input-subdomain"
                         />
@@ -469,22 +480,63 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
                         type="text"
                         value={upiId}
                         onChange={(e) => setUpiId(e.target.value)}
-                        placeholder="e.g., yourname@okaxis"
+                        placeholder="Enter your UPI ID"
                         className="w-full bg-zinc-900/60 border border-zinc-800 text-white placeholder-zinc-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-mint focus:ring-1 focus:ring-mint transition-all font-mono"
                         id="onboarding-input-upi"
                       />
                     </div>
 
                     <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Brand Logo Image URL</label>
-                      <input
-                        type="text"
-                        value={logoUrl}
-                        onChange={(e) => setLogoUrl(e.target.value)}
-                        placeholder="https://example.com/logo.png"
-                        className="w-full bg-zinc-900/60 border border-zinc-800 text-white placeholder-zinc-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-mint focus:ring-1 focus:ring-mint transition-all font-mono"
-                        id="onboarding-input-logo"
-                      />
+                      <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">Upload Logo</label>
+                      <div className="flex flex-col sm:flex-row items-center gap-4 bg-zinc-900/60 border border-zinc-800 rounded-xl p-4">
+                        {logoUrl ? (
+                          <div className="relative w-16 h-16 rounded-lg bg-zinc-950 border border-zinc-800 overflow-hidden flex items-center justify-center shrink-0">
+                            <img src={logoUrl} alt="Logo Preview" className="max-w-full max-h-full object-contain" />
+                          </div>
+                        ) : (
+                          <div className="w-16 h-16 rounded-lg bg-zinc-950 border border-dashed border-zinc-850 flex flex-col items-center justify-center shrink-0 text-zinc-600">
+                            <LucideIcon name="Image" className="w-6 h-6" />
+                          </div>
+                        )}
+                        <div className="space-y-1 flex-grow text-left w-full sm:w-auto">
+                          <p className="text-xs font-semibold text-white">Upload brand identity mark</p>
+                          <p className="text-[10px] text-zinc-500">Supports PNG, JPG or WebP formats</p>
+                          
+                          <div className="flex gap-2 mt-2">
+                            <label className="cursor-pointer bg-zinc-800 hover:bg-zinc-700 text-white font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all flex items-center gap-1">
+                              {isUploadingLogo ? (
+                                <>
+                                  <LucideIcon name="Loader2" className="w-3 h-3 animate-spin" />
+                                  Uploading...
+                                </>
+                              ) : (
+                                <>
+                                  <LucideIcon name="Upload" className="w-3 h-3" />
+                                  {logoUrl ? "Replace Logo" : "Upload Logo"}
+                                </>
+                              )}
+                              <input 
+                                type="file" 
+                                accept="image/png, image/jpeg, image/jpg, image/webp" 
+                                className="hidden" 
+                                onChange={handleLogoUpload}
+                                disabled={isUploadingLogo}
+                              />
+                            </label>
+
+                            {logoUrl && (
+                              <button
+                                type="button"
+                                onClick={() => setLogoUrl("")}
+                                className="bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold px-3 py-1.5 rounded-lg text-[10px] transition-all flex items-center gap-1"
+                              >
+                                <LucideIcon name="Trash2" className="w-3 h-3" />
+                                Remove
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

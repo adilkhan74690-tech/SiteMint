@@ -25,70 +25,17 @@ interface OwnerDashboardProps {
 }
 
 // Mock initial databases
-const INITIAL_BOOKINGS = [
-  { id: "B-8391", customer: "Sarah Jenkins", service: "Balayage Artistry & Styling", date: "2026-07-14", time: "10:30 AM", amount: 180, status: "Confirmed", email: "sarah.j@gmail.com" },
-  { id: "B-2901", customer: "Michael Chang", service: "Custom Body Diagnostic Evaluation", date: "2026-07-15", time: "01:15 PM", amount: 120, status: "Pending", email: "m.chang@vanguard.co" },
-  { id: "B-4920", customer: "Emma Watson", service: "Hot Stone Restorative Ritual", date: "2026-07-16", time: "03:00 PM", amount: 240, status: "Confirmed", email: "emma.w@watsoncorp.org" },
-  { id: "B-5712", customer: "David Miller", service: "Elite Strength & Mechanics Audit", date: "2026-07-17", time: "09:00 AM", amount: 150, status: "Rescheduled", email: "david.miller@millerfit.io" },
-  { id: "B-1049", customer: "Jessica Laurent", service: "Advanced Keratin Styling Ritual", date: "2026-07-18", time: "11:00 AM", amount: 195, status: "Pending", email: "jess.laurent@yahoo.fr" },
-];
-
-const INITIAL_PRODUCTS = [
-  { id: "P-01", name: "Supreme Volumizing Elixir", price: 48, stock: 34, status: "Active", sales: 112, image: "https://images.unsplash.com/photo-1608248597481-496100c8c836?auto=format&fit=crop&w=300&q=80" },
-  { id: "P-02", name: "Premium Restorative Silt Mask", price: 64, stock: 18, status: "Active", sales: 84, image: "https://images.unsplash.com/photo-1571781926291-c477ebfd024b?auto=format&fit=crop&w=300&q=80" },
-  { id: "P-03", name: "Dual-Core Athletic Grip Band", price: 29, stock: 85, status: "Active", sales: 240, image: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=300&q=80" },
-  { id: "P-04", name: "Aromatherapy Organic Balm", price: 38, stock: 0, status: "Out of Stock", sales: 98, image: "https://images.unsplash.com/photo-1617897903246-719242758050?auto=format&fit=crop&w=300&q=80" },
-];
-
-const INITIAL_ORDERS = [
-  { id: "ORD-9402", customer: "Lucas Thorne", date: "2026-07-12", amount: 96, status: "Processing", items: "2x Supreme Volumizing Elixir", tracking: "USPS-MINT-9402" },
-  { id: "ORD-9104", customer: "Sophia Patel", date: "2026-07-11", amount: 64, status: "Shipped", items: "1x Premium Restorative Silt Mask", tracking: "UPS-SMT-1094" },
-  { id: "ORD-8823", customer: "John Vance", date: "2026-07-09", amount: 145, status: "Delivered", items: "5x Dual-Core Athletic Grip Band", tracking: "FEDEX-SMT-2091" },
-];
-
-const INITIAL_REVIEWS = [
-  { id: "R-1", author: "Clara Bennett", rating: 5, comment: "The booking calendar compiled on SiteMint operates so smoothly. My clients love the intuitive reservation structure!", date: "2026-07-10", reply: "", service: "Hair & Nail Salons" },
-  { id: "R-2", author: "Gregory Ross", rating: 4, comment: "Beautiful styling presets. I changed my main color scheme in seconds and the desktop version looks fantastic.", date: "2026-07-08", reply: "Thank you for the kind feedback!", service: "Fitness & Athletics" },
-  { id: "R-3", author: "Victoria Song", rating: 5, comment: "Incredible load speeds and zero setup hassle. Minting was quite literally an instantaneous process.", date: "2026-07-05", reply: "", service: "Boutique Restaurants" },
-];
-
-const INITIAL_CUSTOMERS = [
-  { id: "C-1", name: "Sarah Jenkins", email: "sarah.j@gmail.com", spent: 540, joined: "2026-05-12", bookings: 3 },
-  { id: "C-2", name: "Michael Chang", email: "m.chang@vanguard.co", spent: 360, joined: "2026-06-01", bookings: 2 },
-  { id: "C-3", name: "Emma Watson", email: "emma.w@watsoncorp.org", spent: 780, joined: "2026-03-24", bookings: 4 },
-  { id: "C-4", name: "David Miller", email: "david.miller@millerfit.io", spent: 150, joined: "2026-07-02", bookings: 1 },
-];
-
-const RECENT_ACTIVITIES = [
-  { id: "act-1", event: "Theme Customizer updated", detail: "Primary accent set to #00F5A0 (Mint Obsidian)", time: "12 mins ago", type: "system" },
-  { id: "act-2", event: "New reservation received", detail: "B-1049 requested by Jessica Laurent", time: "1 hour ago", type: "booking" },
-  { id: "act-3", event: "Inventory threshold alert", detail: "Aromatherapy Organic Balm marked Out of Stock", time: "3 hours ago", type: "product" },
-  { id: "act-4", event: "Payout Dispatched", detail: "$4,250 transferred to Merchant Account", time: "1 day ago", type: "payout" },
-  { id: "act-5", event: "SSL Handshake verified", detail: "Subdomain certificate successfully auto-renewed", time: "2 days ago", type: "system" },
-];
-
-const INITIAL_NOTIFICATIONS = [
-  { id: "not-1", title: "New Booking Request", desc: "Jessica Laurent scheduled Advanced Styling for Jul 18.", read: false, type: "booking" },
-  { id: "not-2", title: "Review Submitted", desc: "Clara Bennett rated your website with 5 stars.", read: false, type: "review" },
-  { id: "not-3", title: "System Ready", desc: "Your custom subdomain sitemint.app SSL certificate is active.", read: true, type: "system" },
-];
+const INITIAL_BOOKINGS: any[] = [];
+const INITIAL_PRODUCTS: any[] = [];
+const INITIAL_ORDERS: any[] = [];
+const INITIAL_REVIEWS: any[] = [];
+const INITIAL_CUSTOMERS: any[] = [];
+const RECENT_ACTIVITIES: any[] = [];
+const INITIAL_NOTIFICATIONS: any[] = [];
 
 // Recharts chart data
-const ANALYTICS_REVENUE_DATA = [
-  { name: "Jan", Revenue: 3400, Views: 4100, Orders: 42 },
-  { name: "Feb", Revenue: 4100, Views: 5300, Orders: 51 },
-  { name: "Mar", Revenue: 4900, Views: 6700, Orders: 59 },
-  { name: "Apr", Revenue: 6200, Views: 8900, Orders: 74 },
-  { name: "May", Revenue: 7100, Views: 10400, Orders: 81 },
-  { name: "Jun", Revenue: 8429, Views: 12481, Orders: 94 },
-];
-
-const PIE_TRAFFIC_DATA = [
-  { name: "Direct Search", value: 4500, color: "#10B981" },
-  { name: "Instagram Referral", value: 3800, color: "#EC4899" },
-  { name: "Google Local Maps", value: 2481, color: "#06B6D4" },
-  { name: "Email Pipelines", value: 1700, color: "#F59E0B" },
-];
+const ANALYTICS_REVENUE_DATA: any[] = [];
+const PIE_TRAFFIC_DATA: any[] = [];
 
 export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: OwnerDashboardProps) {
   // Sidebar active tab
@@ -241,6 +188,7 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
   const [newProdStock, setNewProdStock] = useState("");
   const [newProdImage, setNewProdImage] = useState("");
   const [isAddingProduct, setIsAddingProduct] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // Review reply state
   const [activeReviewReplyId, setActiveReviewReplyId] = useState<string | null>(null);
@@ -436,29 +384,37 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
 
   // Navigation Sidebar Elements
   const sidebarItems = [
-    { name: "Dashboard", icon: "LayoutDashboard", badge: 0 },
-    { name: "Website Builder", icon: "Globe", badge: 0 },
-    { name: "Theme Customizer", icon: "Palette", badge: 0 },
-    { name: "Analytics", icon: "LineChart", badge: 0 },
-    { name: "Bookings", icon: "Calendar", badge: bookings.filter(b => b.status === "Pending").length },
-    { name: "Customers", icon: "Users", badge: 0 },
-    { name: "Products", icon: "ShoppingBag", badge: 0 },
-    { name: "Orders", icon: "ShoppingCart", badge: orders.filter(o => o.status === "Processing").length },
-    { name: "Reviews", icon: "Star", badge: reviews.filter(r => !r.reply).length },
-    { name: "Payments", icon: "CreditCard", badge: 0 },
-    { name: "Media Library", icon: "Image", badge: 0 },
-    { name: "Activity Logs", icon: "FileText", badge: 0 },
-    { name: "Notifications", icon: "Bell", badge: notifications.filter(n => !n.read).length },
-    { name: "Settings", icon: "Settings", badge: 0 },
+    { name: "Dashboard", label: "Dashboard", icon: "LayoutDashboard", badge: 0 },
+    { name: "Website Builder", label: "Website Builder", icon: "Globe", badge: 0 },
+    { name: "Theme Customizer", label: "Theme Customizer", icon: "Palette", badge: 0 },
+    { name: "Analytics", label: "Analytics", icon: "LineChart", badge: 0 },
+    { name: "Bookings", label: `Bookings (${bookings.length})`, icon: "Calendar", badge: bookings.filter(b => b.status === "Pending" || b.status === "pending").length },
+    { name: "Customers", label: `Customers (${customers.length})`, icon: "Users", badge: 0 },
+    { name: "Products", label: `Products (${products.length})`, icon: "ShoppingBag", badge: 0 },
+    { name: "Orders", label: `Orders (${orders.length})`, icon: "ShoppingCart", badge: orders.filter(o => o.status === "Processing" || o.status === "pending").length },
+    { name: "Reviews", label: `Reviews (${reviews.length})`, icon: "Star", badge: reviews.filter(r => !r.reply).length },
+    { name: "Payments", label: "Payments", icon: "CreditCard", badge: 0 },
+    { name: "Media Library", label: "Media Library", icon: "Image", badge: 0 },
+    { name: "Activity Logs", label: "Activity Logs", icon: "FileText", badge: 0 },
+    { name: "Notifications", label: "Notifications", icon: "Bell", badge: notifications.filter(n => !n.read).length },
+    { name: "Settings", label: "Settings", icon: "Settings", badge: 0 },
   ];
 
   return (
     <div className="min-h-screen bg-[#070709] text-white flex flex-col md:flex-row font-sans" id="owner-dashboard-container">
       
       {/* 1. COLLAPSIBLE SIDEBAR CONTAINER */}
+      {isMobileSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-40 md:hidden"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
       <aside 
-        className={`bg-[#0c0c0e] border-r border-zinc-900/90 flex flex-col justify-between transition-all duration-300 z-40 relative md:sticky md:top-0 md:h-screen shrink-0 ${
-          sidebarCollapsed ? "w-full md:w-20" : "w-full md:w-64"
+        className={`bg-[#0c0c0e] border-r border-zinc-900/90 flex flex-col justify-between transition-all duration-300 z-50 fixed inset-y-0 left-0 w-64 md:sticky md:top-0 md:h-screen shrink-0 ${
+          isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        } ${
+          sidebarCollapsed ? "md:w-20" : "md:w-64"
         }`}
         id="owner-dashboard-sidebar"
       >
@@ -489,7 +445,10 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
             return (
               <button
                 key={item.name}
-                onClick={() => setActiveTab(item.name)}
+                onClick={() => {
+                  setActiveTab(item.name);
+                  setIsMobileSidebarOpen(false);
+                }}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left transition-all text-xs font-semibold group relative ${
                   isActive 
                     ? "bg-gradient-to-r from-zinc-900 to-zinc-900/40 text-emerald-400 border-l-[3px] border-emerald-400 pl-2.5" 
@@ -502,7 +461,7 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                     name={item.icon} 
                     className={`w-4 h-4 transition-colors ${isActive ? "text-emerald-400" : "text-zinc-500 group-hover:text-zinc-300"}`} 
                   />
-                  {!sidebarCollapsed && <span>{item.name}</span>}
+                  {!sidebarCollapsed && <span>{item.label}</span>}
                 </div>
 
                 {item.badge > 0 && !sidebarCollapsed && (
@@ -514,7 +473,7 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                 {/* Micro tooltip if collapsed */}
                 {sidebarCollapsed && (
                   <div className="absolute left-full ml-2 px-2 py-1 bg-black text-white text-[10px] font-bold rounded opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap shadow-xl border border-zinc-800">
-                    {item.name} {item.badge > 0 && `(${item.badge})`}
+                    {item.label} {item.badge > 0 && `(${item.badge})`}
                   </div>
                 )}
               </button>
@@ -553,15 +512,25 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
         
         {/* Top Operational Status Bar */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-zinc-900/80 mb-8" id="workspace-top-bar">
-          <div className="text-left">
-            <div className="flex items-center gap-2 text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
-              <span>Merchant Station</span>
-              <span>•</span>
-              <span className="text-emerald-400">Connected Edge</span>
+          <div className="flex items-center gap-3 text-left">
+            <button
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white md:hidden transition-colors cursor-pointer shrink-0"
+              title="Open Navigation"
+            >
+              <LucideIcon name="Menu" className="w-5 h-5" />
+            </button>
+
+            <div>
+              <div className="flex items-center gap-2 text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+                <span>Merchant Station</span>
+                <span>•</span>
+                <span className="text-emerald-400">Connected Edge</span>
+              </div>
+              <h2 className="text-2xl font-bold tracking-tight text-white font-display mt-0.5">
+                {activeTab} Workspace
+              </h2>
             </div>
-            <h2 className="text-2xl font-bold tracking-tight text-white font-display mt-0.5">
-              {activeTab} Workspace
-            </h2>
           </div>
 
           <div className="flex items-center gap-3.5 self-stretch sm:self-auto" id="top-bar-controls">
@@ -608,11 +577,11 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                 {/* 5 MAIN CORE DASHBOARD STATS CARDS */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4" id="overview-metrics-row">
                   {[
-                    { title: "Website Views", val: "12,481", diff: "+14.2% MoM", icon: "Eye", color: "text-cyan-400", bg: "bg-cyan-500/10" },
-                    { title: "Total Revenue", val: "$8,429.50", diff: "+18.4% MoM", icon: "DollarSign", color: "text-emerald-400", bg: "bg-emerald-500/10" },
-                    { title: "Store Bookings", val: `${bookings.length}`, diff: "+8.1% MoM", icon: "Calendar", color: "text-purple-400", bg: "bg-purple-500/10" },
-                    { title: "Total Customers", val: `${customers.length}`, diff: "+12.5% MoM", icon: "Users", color: "text-amber-400", bg: "bg-amber-500/10" },
-                    { title: "Active Orders", val: `${orders.length}`, diff: "+22.1% MoM", icon: "ShoppingBag", color: "text-pink-400", bg: "bg-pink-500/10" },
+                    { title: "Website Views", val: "0", diff: "No traffic yet.", icon: "Eye", color: "text-cyan-400", bg: "bg-cyan-500/10", isGreen: false },
+                    { title: "Total Revenue", val: "₹0", diff: "No payments received.", icon: "DollarSign", color: "text-emerald-400", bg: "bg-emerald-500/10", isGreen: false },
+                    { title: "Store Bookings", val: `${bookings.length}`, diff: bookings.length === 0 ? "No bookings yet." : "Direct customer bookings", icon: "Calendar", color: "text-purple-400", bg: "bg-purple-500/10", isGreen: bookings.length > 0 },
+                    { title: "Total Customers", val: `${customers.length}`, diff: customers.length === 0 ? "No customers yet." : "Registered users base", icon: "Users", color: "text-amber-400", bg: "bg-amber-500/10", isGreen: customers.length > 0 },
+                    { title: "Active Orders", val: `${orders.length}`, diff: orders.length === 0 ? "No orders yet." : "Incoming product orders", icon: "ShoppingBag", color: "text-pink-400", bg: "bg-pink-500/10", isGreen: orders.length > 0 },
                   ].map((card, idx) => (
                     <div 
                       key={idx} 
@@ -622,7 +591,7 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                       <div className="text-left space-y-1">
                         <span className="text-[11px] font-mono text-zinc-500 uppercase tracking-wider">{card.title}</span>
                         <p className="text-xl sm:text-2xl font-bold text-white font-display tracking-tight">{card.val}</p>
-                        <span className="text-[10px] font-semibold text-emerald-400">{card.diff}</span>
+                        <span className={`text-[10px] font-semibold ${card.isGreen ? "text-emerald-400" : "text-zinc-500"}`}>{card.diff}</span>
                       </div>
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${card.bg} ${card.color}`}>
                         <LucideIcon name={card.icon} className="w-5 h-5" />
@@ -647,26 +616,33 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                     </div>
 
                     <div className="h-64 w-full" id="recharts-revenue-container">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={ANALYTICS_REVENUE_DATA} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                          <defs>
-                            <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#10B981" stopOpacity={0.2}/>
-                              <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
-                            </linearGradient>
-                            <linearGradient id="colorView" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.2}/>
-                              <stop offset="95%" stopColor="#06B6D4" stopOpacity={0}/>
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
-                          <XAxis dataKey="name" stroke="#52525b" fontSize={11} tickLine={false} />
-                          <YAxis stroke="#52525b" fontSize={11} tickLine={false} />
-                          <Tooltip contentStyle={{ backgroundColor: "#09090b", borderColor: "#27272a", color: "#fff" }} />
-                          <Area type="monotone" dataKey="Revenue" stroke="#10B981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRev)" />
-                          <Area type="monotone" dataKey="Views" stroke="#06B6D4" strokeWidth={2} fillOpacity={1} fill="url(#colorView)" />
-                        </AreaChart>
-                      </ResponsiveContainer>
+                      {ANALYTICS_REVENUE_DATA.length === 0 ? (
+                        <div className="w-full h-full flex flex-col items-center justify-center border border-dashed border-zinc-800/80 rounded-2xl bg-zinc-950/20">
+                          <LucideIcon name="BarChart3" className="w-8 h-8 text-zinc-600 mb-2" />
+                          <p className="text-xs text-zinc-500 font-semibold">No analytics available yet.</p>
+                        </div>
+                      ) : (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={ANALYTICS_REVENUE_DATA} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                            <defs>
+                              <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#10B981" stopOpacity={0.2}/>
+                                <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                              </linearGradient>
+                              <linearGradient id="colorView" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.2}/>
+                                <stop offset="95%" stopColor="#06B6D4" stopOpacity={0}/>
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
+                            <XAxis dataKey="name" stroke="#52525b" fontSize={11} tickLine={false} />
+                            <YAxis stroke="#52525b" fontSize={11} tickLine={false} />
+                            <Tooltip contentStyle={{ backgroundColor: "#09090b", borderColor: "#27272a", color: "#fff" }} />
+                            <Area type="monotone" dataKey="Revenue" stroke="#10B981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRev)" />
+                            <Area type="monotone" dataKey="Views" stroke="#06B6D4" strokeWidth={2} fillOpacity={1} fill="url(#colorView)" />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      )}
                     </div>
                   </div>
 
@@ -678,38 +654,49 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                     </div>
 
                     <div className="h-48 w-full relative flex items-center justify-center">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={PIE_TRAFFIC_DATA}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={55}
-                            outerRadius={75}
-                            paddingAngle={5}
-                            dataKey="value"
-                          >
-                            {PIE_TRAFFIC_DATA.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                          </Pie>
-                        </PieChart>
-                      </ResponsiveContainer>
-                      <div className="absolute text-center">
-                        <span className="text-xs font-mono text-zinc-500 uppercase">Total Hits</span>
-                        <p className="text-xl font-black text-white">12,481</p>
-                      </div>
+                      {PIE_TRAFFIC_DATA.length === 0 ? (
+                        <div className="w-full h-full flex flex-col items-center justify-center border border-dashed border-zinc-800/80 rounded-2xl bg-zinc-950/20">
+                          <LucideIcon name="PieChart" className="w-8 h-8 text-zinc-600 mb-2" />
+                          <p className="text-xs text-zinc-500 font-semibold">No analytics available yet.</p>
+                        </div>
+                      ) : (
+                        <>
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={PIE_TRAFFIC_DATA}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={55}
+                                outerRadius={75}
+                                paddingAngle={5}
+                                dataKey="value"
+                              >
+                                {PIE_TRAFFIC_DATA.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                              </Pie>
+                            </PieChart>
+                          </ResponsiveContainer>
+                          <div className="absolute text-center">
+                            <span className="text-xs font-mono text-zinc-500 uppercase">Total Hits</span>
+                            <p className="text-xl font-black text-white">0</p>
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     {/* Legends stack */}
-                    <div className="grid grid-cols-2 gap-2 text-[10px] font-mono text-zinc-400">
-                      {PIE_TRAFFIC_DATA.map((item, idx) => (
-                        <div key={idx} className="flex items-center gap-1.5">
-                          <span className="w-2.5 h-2.5 rounded" style={{ backgroundColor: item.color }} />
-                          <span className="truncate">{item.name}</span>
-                        </div>
-                      ))}
-                    </div>
+                    {PIE_TRAFFIC_DATA.length > 0 && (
+                      <div className="grid grid-cols-2 gap-2 text-[10px] font-mono text-zinc-400">
+                        {PIE_TRAFFIC_DATA.map((item, idx) => (
+                          <div key={idx} className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded" style={{ backgroundColor: item.color }} />
+                            <span className="truncate">{item.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                 </div>
@@ -727,28 +714,32 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                     </div>
 
                     <div className="space-y-4">
-                      {activities.slice(0, 5).map((act) => (
-                        <div key={act.id} className="flex items-start gap-3.5 pb-3 border-b border-zinc-900 last:border-0 last:pb-0">
-                          <div className="w-8 h-8 rounded-lg bg-zinc-900/80 border border-zinc-800 flex items-center justify-center shrink-0">
-                            <LucideIcon 
-                              name={
-                                act.type === "booking" ? "Calendar" :
-                                act.type === "product" ? "ShoppingBag" :
-                                act.type === "payout" ? "CreditCard" : "Server"
-                              } 
-                              className="w-4 h-4 text-zinc-400" 
-                            />
-                          </div>
-
-                          <div className="flex-grow space-y-0.5">
-                            <div className="flex justify-between items-center">
-                              <p className="text-xs font-bold text-zinc-200">{act.event}</p>
-                              <span className="text-[10px] font-mono text-zinc-500">{act.time}</span>
+                      {activities.slice(0, 5).length === 0 ? (
+                        <p className="text-xs text-zinc-500 py-6 text-center">No recent activity logged.</p>
+                      ) : (
+                        activities.slice(0, 5).map((act) => (
+                          <div key={act.id} className="flex items-start gap-3.5 pb-3 border-b border-zinc-900 last:border-0 last:pb-0">
+                            <div className="w-8 h-8 rounded-lg bg-zinc-900/80 border border-zinc-800 flex items-center justify-center shrink-0">
+                              <LucideIcon 
+                                name={
+                                  act.type === "booking" ? "Calendar" :
+                                  act.type === "product" ? "ShoppingBag" :
+                                  act.type === "payout" ? "CreditCard" : "Server"
+                                } 
+                                className="w-4 h-4 text-zinc-400" 
+                              />
                             </div>
-                            <p className="text-xs text-zinc-400 leading-normal">{act.detail}</p>
+
+                            <div className="flex-grow space-y-0.5">
+                              <div className="flex justify-between items-center">
+                                <p className="text-xs font-bold text-zinc-200">{act.event}</p>
+                                <span className="text-[10px] font-mono text-zinc-500">{act.time}</span>
+                              </div>
+                              <p className="text-xs text-zinc-400 leading-normal">{act.detail}</p>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))
+                      )}
                     </div>
                   </div>
 
@@ -762,42 +753,46 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                     </div>
 
                     <div className="space-y-4">
-                      {bookings.slice(0, 4).map((bk) => (
-                        <div key={bk.id} className="flex items-center justify-between p-3.5 rounded-xl bg-zinc-900/30 border border-zinc-900/60 hover:bg-zinc-900/60 transition-all">
-                          <div className="text-left space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-white">{bk.customer}</span>
-                              <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
-                                bk.status === "Confirmed" ? "bg-emerald-500/10 text-emerald-400" :
-                                bk.status === "Pending" ? "bg-amber-500/10 text-amber-400 animate-pulse" : "bg-cyan-500/10 text-cyan-400"
-                              }`}>
-                                {bk.status}
-                              </span>
+                      {bookings.slice(0, 4).length === 0 ? (
+                        <p className="text-xs text-zinc-500 py-6 text-center">No bookings yet.</p>
+                      ) : (
+                        bookings.slice(0, 4).map((bk) => (
+                          <div key={bk.id} className="flex items-center justify-between p-3.5 rounded-xl bg-zinc-900/30 border border-zinc-900/60 hover:bg-zinc-900/60 transition-all">
+                            <div className="text-left space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-white">{bk.customer}</span>
+                                <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
+                                  bk.status === "Confirmed" ? "bg-emerald-500/10 text-emerald-400" :
+                                  bk.status === "Pending" ? "bg-amber-500/10 text-amber-400 animate-pulse" : "bg-cyan-500/10 text-cyan-400"
+                                }`}>
+                                  {bk.status}
+                                </span>
+                              </div>
+                              <p className="text-xs text-zinc-400">{bk.service}</p>
+                              <p className="text-[10px] font-mono text-zinc-500">{bk.date} • {bk.time}</p>
                             </div>
-                            <p className="text-xs text-zinc-400">{bk.service}</p>
-                            <p className="text-[10px] font-mono text-zinc-500">{bk.date} • {bk.time}</p>
-                          </div>
 
-                          {bk.status === "Pending" && (
-                            <div className="flex gap-1.5 shrink-0">
-                              <button 
-                                onClick={() => handleBookingAction(bk.id, "Confirm")}
-                                className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center hover:bg-emerald-500 hover:text-black transition-colors"
-                                title="Approve Reservation"
-                              >
-                                <LucideIcon name="Check" className="w-3.5 h-3.5 stroke-[3]" />
-                              </button>
-                              <button 
-                                onClick={() => handleBookingAction(bk.id, "Reject")}
-                                className="w-7 h-7 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors"
-                                title="Cancel/Decline"
-                              >
-                                <LucideIcon name="X" className="w-3.5 h-3.5 stroke-[3]" />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                            {bk.status === "Pending" && (
+                              <div className="flex gap-1.5 shrink-0">
+                                <button 
+                                  onClick={() => handleBookingAction(bk.id, "Confirm")}
+                                  className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center hover:bg-emerald-500 hover:text-black transition-colors"
+                                  title="Approve Reservation"
+                                >
+                                  <LucideIcon name="Check" className="w-3.5 h-3.5 stroke-[3]" />
+                                </button>
+                                <button 
+                                  onClick={() => handleBookingAction(bk.id, "Reject")}
+                                  className="w-7 h-7 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors"
+                                  title="Cancel/Decline"
+                                >
+                                  <LucideIcon name="X" className="w-3.5 h-3.5 stroke-[3]" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
 
@@ -1252,15 +1247,22 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                     </div>
 
                     <div className="h-56 w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={ANALYTICS_REVENUE_DATA}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
-                          <XAxis dataKey="name" stroke="#52525b" fontSize={11} tickLine={false} />
-                          <YAxis stroke="#52525b" fontSize={11} tickLine={false} />
-                          <Tooltip contentStyle={{ backgroundColor: "#09090b", borderColor: "#27272a" }} />
-                          <Bar dataKey="Views" fill="#06B6D4" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                      </ResponsiveContainer>
+                      {ANALYTICS_REVENUE_DATA.length === 0 ? (
+                        <div className="w-full h-full flex flex-col items-center justify-center border border-dashed border-zinc-800/80 rounded-2xl bg-zinc-950/20">
+                          <LucideIcon name="BarChart3" className="w-8 h-8 text-zinc-600 mb-2" />
+                          <p className="text-xs text-zinc-500 font-semibold">No analytics available yet.</p>
+                        </div>
+                      ) : (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={ANALYTICS_REVENUE_DATA}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
+                            <XAxis dataKey="name" stroke="#52525b" fontSize={11} tickLine={false} />
+                            <YAxis stroke="#52525b" fontSize={11} tickLine={false} />
+                            <Tooltip contentStyle={{ backgroundColor: "#09090b", borderColor: "#27272a" }} />
+                            <Bar dataKey="Views" fill="#06B6D4" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
                     </div>
                   </div>
 
@@ -1272,15 +1274,22 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                     </div>
 
                     <div className="h-56 w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={ANALYTICS_REVENUE_DATA}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
-                          <XAxis dataKey="name" stroke="#52525b" fontSize={11} tickLine={false} />
-                          <YAxis stroke="#52525b" fontSize={11} tickLine={false} />
-                          <Tooltip contentStyle={{ backgroundColor: "#09090b", borderColor: "#27272a" }} />
-                          <Bar dataKey="Orders" fill="#EC4899" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                      </ResponsiveContainer>
+                      {ANALYTICS_REVENUE_DATA.length === 0 ? (
+                        <div className="w-full h-full flex flex-col items-center justify-center border border-dashed border-zinc-800/80 rounded-2xl bg-zinc-950/20">
+                          <LucideIcon name="BarChart3" className="w-8 h-8 text-zinc-600 mb-2" />
+                          <p className="text-xs text-zinc-500 font-semibold">No analytics available yet.</p>
+                        </div>
+                      ) : (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={ANALYTICS_REVENUE_DATA}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
+                            <XAxis dataKey="name" stroke="#52525b" fontSize={11} tickLine={false} />
+                            <YAxis stroke="#52525b" fontSize={11} tickLine={false} />
+                            <Tooltip contentStyle={{ backgroundColor: "#09090b", borderColor: "#27272a" }} />
+                            <Bar dataKey="Orders" fill="#EC4899" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
                     </div>
                   </div>
 
@@ -1302,10 +1311,10 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                       </thead>
                       <tbody className="divide-y divide-zinc-900 text-zinc-300">
                         {[
-                          { step: "Total Page Sessions", value: "12,481 Visited", pct: "100%", level: "Stable", color: "text-zinc-400" },
-                          { step: "Inquiry / Bookings Click", value: "1,840 Attempted", pct: "14.7%", level: "Strong", color: "text-cyan-400" },
-                          { step: "Calendar Confirmation", value: "184 Scheduled", pct: "10.0% of Clicks", level: "Optimal", color: "text-emerald-400" },
-                          { step: "Product Sales Checkout", value: "94 Checked Out", pct: "5.1% of Clicks", level: "Growing", color: "text-amber-400" },
+                          { step: "Total Page Sessions", value: "0 Visited", pct: "0%", level: "No traffic yet.", color: "text-zinc-500" },
+                          { step: "Inquiry / Bookings Click", value: "0 Attempted", pct: "0%", level: "--", color: "text-zinc-500" },
+                          { step: "Calendar Confirmation", value: `${bookings.length} Scheduled`, pct: bookings.length > 0 ? "100%" : "0%", level: bookings.length > 0 ? "Active" : "--", color: bookings.length > 0 ? "text-emerald-400" : "text-zinc-500" },
+                          { step: "Product Sales Checkout", value: `${orders.length} Checked Out`, pct: orders.length > 0 ? "100%" : "0%", level: orders.length > 0 ? "Active" : "--", color: orders.length > 0 ? "text-amber-400" : "text-zinc-500" },
                         ].map((row, idx) => (
                           <tr key={idx} className="hover:bg-zinc-900/30">
                             <td className="py-3.5 px-4 font-semibold text-white">{row.step}</td>
@@ -1348,74 +1357,92 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
 
                 {/* Grid bookings list */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4" id="bookings-management-grid">
-                  {bookings
-                    .filter(b => 
-                      b.customer.toLowerCase().includes(bookingQuery.toLowerCase()) || 
-                      b.service.toLowerCase().includes(bookingQuery.toLowerCase()) ||
-                      b.id.toLowerCase().includes(bookingQuery.toLowerCase())
-                    )
-                    .map((bk) => (
-                      <div 
-                        key={bk.id} 
-                        className="p-5 rounded-2xl bg-zinc-950/40 border border-zinc-900 flex flex-col justify-between gap-4 hover:border-zinc-800 transition-all"
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-1">
-                            <span className="text-[10px] font-mono text-zinc-500 uppercase font-black">{bk.id}</span>
-                            <h4 className="text-sm font-bold text-white font-display">{bk.customer}</h4>
-                            <p className="text-xs text-zinc-400 font-mono">{bk.email}</p>
-                          </div>
-                          <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${
-                            bk.status === "Confirmed" ? "bg-emerald-500/10 text-emerald-400" :
-                            bk.status === "Pending" ? "bg-amber-500/10 text-amber-400" : "bg-red-500/10 text-red-400"
-                          }`}>
-                            {bk.status}
-                          </span>
-                        </div>
-
-                        <div className="p-3 bg-zinc-900/40 border border-zinc-850 rounded-xl flex items-center justify-between text-xs text-zinc-300">
-                          <div>
-                            <p className="text-zinc-500 text-[10px] font-mono">SERVICE REQUEST</p>
-                            <p className="font-bold text-white">{bk.service}</p>
-                            <p className="text-zinc-400 mt-0.5">{bk.date} at {bk.time}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-zinc-500 text-[10px] font-mono">FEES</p>
-                            <p className="text-sm font-black text-emerald-400">${bk.amount}</p>
-                          </div>
-                        </div>
-
-                        {/* Interactive trigger actions inside table */}
-                        <div className="flex justify-end gap-2 border-t border-zinc-900 pt-3">
-                          {bk.status === "Pending" ? (
-                            <>
-                              <button
-                                onClick={() => handleBookingAction(bk.id, "Reject")}
-                                className="px-3 py-1.5 rounded-lg border border-red-500/20 text-red-400 bg-red-500/5 hover:bg-red-500/10 text-xs font-semibold"
-                              >
-                                Decline
-                              </button>
-                              <button
-                                onClick={() => handleBookingAction(bk.id, "Confirm")}
-                                className="px-3 py-1.5 rounded-lg bg-emerald-500 text-black hover:opacity-90 text-xs font-bold"
-                              >
-                                Approve
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                // Simulate messaging client
-                                alert(`Simulating mail communication dispatch to ${bk.email}`);
-                              }}
-                              className="px-3 py-1.5 rounded-lg border border-zinc-850 text-zinc-400 hover:text-white text-xs font-semibold"
-                            >
-                              Email Client
-                            </button>
-                          )}
-                        </div>
+                  {bookings.filter(b => 
+                    b.customer.toLowerCase().includes(bookingQuery.toLowerCase()) || 
+                    b.service.toLowerCase().includes(bookingQuery.toLowerCase()) ||
+                    b.id.toLowerCase().includes(bookingQuery.toLowerCase())
+                  ).length === 0 ? (
+                    <div className="md:col-span-2 p-12 text-center rounded-2xl border border-dashed border-zinc-800/80 bg-zinc-950/20 space-y-4">
+                      <div className="w-12 h-12 rounded-full bg-zinc-900/60 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-500">
+                        <LucideIcon name="Calendar" className="w-6 h-6" />
                       </div>
-                    ))}
+                      <div className="space-y-1 max-w-sm mx-auto">
+                        <h4 className="text-sm font-bold text-white">No Bookings Yet</h4>
+                        <p className="text-xs text-zinc-500 leading-normal">
+                          Publish your website to start receiving bookings from customers.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    bookings
+                      .filter(b => 
+                        b.customer.toLowerCase().includes(bookingQuery.toLowerCase()) || 
+                        b.service.toLowerCase().includes(bookingQuery.toLowerCase()) ||
+                        b.id.toLowerCase().includes(bookingQuery.toLowerCase())
+                      )
+                      .map((bk) => (
+                        <div 
+                          key={bk.id} 
+                          className="p-5 rounded-2xl bg-zinc-950/40 border border-zinc-900 flex flex-col justify-between gap-4 hover:border-zinc-800 transition-all"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-mono text-zinc-500 uppercase font-black">{bk.id}</span>
+                              <h4 className="text-sm font-bold text-white font-display">{bk.customer}</h4>
+                              <p className="text-xs text-zinc-400 font-mono">{bk.email}</p>
+                            </div>
+                            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${
+                              bk.status === "Confirmed" ? "bg-emerald-500/10 text-emerald-400" :
+                              bk.status === "Pending" ? "bg-amber-500/10 text-amber-400" : "bg-red-500/10 text-red-400"
+                            }`}>
+                              {bk.status}
+                            </span>
+                          </div>
+
+                          <div className="p-3 bg-zinc-900/40 border border-zinc-850 rounded-xl flex items-center justify-between text-xs text-zinc-300">
+                            <div>
+                              <p className="text-zinc-500 text-[10px] font-mono">SERVICE REQUEST</p>
+                              <p className="font-bold text-white">{bk.service}</p>
+                              <p className="text-zinc-400 mt-0.5">{bk.date} at {bk.time}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-zinc-500 text-[10px] font-mono">FEES</p>
+                              <p className="text-sm font-black text-emerald-400">${bk.amount}</p>
+                            </div>
+                          </div>
+
+                          {/* Interactive trigger actions inside table */}
+                          <div className="flex justify-end gap-2 border-t border-zinc-900 pt-3">
+                            {bk.status === "Pending" ? (
+                              <>
+                                <button
+                                  onClick={() => handleBookingAction(bk.id, "Reject")}
+                                  className="px-3 py-1.5 rounded-lg border border-red-500/20 text-red-400 bg-red-500/5 hover:bg-red-500/10 text-xs font-semibold"
+                                >
+                                  Decline
+                                </button>
+                                <button
+                                  onClick={() => handleBookingAction(bk.id, "Confirm")}
+                                  className="px-3 py-1.5 rounded-lg bg-emerald-500 text-black hover:opacity-90 text-xs font-bold"
+                                >
+                                  Approve
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  // Simulate messaging client
+                                  alert(`Simulating mail communication dispatch to ${bk.email}`);
+                                }}
+                                className="px-3 py-1.5 rounded-lg border border-zinc-850 text-zinc-400 hover:text-white text-xs font-semibold"
+                              >
+                                Email Client
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                  )}
                 </div>
               </motion.div>
             )}
@@ -1455,28 +1482,49 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-900 text-zinc-300">
-                      {customers
-                        .filter(c => 
-                          c.name.toLowerCase().includes(customerQuery.toLowerCase()) || 
-                          c.email.toLowerCase().includes(customerQuery.toLowerCase())
-                        )
-                        .map((cust) => (
-                          <tr key={cust.id} className="hover:bg-zinc-900/30">
-                            <td className="py-4 px-4 font-bold text-white">{cust.name}</td>
-                            <td className="py-4 px-4 font-mono">{cust.email}</td>
-                            <td className="py-4 px-4">{cust.joined}</td>
-                            <td className="py-4 px-4 font-mono">{cust.bookings} sessions</td>
-                            <td className="py-4 px-4 font-mono font-bold text-emerald-400">${cust.spent}</td>
-                            <td className="py-4 px-4 text-right">
-                              <button
-                                onClick={() => setSelectedCustomerDetail(cust)}
-                                className="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 text-[11px]"
-                              >
-                                View File
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
+                      {customers.filter(c => 
+                        c.name.toLowerCase().includes(customerQuery.toLowerCase()) || 
+                        c.email.toLowerCase().includes(customerQuery.toLowerCase())
+                      ).length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-12 text-center text-zinc-500">
+                            <div className="space-y-4">
+                              <div className="w-12 h-12 rounded-full bg-zinc-900/60 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-500">
+                                <LucideIcon name="Users" className="w-6 h-6" />
+                              </div>
+                              <div className="space-y-1 max-w-sm mx-auto">
+                                <h4 className="text-sm font-bold text-white">No Customers Yet</h4>
+                                <p className="text-xs text-zinc-500 leading-normal">
+                                  Customers will appear here automatically when they book or buy on your site.
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        customers
+                          .filter(c => 
+                            c.name.toLowerCase().includes(customerQuery.toLowerCase()) || 
+                            c.email.toLowerCase().includes(customerQuery.toLowerCase())
+                          )
+                          .map((cust) => (
+                            <tr key={cust.id} className="hover:bg-zinc-900/30">
+                              <td className="py-4 px-4 font-bold text-white">{cust.name}</td>
+                              <td className="py-4 px-4 font-mono">{cust.email}</td>
+                              <td className="py-4 px-4">{cust.joined}</td>
+                              <td className="py-4 px-4 font-mono">{cust.bookings} sessions</td>
+                              <td className="py-4 px-4 font-mono font-bold text-emerald-400">${cust.spent}</td>
+                              <td className="py-4 px-4 text-right">
+                                <button
+                                  onClick={() => setSelectedCustomerDetail(cust)}
+                                  className="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 text-[11px]"
+                                >
+                                  View File
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -1515,7 +1563,7 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-4 text-xs">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                             <div className="bg-zinc-900 p-3 rounded-xl">
                               <p className="text-zinc-500 font-mono text-[9px] uppercase">Registered Since</p>
                               <p className="font-bold text-white mt-0.5">{selectedCustomerDetail.joined}</p>
@@ -1583,45 +1631,59 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
 
                 {/* Products Grid list with Mutator controls */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="products-catalog-grid">
-                  {products
-                    .filter(p => p.name.toLowerCase().includes(productQuery.toLowerCase()))
-                    .map((p) => (
-                      <div key={p.id} className="bg-zinc-950/40 border border-zinc-900 rounded-2xl overflow-hidden hover:border-zinc-800 transition-all flex flex-col justify-between">
-                        <div className="aspect-square w-full bg-zinc-900 relative">
-                          <img src={p.image} alt={p.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                          <div className="absolute top-2 right-2 bg-black/80 backdrop-blur-md text-emerald-400 font-mono font-bold text-xs px-2.5 py-1 rounded-lg border border-zinc-850">
-                            ${p.price}
-                          </div>
-                        </div>
-
-                        <div className="p-4 space-y-3">
-                          <div className="space-y-0.5">
-                            <span className="text-[9px] font-mono text-zinc-500 uppercase">CATALOG ID: {p.id}</span>
-                            <h4 className="text-xs font-bold text-white truncate">{p.name}</h4>
-                          </div>
-
-                          <div className="flex justify-between items-center text-[10px] text-zinc-400">
-                            <span>Sales: <span className="font-bold text-white">{p.sales} units</span></span>
-                            <span className={p.stock > 0 ? "text-emerald-400" : "text-red-400"}>
-                              {p.stock > 0 ? `${p.stock} units left` : "Out of Stock"}
-                            </span>
-                          </div>
-
-                          {/* Instant stock adjusting mutator slider */}
-                          <div className="space-y-1 pt-2 border-t border-zinc-900 text-left">
-                            <span className="text-[9px] font-mono text-zinc-500 uppercase">Adjust Inventory</span>
-                            <input 
-                              type="range" 
-                              min="0" 
-                              max="100" 
-                              value={p.stock} 
-                              onChange={(e) => handleProductStockChange(p.id, Number(e.target.value))}
-                              className="w-full accent-emerald-400" 
-                            />
-                          </div>
-                        </div>
+                  {products.filter(p => p.name.toLowerCase().includes(productQuery.toLowerCase())).length === 0 ? (
+                    <div className="lg:col-span-4 md:col-span-2 p-12 text-center rounded-2xl border border-dashed border-zinc-800/80 bg-zinc-950/20 space-y-4">
+                      <div className="w-12 h-12 rounded-full bg-zinc-900/60 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-500">
+                        <LucideIcon name="ShoppingBag" className="w-6 h-6" />
                       </div>
-                    ))}
+                      <div className="space-y-1 max-w-sm mx-auto">
+                        <h4 className="text-sm font-bold text-white">No Products Added</h4>
+                        <p className="text-xs text-zinc-500 leading-normal">
+                          Get started by adding items to your storefront catalog.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    products
+                      .filter(p => p.name.toLowerCase().includes(productQuery.toLowerCase()))
+                      .map((p) => (
+                        <div key={p.id} className="bg-zinc-950/40 border border-zinc-900 rounded-2xl overflow-hidden hover:border-zinc-800 transition-all flex flex-col justify-between">
+                          <div className="aspect-square w-full bg-zinc-900 relative">
+                            <img src={p.image} alt={p.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            <div className="absolute top-2 right-2 bg-black/80 backdrop-blur-md text-emerald-400 font-mono font-bold text-xs px-2.5 py-1 rounded-lg border border-zinc-850">
+                              ${p.price}
+                            </div>
+                          </div>
+
+                          <div className="p-4 space-y-3">
+                            <div className="space-y-0.5">
+                              <span className="text-[9px] font-mono text-zinc-500 uppercase">CATALOG ID: {p.id}</span>
+                              <h4 className="text-xs font-bold text-white truncate">{p.name}</h4>
+                            </div>
+
+                            <div className="flex justify-between items-center text-[10px] text-zinc-400">
+                              <span>Sales: <span className="font-bold text-white">{p.sales} units</span></span>
+                              <span className={p.stock > 0 ? "text-emerald-400" : "text-red-400"}>
+                                {p.stock > 0 ? `${p.stock} units left` : "Out of Stock"}
+                              </span>
+                            </div>
+
+                            {/* Instant stock adjusting mutator slider */}
+                            <div className="space-y-1 pt-2 border-t border-zinc-900 text-left">
+                              <span className="text-[9px] font-mono text-zinc-500 uppercase">Adjust Inventory</span>
+                              <input 
+                                type="range" 
+                                min="0" 
+                                max="100" 
+                                value={p.stock} 
+                                onChange={(e) => handleProductStockChange(p.id, Number(e.target.value))}
+                                className="w-full accent-emerald-400" 
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                  )}
                 </div>
 
                 {/* Create product drawer overlay */}
@@ -1662,7 +1724,7 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                             />
                           </div>
 
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div className="space-y-1.5">
                               <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Retail Price ($)</label>
                               <input 
@@ -1734,49 +1796,63 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                 </div>
 
                 <div className="p-6 rounded-2xl bg-zinc-950/40 border border-zinc-900 space-y-4">
-                  {orders
-                    .filter(o => o.customer.toLowerCase().includes(orderQuery.toLowerCase()) || o.tracking.toLowerCase().includes(orderQuery.toLowerCase()))
-                    .map((ord) => (
-                      <div key={ord.id} className="p-4 rounded-xl bg-zinc-900/40 border border-zinc-850 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-mono text-zinc-500 font-bold">{ord.id}</span>
-                            <span className={`text-[9px] font-mono px-2 py-0.5 rounded-full ${
-                              ord.status === "Delivered" ? "bg-emerald-500/10 text-emerald-400" :
-                              ord.status === "Shipped" ? "bg-cyan-500/10 text-cyan-400" : "bg-amber-500/10 text-amber-400 animate-pulse"
-                            }`}>
-                              {ord.status}
-                            </span>
-                          </div>
-                          <h4 className="text-sm font-bold text-white">{ord.customer}</h4>
-                          <p className="text-xs text-zinc-400 leading-normal">{ord.items}</p>
-                          <p className="text-[10px] font-mono text-zinc-500">Placed: {ord.date} • Tracking: {ord.tracking}</p>
-                        </div>
-
-                        <div className="flex sm:flex-col items-start sm:items-end justify-between sm:justify-center gap-2 shrink-0">
-                          <p className="text-sm font-black text-emerald-400">${ord.amount}</p>
-                          
-                          <div className="flex gap-1.5">
-                            {ord.status === "Processing" && (
-                              <button 
-                                onClick={() => handleOrderAction(ord.id, "Shipped")}
-                                className="px-2.5 py-1 rounded bg-cyan-500 text-black font-bold text-[10px]"
-                              >
-                                Mark Shipped
-                              </button>
-                            )}
-                            {ord.status === "Shipped" && (
-                              <button 
-                                onClick={() => handleOrderAction(ord.id, "Delivered")}
-                                className="px-2.5 py-1 rounded bg-emerald-500 text-black font-bold text-[10px]"
-                              >
-                                Mark Delivered
-                              </button>
-                            )}
-                          </div>
-                        </div>
+                  {orders.filter(o => o.customer.toLowerCase().includes(orderQuery.toLowerCase()) || o.tracking.toLowerCase().includes(orderQuery.toLowerCase())).length === 0 ? (
+                    <div className="p-12 text-center rounded-2xl border border-dashed border-zinc-800/80 bg-zinc-950/20 space-y-4">
+                      <div className="w-12 h-12 rounded-full bg-zinc-900/60 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-500">
+                        <LucideIcon name="ShoppingCart" className="w-6 h-6" />
                       </div>
-                    ))}
+                      <div className="space-y-1 max-w-sm mx-auto">
+                        <h4 className="text-sm font-bold text-white">No Orders Yet</h4>
+                        <p className="text-xs text-zinc-500 leading-normal">
+                          Orders will appear here once customers buy physical products from your online shop.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    orders
+                      .filter(o => o.customer.toLowerCase().includes(orderQuery.toLowerCase()) || o.tracking.toLowerCase().includes(orderQuery.toLowerCase()))
+                      .map((ord) => (
+                        <div key={ord.id} className="p-4 rounded-xl bg-zinc-900/40 border border-zinc-850 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-mono text-zinc-500 font-bold">{ord.id}</span>
+                              <span className={`text-[9px] font-mono px-2 py-0.5 rounded-full ${
+                                ord.status === "Delivered" ? "bg-emerald-500/10 text-emerald-400" :
+                                ord.status === "Shipped" ? "bg-cyan-500/10 text-cyan-400" : "bg-amber-500/10 text-amber-400 animate-pulse"
+                              }`}>
+                                {ord.status}
+                              </span>
+                            </div>
+                            <h4 className="text-sm font-bold text-white">{ord.customer}</h4>
+                            <p className="text-xs text-zinc-400 leading-normal">{ord.items}</p>
+                            <p className="text-[10px] font-mono text-zinc-500">Placed: {ord.date} • Tracking: {ord.tracking}</p>
+                          </div>
+
+                          <div className="flex sm:flex-col items-start sm:items-end justify-between sm:justify-center gap-2 shrink-0">
+                            <p className="text-sm font-black text-emerald-400">${ord.amount}</p>
+                            
+                            <div className="flex gap-1.5">
+                              {ord.status === "Processing" && (
+                                <button 
+                                  onClick={() => handleOrderAction(ord.id, "Shipped")}
+                                  className="px-2.5 py-1 rounded bg-cyan-500 text-black font-bold text-[10px]"
+                                >
+                                  Mark Shipped
+                                </button>
+                              )}
+                              {ord.status === "Shipped" && (
+                                <button 
+                                  onClick={() => handleOrderAction(ord.id, "Delivered")}
+                                  className="px-2.5 py-1 rounded bg-emerald-500 text-black font-bold text-[10px]"
+                                >
+                                  Mark Delivered
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                  )}
                 </div>
               </motion.div>
             )}
@@ -1793,13 +1869,15 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                 <div className="p-6 rounded-2xl bg-zinc-950/40 border border-zinc-900 grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="p-4 bg-zinc-900/40 rounded-xl border border-zinc-850">
                     <p className="text-zinc-500 text-[10px] font-mono font-bold uppercase">Aggregate Rating</p>
-                    <p className="text-3xl font-black text-white font-display mt-1">4.8 / 5.0</p>
+                    <p className="text-3xl font-black text-white font-display mt-1">
+                      {reviews.length > 0 ? "4.8 / 5.0" : "0.0 / 5.0"}
+                    </p>
                     <div className="flex gap-1.5 text-amber-400 mt-2">
-                      <LucideIcon name="Star" className="w-4 h-4 fill-current" />
-                      <LucideIcon name="Star" className="w-4 h-4 fill-current" />
-                      <LucideIcon name="Star" className="w-4 h-4 fill-current" />
-                      <LucideIcon name="Star" className="w-4 h-4 fill-current" />
-                      <LucideIcon name="Star" className="w-4 h-4 fill-current" />
+                      <LucideIcon name="Star" className={`w-4 h-4 ${reviews.length > 0 ? "fill-current" : "text-zinc-800"}`} />
+                      <LucideIcon name="Star" className={`w-4 h-4 ${reviews.length > 0 ? "fill-current" : "text-zinc-800"}`} />
+                      <LucideIcon name="Star" className={`w-4 h-4 ${reviews.length > 0 ? "fill-current" : "text-zinc-800"}`} />
+                      <LucideIcon name="Star" className={`w-4 h-4 ${reviews.length > 0 ? "fill-current" : "text-zinc-800"}`} />
+                      <LucideIcon name="Star" className={`w-4 h-4 ${reviews.length > 0 ? "fill-current" : "text-zinc-800"}`} />
                     </div>
                   </div>
                   <div className="p-4 bg-zinc-900/40 rounded-xl border border-zinc-850">
@@ -1810,88 +1888,102 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                   <div className="p-4 bg-zinc-900/40 rounded-xl border border-zinc-850">
                     <p className="text-zinc-500 text-[10px] font-mono font-bold uppercase">Response Matrix</p>
                     <p className="text-3xl font-black text-emerald-400 font-display mt-1">
-                      {Math.floor((reviews.filter(r => r.reply).length / reviews.length) * 100)}%
+                      {reviews.length > 0 ? Math.floor((reviews.filter(r => r.reply).length / reviews.length) * 100) : 0}%
                     </p>
                     <p className="text-xs text-zinc-500 mt-2">Replying builds extreme customer retention</p>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  {reviews.map((rev) => (
-                    <div key={rev.id} className="p-5 rounded-2xl bg-zinc-950/40 border border-zinc-900 space-y-4">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <h4 className="text-sm font-bold text-white">{rev.author}</h4>
-                          <div className="flex items-center gap-2">
-                            <div className="flex gap-0.5 text-amber-400">
-                              {[...Array(5)].map((_, idx) => (
-                                <span key={idx}>
-                                  <LucideIcon name="Star" className={`w-3 h-3 ${idx < rev.rating ? "fill-current" : "text-zinc-700"}`} />
-                                </span>
-                              ))}
-                            </div>
-                            <span className="text-[10px] text-zinc-500">• {rev.date}</span>
-                          </div>
-                        </div>
-                        <span className="text-[10px] font-mono uppercase bg-zinc-900 text-zinc-400 px-2 py-0.5 rounded">
-                          {rev.service}
-                        </span>
+                  {reviews.length === 0 ? (
+                    <div className="p-12 text-center rounded-2xl border border-dashed border-zinc-800/80 bg-zinc-950/20 space-y-4">
+                      <div className="w-12 h-12 rounded-full bg-zinc-900/60 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-500">
+                        <LucideIcon name="Star" className="w-6 h-6" />
                       </div>
-
-                      <p className="text-xs text-zinc-300 leading-normal italic">
-                        "{rev.comment}"
-                      </p>
-
-                      {/* Display Reply if existing */}
-                      {rev.reply ? (
-                        <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-850 pl-4 border-l-2 border-l-emerald-400">
-                          <p className="text-[10px] font-mono text-zinc-500 uppercase font-black">Your Reply</p>
-                          <p className="text-xs text-zinc-300 mt-1 leading-normal">
-                            {rev.reply}
-                          </p>
-                        </div>
-                      ) : (
-                        <div>
-                          {activeReviewReplyId === rev.id ? (
-                            <div className="space-y-2">
-                              <textarea
-                                value={tempReplyText}
-                                onChange={(e) => setTempReplyText(e.target.value)}
-                                rows={2}
-                                placeholder="Type custom client response..."
-                                className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
-                              />
-                              <div className="flex justify-end gap-2">
-                                <button
-                                  onClick={() => setActiveReviewReplyId(null)}
-                                  className="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white text-[10px]"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  onClick={() => handleAddReviewReply(rev.id)}
-                                  className="px-3 py-1 bg-emerald-500 text-black font-bold rounded text-[10px]"
-                                >
-                                  Submit Reply
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                setActiveReviewReplyId(rev.id);
-                                setTempReplyText("");
-                              }}
-                              className="text-xs font-bold text-emerald-400 hover:underline flex items-center gap-1"
-                            >
-                              <LucideIcon name="MessageSquare" className="w-3.5 h-3.5" />
-                              Respond to feedback
-                            </button>
-                          )}
-                        </div>
-                      )}
+                      <div className="space-y-1 max-w-sm mx-auto">
+                        <h4 className="text-sm font-bold text-white">No Reviews Yet</h4>
+                        <p className="text-xs text-zinc-500 leading-normal">
+                          Public reviews from verified customers will show up here.
+                        </p>
+                      </div>
                     </div>
-                  ))}
+                  ) : (
+                    reviews.map((rev) => (
+                      <div key={rev.id} className="p-5 rounded-2xl bg-zinc-950/40 border border-zinc-900 space-y-4">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1">
+                            <h4 className="text-sm font-bold text-white">{rev.author}</h4>
+                            <div className="flex items-center gap-2">
+                              <div className="flex gap-0.5 text-amber-400">
+                                {[...Array(5)].map((_, idx) => (
+                                  <span key={idx}>
+                                    <LucideIcon name="Star" className={`w-3 h-3 ${idx < rev.rating ? "fill-current" : "text-zinc-700"}`} />
+                                  </span>
+                                ))}
+                              </div>
+                              <span className="text-[10px] text-zinc-500">• {rev.date}</span>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-mono uppercase bg-zinc-900 text-zinc-400 px-2 py-0.5 rounded">
+                            {rev.service}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-zinc-300 leading-normal italic">
+                          "{rev.comment}"
+                        </p>
+
+                        {/* Display Reply if existing */}
+                        {rev.reply ? (
+                          <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-850 pl-4 border-l-2 border-l-emerald-400">
+                            <p className="text-[10px] font-mono text-zinc-500 uppercase font-black">Your Reply</p>
+                            <p className="text-xs text-zinc-300 mt-1 leading-normal">
+                              {rev.reply}
+                            </p>
+                          </div>
+                        ) : (
+                          <div>
+                            {activeReviewReplyId === rev.id ? (
+                              <div className="space-y-2">
+                                <textarea
+                                  value={tempReplyText}
+                                  onChange={(e) => setTempReplyText(e.target.value)}
+                                  rows={2}
+                                  placeholder="Type custom client response..."
+                                  className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
+                                />
+                                <div className="flex justify-end gap-2">
+                                  <button
+                                    onClick={() => setActiveReviewReplyId(null)}
+                                    className="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white text-[10px]"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    onClick={() => handleAddReviewReply(rev.id)}
+                                    className="px-3 py-1 bg-emerald-500 text-black font-bold rounded text-[10px]"
+                                  >
+                                    Submit Reply
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setActiveReviewReplyId(rev.id);
+                                  setTempReplyText("");
+                                }}
+                                className="text-xs font-bold text-emerald-400 hover:underline flex items-center gap-1"
+                              >
+                                <LucideIcon name="MessageSquare" className="w-3.5 h-3.5" />
+                                Respond to feedback
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
                 </div>
               </motion.div>
             )}

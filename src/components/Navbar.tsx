@@ -187,63 +187,6 @@ export default function Navbar({
 
           {/* Call to Actions / User Profile Section */}
           <div className="hidden md:flex items-center gap-3 relative" id="nav-ctas">
-            {/* Utility Actions (Search, Theme, Notifications) */}
-            {currentView !== "landing" && (
-              <div className="flex items-center gap-1 bg-zinc-900/40 dark:bg-zinc-900/30 p-1.5 rounded-2xl border border-white/[0.04] dark:border-white/[0.06] mr-1">
-                {/* Command Palette Trigger */}
-                <button
-                  onClick={onOpenSearch}
-                  className={`p-2 rounded-xl transition-all duration-200 cursor-pointer ${
-                    theme === "dark"
-                      ? "text-zinc-400 hover:text-white hover:bg-white/[0.05]"
-                      : "text-zinc-500 hover:text-zinc-950 hover:bg-zinc-100"
-                  }`}
-                  title="Search / Command Palette (Cmd+K)"
-                  aria-label="Open Command Palette"
-                >
-                  <LucideIcon name="Search" className="w-4.5 h-4.5" />
-                </button>
-
-                {/* Theme Toggle Trigger */}
-                <button
-                  onClick={onToggleTheme}
-                  className={`p-2 rounded-xl transition-all duration-200 cursor-pointer ${
-                    theme === "dark"
-                      ? "text-zinc-400 hover:text-white hover:bg-white/[0.05]"
-                      : "text-zinc-500 hover:text-zinc-950 hover:bg-zinc-100"
-                  }`}
-                  title={`Toggle ${theme === "dark" ? "Light" : "Dark"} Mode`}
-                  aria-label="Toggle Theme"
-                >
-                  <LucideIcon name={theme === "dark" ? "Sun" : "Moon"} className="w-4.5 h-4.5" />
-                </button>
-
-                {/* Notifications Toggle Trigger */}
-                <div className="relative">
-                  <button
-                    onClick={onToggleNotifications}
-                    className={`p-2 rounded-xl transition-all duration-200 cursor-pointer relative ${
-                      theme === "dark"
-                        ? "text-zinc-400 hover:text-white hover:bg-white/[0.05]"
-                        : "text-zinc-500 hover:text-zinc-950 hover:bg-zinc-100"
-                    }`}
-                    title="Notifications panel"
-                    aria-label="Toggle Notifications Feed"
-                  >
-                    <LucideIcon name="Bell" className="w-4.5 h-4.5" />
-                    <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
-                  </button>
-
-                  {/* Notifications Dropdown Panel */}
-                  <NotificationPanel
-                    isOpen={notificationOpen}
-                    onClose={onToggleNotifications}
-                    theme={theme}
-                  />
-                </div>
-              </div>
-            )}
-
             {userEmail ? (
               /* Premium logged in profile dropdown button */
               <div className="relative">

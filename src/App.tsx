@@ -474,39 +474,11 @@ export default function App() {
                     className="flex flex-row items-center gap-2 bg-zinc-950 border border-white/[0.08] p-1.5 rounded-full shadow-2xl backdrop-blur-xl"
                   >
                     <button
-                      onClick={handleToggleTheme}
-                      className="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-300 hover:text-white cursor-pointer"
-                      title="Toggle Theme"
-                    >
-                      <LucideIcon name={theme === "dark" ? "Sun" : "Moon"} className="w-4.5 h-4.5" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setCommandPaletteOpen(true);
-                        setFabExpanded(false);
-                      }}
-                      className="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-300 hover:text-white cursor-pointer"
-                      title="Search Commands"
-                    >
-                      <LucideIcon name="Search" className="w-4.5 h-4.5" />
-                    </button>
-                    <button
                       onClick={handleSimulateLoader}
                       className="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-300 hover:text-white cursor-pointer"
                       title="Simulate Reload"
                     >
                       <LucideIcon name="RefreshCw" className="w-4.5 h-4.5" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setNotificationOpen(!notificationOpen);
-                        setFabExpanded(false);
-                      }}
-                      className="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-300 hover:text-white relative cursor-pointer"
-                      title="Notifications"
-                    >
-                      <LucideIcon name="Bell" className="w-4.5 h-4.5" />
-                      <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-emerald-400 rounded-full" />
                     </button>
                   </motion.div>
                 )}
