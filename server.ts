@@ -7,10 +7,19 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import app from "./server/app.ts";
 import { initSocket } from "./server/services/socketService.ts";
+import { initializeDatabase } from "./server/config/database.ts";
 
 const PORT = Number(process.env.PORT) || 3000;
 
 async function startServer() {
+  // Initialize and check database and schemas before starting server
+  try {
+    await initializeDatabase();
+  } catch (dbError) {
+    console.error("❌ Critical: Database initialization failed. Stopping startup process.", dbError);
+    process.exit(1);
+  }
+
   // 1. Create native HTTP server wrapping our Express application instance
   const server = http.createServer(app);
 
