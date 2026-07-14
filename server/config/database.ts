@@ -976,6 +976,15 @@ export async function initializeDatabase(): Promise<void> {
         }
       }
       console.log("✅ Finished executing schema.sql statements.");
+      
+      // Ensure users.business_id is nullable (reconciling legacy schema.sql with application onboarding)
+      try {
+        await conn.execute("ALTER TABLE `users` MODIFY COLUMN `business_id` BIGINT UNSIGNED DEFAULT NULL;");
+        console.log("🛠️  Altered users.business_id to be nullable.");
+      } catch (alterErr: any) {
+        console.warn("⚠️ Warning modifying users.business_id to nullable:", alterErr.message);
+      }
+
       reportText += `- **schema.sql Execution:** Executed successfully (parsed and skipped database creation commands)\n`;
     } else {
       console.log("ℹ️ schema.sql is not present in workspace. Skipping.");

@@ -27,7 +27,9 @@ async function startServer() {
   initSocket(server);
 
   // 3. Mount Vite assets pipeline conditionally based on current environment
-  const isProduction = process.env.NODE_ENV === "production" || __filename.includes("server.cjs") || __dirname.includes("dist");
+  const isProduction = process.env.NODE_ENV === "production" || 
+    (typeof __filename !== "undefined" && __filename.includes("server.cjs")) || 
+    (typeof __dirname !== "undefined" && __dirname.includes("dist"));
   if (!isProduction) {
     console.log("🛠️  Development mode detected. Injecting Vite middleware...");
     const vite = await createViteServer({
