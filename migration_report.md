@@ -1,8 +1,8 @@
 # SiteMint Migration & Database Initialization Report
 
-- **Timestamp:** 2026-07-14T09:04:37.509Z
-- **Railway Host:** `localhost`
-- **Database:** `sitemint_db`
+- **Timestamp:** 2026-07-14T09:18:28.497Z
+- **Railway Host:** `tokaido.proxy.rlwy.net`
+- **Database:** `railway`
 
 ### 1. Connection Status
 - **Railway Connection Status:** ✅ Connection Successful
@@ -13,16 +13,16 @@
 
 | Table Name | Status | Details |
 | --- | --- | --- |
-| `subscription_plans` | ✅ Up-to-date | Already exists and all columns match. |
-| `businesses` | ✅ Up-to-date | Already exists and all columns match. |
-| `users` | ✅ Up-to-date | Already exists and all columns match. |
-| `subscriptions` | ✅ Up-to-date | Already exists and all columns match. |
-| `payment_transactions` | ✅ Up-to-date | Already exists and all columns match. |
-| `templates` | ✅ Up-to-date | Already exists and all columns match. |
+| `subscription_plans` | 🆕 Created | Table was missing. Initialized successfully. |
+| `businesses` | 🔄 Migrated | Added missing columns: `owner_id`, `is_completed`, `business_type`, `address`, `description`, `upi_id`, `is_published`. |
+| `users` | 🔄 Migrated | Added missing columns: `staff_title`, `staff_photo_url`, `working_days`, `working_hours`, `services_assigned`. |
+| `subscriptions` | 🆕 Created | Table was missing. Initialized successfully. |
+| `payment_transactions` | 🆕 Created | Table was missing. Initialized successfully. |
+| `templates` | 🔄 Migrated | Added missing columns: `description`, `image_url`. |
 | `theme_settings` | ✅ Up-to-date | Already exists and all columns match. |
 | `customers` | ✅ Up-to-date | Already exists and all columns match. |
-| `services` | ✅ Up-to-date | Already exists and all columns match. |
-| `products` | ✅ Up-to-date | Already exists and all columns match. |
+| `services` | 🔄 Migrated | Added missing columns: `image_url`. |
+| `products` | 🔄 Migrated | Added missing columns: `image_url`. |
 | `bookings` | ✅ Up-to-date | Already exists and all columns match. |
 | `orders` | ✅ Up-to-date | Already exists and all columns match. |
 | `order_items` | ✅ Up-to-date | Already exists and all columns match. |
@@ -31,19 +31,19 @@
 | `reviews` | ✅ Up-to-date | Already exists and all columns match. |
 | `activity_logs` | ✅ Up-to-date | Already exists and all columns match. |
 | `notifications` | ✅ Up-to-date | Already exists and all columns match. |
-| `announcements` | ✅ Up-to-date | Already exists and all columns match. |
-| `catalog_products` | ✅ Up-to-date | Already exists and all columns match. |
-| `business_profiles` | ✅ Up-to-date | Already exists and all columns match. |
-| `categories` | ✅ Up-to-date | Already exists and all columns match. |
-| `websites` | ✅ Up-to-date | Already exists and all columns match. |
-| `pages` | ✅ Up-to-date | Already exists and all columns match. |
-| `staff` | ✅ Up-to-date | Already exists and all columns match. |
-| `analytics` | ✅ Up-to-date | Already exists and all columns match. |
-| `media_library` | ✅ Up-to-date | Already exists and all columns match. |
-| `uploads` | ✅ Up-to-date | Already exists and all columns match. |
-| `settings` | ✅ Up-to-date | Already exists and all columns match. |
-| `sessions` | ✅ Up-to-date | Already exists and all columns match. |
-| `publish_history` | ✅ Up-to-date | Already exists and all columns match. |
+| `announcements` | 🆕 Created | Table was missing. Initialized successfully. |
+| `catalog_products` | 🆕 Created | Table was missing. Initialized successfully. |
+| `business_profiles` | 🆕 Created | Table was missing. Initialized successfully. |
+| `categories` | 🆕 Created | Table was missing. Initialized successfully. |
+| `websites` | 🆕 Created | Table was missing. Initialized successfully. |
+| `pages` | 🆕 Created | Table was missing. Initialized successfully. |
+| `staff` | 🆕 Created | Table was missing. Initialized successfully. |
+| `analytics` | 🆕 Created | Table was missing. Initialized successfully. |
+| `media_library` | 🆕 Created | Table was missing. Initialized successfully. |
+| `uploads` | 🆕 Created | Table was missing. Initialized successfully. |
+| `settings` | 🆕 Created | Table was missing. Initialized successfully. |
+| `sessions` | 🆕 Created | Table was missing. Initialized successfully. |
+| `publish_history` | 🆕 Created | Table was missing. Initialized successfully. |
 
 ### 3. SHOW TABLES Verification
 - **Total Tables in DB:** 31
@@ -82,18 +82,18 @@
 - Table `publish_history`: ✅ Verified Exists
 
 ### 4. Data Seeding & Defaults
-- **Subscription Plans:** Already seeded (3 plans).
-- **Templates:** Already seeded (4 templates).
+- **Subscription Plans:** Seeded default plans (`starter`, `pro`, `business`).
+- **Templates:** Seeded default templates (`gym`, `restaurant`, `salon`, `clothing`).
 
 ### 5. Integration Verification Test
-- **Test User Insertion:** Successful (ID: 4)
-- **Test User Retrieval:** Successful (Retrieved: "Test Verification User" with email "verify_user_1784019877709@sitemint.app")
+- **Test User Insertion:** Successful (ID: 1)
+- **Test User Retrieval:** Successful (Retrieved: "Test Verification User" with email "verify_user_1784020760846@sitemint.app")
 - **Test User Cleanup:** Successful
 - **Database Verified:** Operational 🚀
 
 ### 6. Final Status Summary
 - **Database Initialized Successfully:** Yes
-- **Total Tables Created:** 0
-- **Total Tables Already Existing:** 31
+- **Total Tables Created:** 16
+- **Total Tables Already Existing:** 15
 - **Migration Success:** Yes
 - **Render Deployment Ready:** Yes (all connection pooling, automatic schema creation, and reconnect wrappers operational)

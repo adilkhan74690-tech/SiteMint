@@ -5,11 +5,32 @@ import path from "path";
 
 dotenv.config();
 
-const DB_HOST = process.env.DB_HOST || process.env.MYSQLHOST;
-const DB_PORT = process.env.DB_PORT || process.env.MYSQLPORT;
-const DB_NAME = process.env.DB_NAME || process.env.MYSQLDATABASE;
-const DB_USER = process.env.DB_USER || process.env.MYSQLUSER;
-const DB_PASSWORD = process.env.DB_PASSWORD || process.env.MYSQLPASSWORD;
+const rawDB_HOST = process.env.DB_HOST || process.env.MYSQLHOST;
+const rawDB_PORT = process.env.DB_PORT || process.env.MYSQLPORT;
+const rawDB_NAME = process.env.DB_NAME || process.env.MYSQLDATABASE;
+const rawDB_USER = process.env.DB_USER || process.env.MYSQLUSER;
+const rawDB_PASSWORD = process.env.DB_PASSWORD || process.env.MYSQLPASSWORD;
+
+let DB_HOST = rawDB_HOST;
+let DB_PORT = rawDB_PORT;
+let DB_NAME = rawDB_NAME;
+let DB_USER = rawDB_USER;
+let DB_PASSWORD = rawDB_PASSWORD;
+
+if (rawDB_HOST && rawDB_HOST.startsWith("mysql://")) {
+  try {
+    const parsedUrl = new URL(rawDB_HOST);
+    DB_HOST = parsedUrl.hostname;
+    DB_PORT = parsedUrl.port || rawDB_PORT;
+    DB_USER = parsedUrl.username || rawDB_USER;
+    DB_PASSWORD = parsedUrl.password || rawDB_PASSWORD;
+    if (parsedUrl.pathname && parsedUrl.pathname !== "/") {
+      DB_NAME = parsedUrl.pathname.substring(1) || rawDB_NAME;
+    }
+  } catch (urlErr: any) {
+    console.error("⚠️ Failed to parse DB_HOST as URL, using raw value:", urlErr.message);
+  }
+}
 
 // Enforce that mandatory database environment variables are present
 if (!DB_HOST || !DB_USER || !DB_NAME) {
