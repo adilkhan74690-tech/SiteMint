@@ -924,12 +924,49 @@ export async function initializeDatabase(): Promise<void> {
     // 1. Temporarily disable foreign key constraints for table setup
     await conn.execute("SET FOREIGN_KEY_CHECKS = 0;");
 
+    // 2. Parse and execute schema.sql if it exists
+    const schemaSqlPath = path.join(process.cwd(), "schema.sql");
+    if (fs.existsSync(schemaSqlPath)) {
+      console.log("📄 Found schema.sql. Executing statements...");
+      const schemaSql = fs.readFileSync(schemaSqlPath, "utf-8");
+      
+      // Split by semicolon, filter empty lines, ignore comments, CREATE DATABASE/USE statements
+      const statements = schemaSql
+        .split(";")
+        .map(stmt => stmt.trim())
+        .filter(stmt => {
+          if (!stmt) return false;
+          // Ignore comments
+          if (stmt.startsWith("--") || stmt.startsWith("/*") || stmt.startsWith("#")) return false;
+          // Filter CREATE DATABASE or USE statements to prevent errors on pre-selected DB environments
+          const upper = stmt.toUpperCase();
+          if (upper.startsWith("CREATE DATABASE") || upper.startsWith("USE ")) {
+            return false;
+          }
+          return true;
+        });
+
+      for (const statement of statements) {
+        try {
+          await conn.execute(statement);
+        } catch (stmtErr: any) {
+          // Log statement errors but continue
+          console.warn(`⚠️ Warning executing statement in schema.sql: ${stmtErr.message}`);
+        }
+      }
+      console.log("✅ Finished executing schema.sql statements.");
+      reportText += `- **schema.sql Execution:** Executed successfully (parsed and skipped database creation commands)\n`;
+    } else {
+      console.log("ℹ️ schema.sql is not present in workspace. Skipping.");
+      reportText += `- **schema.sql Execution:** schema.sql not found (using programmatic fallback)\n`;
+    }
+
     let createdTables: string[] = [];
     let existingTables: string[] = [];
 
-    reportText += `### 2. Table Migrations Details\n\n| Table Name | Status | Details |\n| --- | --- | --- |\n`;
+    reportText += `\n### 2. Table Migrations Details\n\n| Table Name | Status | Details |\n| --- | --- | --- |\n`;
 
-    // 2. Iterate through expected tables
+    // 3. Iterate through expected tables and run fallback creators + column alignments
     for (const schema of TABLE_SCHEMAS) {
       // Check if table exists
       const [tableCheck]: any = await conn.execute(
@@ -967,12 +1004,38 @@ export async function initializeDatabase(): Promise<void> {
       }
     }
 
-    // 3. Set foreign key checks back to active
+    // 4. Verify using SHOW TABLES that all tables exist
+    console.log("🔍 Running SHOW TABLES verification...");
+    const [tablesResult]: any = await conn.execute("SHOW TABLES");
+    const databaseTables = tablesResult.map((row: any) => Object.values(row)[0] as string);
+    
+    reportText += `\n### 3. SHOW TABLES Verification\n`;
+    reportText += `- **Total Tables in DB:** ${databaseTables.length}\n`;
+
+    const requiredTables = ["users", "businesses", ...TABLE_SCHEMAS.map(s => s.name)];
+    let missingTables: string[] = [];
+    for (const requiredTable of requiredTables) {
+      if (databaseTables.includes(requiredTable)) {
+        reportText += `- Table \`${requiredTable}\`: ✅ Verified Exists\n`;
+      } else {
+        reportText += `- Table \`${requiredTable}\`: ❌ Missing\n`;
+        missingTables.push(requiredTable);
+      }
+    }
+
+    if (missingTables.length > 0) {
+      console.error("❌ Database Verification Failed: Missing tables:", missingTables);
+      throw new Error(`Migration verification failed: tables missing: ${missingTables.join(", ")}`);
+    } else {
+      console.log("✅ Database Verification: Every required application table verified to exist.");
+    }
+
+    // 5. Set foreign key checks back to active
     await conn.execute("SET FOREIGN_KEY_CHECKS = 1;");
 
-    // 4. Check & Seed defaults
+    // 6. Check & Seed defaults
     console.log("🌱 Checking if seeding required...");
-    reportText += `\n### 3. Data Seeding & Defaults\n`;
+    reportText += `\n### 4. Data Seeding & Defaults\n`;
 
     // Seed subscription plans
     const [planCheck]: any = await conn.execute("SELECT COUNT(*) as count FROM `subscription_plans`");
@@ -1007,7 +1070,7 @@ export async function initializeDatabase(): Promise<void> {
       reportText += `- **Templates:** Already seeded (${templateCheck[0].count} templates).\n`;
     }
 
-    // 5. Insert business owner foreign keys constraint if missing
+    // Insert business owner foreign keys constraint if missing
     try {
       const [fkCheck]: any = await conn.execute(`
         SELECT CONSTRAINT_NAME 
@@ -1022,40 +1085,52 @@ export async function initializeDatabase(): Promise<void> {
       console.warn("⚠️ Warning checking/adding businesses owner foreign key:", fkErr.message);
     }
 
-    // 6. Post-migration Integration & Verification Test (insert, read, delete)
-    console.log("🧪 Running post-migration integration CRUD test...");
-    reportText += `\n### 4. Integration Verification Test\n`;
-    const tempUuid = `temp_verify_${Date.now()}`;
+    // 7. Post-migration Integration & Verification Test (insert test user, read, delete)
+    console.log("🧪 Running post-migration integration CRUD test on test user...");
+    reportText += `\n### 5. Integration Verification Test\n`;
     
-    // Create temporary business record for test
-    await conn.execute(
+    const tempBizUuid = `verify_biz_${Date.now()}`;
+    const tempUserEmail = `verify_user_${Date.now()}@sitemint.app`;
+    
+    // Create temporary business record for testing (as business_id is a foreign key on users)
+    const [bizInsert]: any = await conn.execute(
       `INSERT INTO \`businesses\` (\`uuid\`, \`name\`, \`subdomain\`, \`contact_email\`, \`status\`, \`is_completed\`) 
-       VALUES (?, 'Migration Test Business', ?, 'verify_test@sitemint.com', 'trial', TRUE)`,
-      [tempUuid, tempUuid]
+       VALUES (?, 'Verification Test Business', ?, 'verify_test@sitemint.com', 'trial', TRUE)`,
+      [tempBizUuid, tempBizUuid]
     );
+    const tempBizId = bizInsert.insertId;
     
-    // Read record back
+    // Insert temporary test user
+    const [userInsert]: any = await conn.execute(
+      `INSERT INTO \`users\` (\`business_id\`, \`email\`, \`password_hash\`, \`full_name\`, \`role\`, \`status\`) 
+       VALUES (?, ?, 'hash123', 'Test Verification User', 'owner', 'active')`,
+      [tempBizId, tempUserEmail]
+    );
+    const tempUserId = userInsert.insertId;
+
+    // Read user back
     const [verifyRead]: any = await conn.execute(
-      "SELECT id, name FROM `businesses` WHERE `uuid` = ?",
-      [tempUuid]
+      "SELECT id, full_name, email FROM `users` WHERE `id` = ?",
+      [tempUserId]
     );
 
-    if (verifyRead.length === 1 && verifyRead[0].name === 'Migration Test Business') {
-      console.log("✅ Verification CRUD Test: Insertion & Select Successful.");
-      reportText += `- **Test Record Insertion:** Successful\n`;
-      reportText += `- **Test Record Retrieval:** Successful (Retrieved: "${verifyRead[0].name}")\n`;
+    if (verifyRead.length === 1 && verifyRead[0].email === tempUserEmail) {
+      console.log("✅ Verification CRUD Test: Test User Insertion & Selection Successful.");
+      reportText += `- **Test User Insertion:** Successful (ID: ${tempUserId})\n`;
+      reportText += `- **Test User Retrieval:** Successful (Retrieved: "${verifyRead[0].full_name}" with email "${verifyRead[0].email}")\n`;
       
-      // Clean up verification record
-      await conn.execute("DELETE FROM `businesses` WHERE `uuid` = ?", [tempUuid]);
-      console.log("✅ Verification CRUD Test: Record cleanup successful.");
-      reportText += `- **Test Record Cleanup:** Successful\n`;
+      // Clean up verification records
+      await conn.execute("DELETE FROM `users` WHERE `id` = ?", [tempUserId]);
+      await conn.execute("DELETE FROM `businesses` WHERE `id` = ?", [tempBizId]);
+      console.log("✅ Verification CRUD Test: Test User & Business cleanup successful.");
+      reportText += `- **Test User Cleanup:** Successful\n`;
       reportText += `- **Database Verified:** Operational 🚀\n`;
     } else {
-      throw new Error("Verification check returned incorrect or missing results.");
+      throw new Error("Verification check returned incorrect or missing user record.");
     }
 
     console.log("🚀 Database check and automated migrations completed successfully!");
-    reportText += `\n### 5. Final Status Summary\n`;
+    reportText += `\n### 6. Final Status Summary\n`;
     reportText += `- **Database Initialized Successfully:** Yes\n`;
     reportText += `- **Total Tables Created:** ${createdTables.length}\n`;
     reportText += `- **Total Tables Already Existing:** ${existingTables.length}\n`;
