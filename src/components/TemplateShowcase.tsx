@@ -171,6 +171,7 @@ export default function TemplateShowcase({ onOpenCheckout, onNavigateToDemo }: T
               >
                 {templates.map((tmpl) => {
                   const isActive = tmpl.id === selectedTemplate.id;
+                  const isLive = ["pulse-gym", "michelin-bistro", "luna-salon", "nordic-threads"].includes(tmpl.id);
                   return (
                     <button
                       key={tmpl.id}
@@ -183,7 +184,14 @@ export default function TemplateShowcase({ onOpenCheckout, onNavigateToDemo }: T
                       id={`btn-select-template-${tmpl.id}`}
                     >
                       <div className="space-y-1">
-                        <p className="text-sm font-bold text-white font-display">{tmpl.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-bold text-white font-display">{tmpl.name}</p>
+                          {!isLive && (
+                            <span className="bg-zinc-900 border border-zinc-800 text-zinc-500 text-[8px] font-bold px-1.5 py-0.5 rounded font-mono uppercase tracking-wider">
+                              Coming Soon
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-zinc-500 font-mono">
                           {getCategoryTemplateLabel(tmpl.categoryId)}
                         </p>
@@ -371,6 +379,7 @@ export default function TemplateShowcase({ onOpenCheckout, onNavigateToDemo }: T
                           <div className="flex gap-2 w-full sm:w-auto justify-end">
                             {onNavigateToDemo && (
                               <button
+                                disabled={!["pulse-gym", "michelin-bistro", "luna-salon", "nordic-threads"].includes(selectedTemplate.id)}
                                 onClick={() => {
                                   const cat = selectedTemplate.categoryId;
                                   if (cat === "gym" || cat === "restaurant" || cat === "salon" || cat === "clothing") {
@@ -379,18 +388,26 @@ export default function TemplateShowcase({ onOpenCheckout, onNavigateToDemo }: T
                                     onNavigateToDemo(`preview-gym`);
                                   }
                                 }}
-                                className="px-4 py-2.5 rounded-xl text-xs font-bold bg-zinc-900 text-zinc-300 border border-zinc-800 transition-all hover:bg-zinc-850 hover:text-white flex items-center gap-1.5 cursor-pointer"
-                                id="btn-showcase-launch-demo"
+                                className="px-5 py-2.5 rounded-xl text-xs font-bold text-zinc-300 bg-zinc-900 border border-zinc-800 hover:text-white hover:border-zinc-750 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                                id="btn-showcase-preview-demo"
                               >
-                                Preview Website
+                                <LucideIcon name="ExternalLink" className="w-3.5 h-3.5" />
+                                Preview Demo
                               </button>
                             )}
                             <button
+                              disabled={!["pulse-gym", "michelin-bistro", "luna-salon", "nordic-threads"].includes(selectedTemplate.id)}
                               onClick={() => onOpenCheckout("pro")}
-                              className="px-5 py-2.5 rounded-xl text-xs font-bold text-black transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-                              style={{ backgroundColor: selectedAccentColor }}
+                              className="px-5 py-2.5 rounded-xl text-xs font-bold text-black hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 cursor-pointer shadow-[0_4px_20px_rgba(0,245,160,0.15)] disabled:opacity-40 disabled:pointer-events-none"
+                              style={{
+                                background: ["pulse-gym", "michelin-bistro", "luna-salon", "nordic-threads"].includes(selectedTemplate.id)
+                                  ? "linear-gradient(135deg, #00F5A0, #00D185)"
+                                  : "#27272a"
+                              }}
+                              id="btn-showcase-start-minting"
                             >
-                              Use This Template
+                              <LucideIcon name={["pulse-gym", "michelin-bistro", "luna-salon", "nordic-threads"].includes(selectedTemplate.id) ? "Zap" : "Lock"} className="w-3.5 h-3.5" />
+                              {["pulse-gym", "michelin-bistro", "luna-salon", "nordic-threads"].includes(selectedTemplate.id) ? "Start Minting" : "Coming Soon"}
                             </button>
                           </div>
                         </div>

@@ -209,34 +209,32 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
   const [compilationLogs, setCompilationLogs] = useState<string[]>([]);
   const [isPublished, setIsPublished] = useState(false);
 
-  // Mock compile console logs
-  const compileSteps = [
-    "Starting compilation sequence on SiteMint Engine v4.2...",
-    "Parsing metadata blocks for: " + businessName,
-    "Selected theme layout matched: " + selectedTheme.name,
-    "Validating secure subdomain mapping rules...",
-    "Subdomain successfully bound: " + subdomain + ".sitemint.app",
-    "Bundling React SPA package with esbuild compiler...",
-    "Injecting custom styling tokens and root variables...",
-    "Injecting interactive booking system module...",
-    "Optimizing responsive layouts (desktop & mobile matrix)...",
-    "Generating premium SVG iconography sets...",
-    "Provisioning Let's Encrypt SSL/TLS certificates...",
-    "Synchronizing edge server points globally (CDN Cloudflare)...",
-    "Minting Complete! Deployment Live at Edge Networks.",
-  ];
-
   // Run Compilation logs on Step 6 enter
   useEffect(() => {
     if (currentStep === 6 && !isPublished) {
+      const steps = [
+        "Starting compilation sequence on SiteMint Engine v4.2...",
+        "Parsing metadata blocks for: " + businessName,
+        "Selected theme layout matched: " + (selectedTheme?.name || "Default Theme"),
+        "Validating secure subdomain mapping rules...",
+        "Subdomain successfully bound: " + subdomain + ".sitemint.app",
+        "Bundling React SPA package with esbuild compiler...",
+        "Injecting custom styling tokens and root variables...",
+        "Injecting interactive booking system module...",
+        "Optimizing responsive layouts (desktop & mobile matrix)...",
+        "Generating premium SVG iconography sets...",
+        "Provisioning Let's Encrypt SSL/TLS certificates...",
+        "Synchronizing edge server points globally (CDN Cloudflare)...",
+        "Minting Complete! Deployment Live at Edge Networks.",
+      ];
       let logIndex = 0;
       setCompilationLogs([]);
       setCompilationProgress(0);
 
       const interval = setInterval(() => {
-        if (logIndex < compileSteps.length) {
-          setCompilationLogs((prev) => [...prev, compileSteps[logIndex]]);
-          setCompilationProgress(Math.floor(((logIndex + 1) / compileSteps.length) * 100));
+        if (logIndex < steps.length) {
+          setCompilationLogs((prev) => [...prev, steps[logIndex]]);
+          setCompilationProgress(Math.floor(((logIndex + 1) / steps.length) * 100));
           logIndex++;
         } else {
           clearInterval(interval);
@@ -246,7 +244,7 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
 
       return () => clearInterval(interval);
     }
-  }, [currentStep]);
+  }, [currentStep, businessName, selectedTheme, subdomain, isPublished]);
 
   // Autocomplete templates info depending on category selected
   const handleCategorySelect = (category: typeof CATEGORIES[0]) => {
@@ -1185,7 +1183,7 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
                       {/* High-Tech black terminal console */}
                       <div className="bg-[#020204] border border-zinc-850/80 rounded-xl p-4 font-mono text-[11px] text-zinc-400 h-64 overflow-y-auto space-y-2 select-all shadow-inner">
                         {compilationLogs.map((log, idx) => {
-                          const isSuccessLog = log.includes("Successfully") || log.includes("Complete");
+                          const isSuccessLog = log && typeof log === "string" && (log.includes("Successfully") || log.includes("Complete"));
                           return (
                             <div key={idx} className="flex gap-2">
                               <span className="text-zinc-600">[{idx + 1}]</span>
