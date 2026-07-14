@@ -39,8 +39,9 @@ const PIE_TRAFFIC_DATA: any[] = [];
 
 export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: OwnerDashboardProps) {
   // Sidebar active tab
-  const [activeTab, setActiveTab] = useState<string>("Dashboard");
+  const [activeTab, setActiveTab] = useState<string>("My Websites");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [businessesList, setBusinessesList] = useState<any[]>([]);
 
   // Core mutable lists powered by dummy states
   const [bookings, setBookings] = useState(INITIAL_BOOKINGS);
@@ -193,6 +194,13 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
     };
 
     try {
+      // Fetch Owner Businesses list
+      const bizListRes = await fetch("/api/businesses", { headers });
+      const bizListResult = await bizListRes.json();
+      if (bizListResult.status === "success" && Array.isArray(bizListResult.data)) {
+        setBusinessesList(bizListResult.data);
+      }
+
       // 1. Fetch Business Settings
       const settingsRes = await fetch("/api/businesses/settings", { headers });
       const settingsResult = await settingsRes.json();
@@ -211,6 +219,9 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
           setThemeSecondary(settingsResult.data.theme_settings.secondary_color);
           setTypography(settingsResult.data.theme_settings.font_family);
         }
+      } else {
+        setBusinessDetails(null);
+        setBusinessId(null);
       }
 
       // 1b. Fetch Staff List
@@ -453,6 +464,85 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
     }
   };
 
+  const handleSelectBusiness = async (id: number | string) => {
+    const token = localStorage.getItem("sitemint_token");
+    if (!token) return;
+
+    try {
+      const res = await fetch(`/api/businesses/${id}/select`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "Failed to select business website.");
+
+      if (result.data?.token) {
+        localStorage.setItem("sitemint_token", result.data.token);
+      }
+
+      alert("Website context switched successfully!");
+      await fetchDashboardData();
+      setActiveTab("Dashboard");
+    } catch (err: any) {
+      alert("Error selecting website: " + err.message);
+    }
+  };
+
+  const handleDuplicateBusiness = async (id: number | string) => {
+    const confirmDup = window.confirm("Are you sure you want to duplicate this website and all its settings?");
+    if (!confirmDup) return;
+
+    const token = localStorage.getItem("sitemint_token");
+    if (!token) return;
+
+    try {
+      const res = await fetch(`/api/businesses/${id}/duplicate`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "Failed to duplicate business website.");
+
+      alert("Website duplicated successfully!");
+      fetchDashboardData();
+    } catch (err: any) {
+      alert("Error duplicating website: " + err.message);
+    }
+  };
+
+  const handleDeleteBusiness = async (id: number | string) => {
+    const confirmDel = window.confirm("Are you sure you want to delete this website? This action is irreversible!");
+    if (!confirmDel) return;
+
+    const token = localStorage.getItem("sitemint_token");
+    if (!token) return;
+
+    try {
+      const res = await fetch(`/api/businesses/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "Failed to delete business website.");
+
+      alert("Website deleted successfully!");
+      if (Number(id) === Number(businessId)) {
+        setBusinessDetails(null);
+        setBusinessId(null);
+        setActiveTab("My Websites");
+      }
+      fetchDashboardData();
+    } catch (err: any) {
+      alert("Error deleting website: " + err.message);
+    }
+  };
+
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     const token = localStorage.getItem("sitemint_token");
@@ -613,51 +703,65 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
     const type = businessDetails?.business_type?.toLowerCase() || "";
     
     const items = [
-      { name: "Dashboard", label: "Dashboard", icon: "LayoutDashboard", badge: 0 },
-      { name: "Website Builder", label: "Website Builder", icon: "Globe", badge: 0 },
-      { name: "Theme Customizer", label: "Theme Customizer", icon: "Palette", badge: 0 },
-      { name: "Analytics", label: "Analytics", icon: "LineChart", badge: 0 },
+      { name: "My Websites", label: "My Websites", icon: "Layers", badge: 0 },
     ];
 
-    if (type.includes("gym") || type.includes("fitness") || type.includes("athletic")) {
+    if (businessDetails) {
       items.push(
-        { name: "Memberships", label: "Memberships", icon: "CreditCard", badge: 0 },
-        { name: "Classes", label: "Classes & Schedules", icon: "Layers", badge: 0 },
-        { name: "Trainers", label: "Trainers (Staff)", icon: "Users", badge: 0 },
-        { name: "BMI Calculator", label: "BMI Calculations", icon: "Activity", badge: 0 }
+        { name: "Dashboard", label: "Dashboard", icon: "LayoutDashboard", badge: 0 },
+        { name: "Website Builder", label: "Website Builder", icon: "Globe", badge: 0 },
+        { name: "Theme Customizer", label: "Theme Customizer", icon: "Palette", badge: 0 },
+        { name: "Analytics", label: "Analytics", icon: "LineChart", badge: 0 }
       );
-    } else if (type.includes("restaurant") || type.includes("cafe") || type.includes("dining") || type.includes("bistro")) {
+
+      if (type.includes("gym") || type.includes("fitness") || type.includes("athletic")) {
+        items.push(
+          { name: "Memberships", label: "Memberships", icon: "CreditCard", badge: 0 },
+          { name: "Classes", label: "Classes & Schedules", icon: "Layers", badge: 0 },
+          { name: "Trainers", label: "Trainers (Staff)", icon: "Users", badge: 0 },
+          { name: "BMI Calculator", label: "BMI Calculations", icon: "Activity", badge: 0 }
+        );
+      } else if (type.includes("restaurant") || type.includes("cafe") || type.includes("dining") || type.includes("bistro")) {
+        items.push(
+          { name: "Menu", label: "Digital Menu", icon: "Utensils", badge: 0 },
+          { name: "Reservations", label: `Reservations (${bookings.length})`, icon: "Calendar", badge: bookings.filter(b => b.status === "Pending" || b.status === "pending").length },
+          { name: "Orders", label: `Orders (${orders.length})`, icon: "ShoppingBag", badge: orders.filter(o => o.status === "processing" || o.status === "pending").length },
+          { name: "Kitchen", label: "Kitchen Queue", icon: "ChefHat", badge: 0 }
+        );
+      } else if (type.includes("salon") || type.includes("spa") || type.includes("beauty") || type.includes("hair")) {
+        items.push(
+          { name: "Appointments", label: `Appointments (${bookings.length})`, icon: "Calendar", badge: bookings.filter(b => b.status === "Pending" || b.status === "pending").length },
+          { name: "Stylists", label: "Stylists (Staff)", icon: "Users", badge: 0 },
+          { name: "Services", label: "Services Catalog", icon: "Scissors", badge: 0 }
+        );
+      } else {
+        items.push(
+          { name: "Products", label: "Products Catalog", icon: "ShoppingBag", badge: 0 },
+          { name: "Inventory", label: "Inventory Stock", icon: "Layers", badge: 0 },
+          { name: "Orders", label: `Orders (${orders.length})`, icon: "ShoppingCart", badge: orders.filter(o => o.status === "processing" || o.status === "pending").length },
+          { name: "Categories", label: "Store Categories", icon: "Grid", badge: 0 }
+        );
+      }
+
       items.push(
-        { name: "Menu", label: "Digital Menu", icon: "Utensils", badge: 0 },
-        { name: "Reservations", label: `Reservations (${bookings.length})`, icon: "Calendar", badge: bookings.filter(b => b.status === "Pending" || b.status === "pending").length },
-        { name: "Orders", label: `Orders (${orders.length})`, icon: "ShoppingBag", badge: orders.filter(o => o.status === "processing" || o.status === "pending").length },
-        { name: "Kitchen", label: "Kitchen Queue", icon: "ChefHat", badge: 0 }
-      );
-    } else if (type.includes("salon") || type.includes("spa") || type.includes("beauty") || type.includes("hair")) {
-      items.push(
-        { name: "Appointments", label: `Appointments (${bookings.length})`, icon: "Calendar", badge: bookings.filter(b => b.status === "Pending" || b.status === "pending").length },
-        { name: "Stylists", label: "Stylists (Staff)", icon: "Users", badge: 0 },
-        { name: "Services", label: "Services Catalog", icon: "Scissors", badge: 0 }
-      );
-    } else {
-      items.push(
-        { name: "Products", label: "Products Catalog", icon: "ShoppingBag", badge: 0 },
-        { name: "Inventory", label: "Inventory Stock", icon: "Layers", badge: 0 },
-        { name: "Orders", label: `Orders (${orders.length})`, icon: "ShoppingCart", badge: orders.filter(o => o.status === "processing" || o.status === "pending").length },
-        { name: "Categories", label: "Store Categories", icon: "Grid", badge: 0 }
+        { name: "Customers", label: "Customers", icon: "Users", badge: 0 },
+        { name: "Reviews", label: `Reviews (${reviews.length})`, icon: "Star", badge: reviews.filter(r => !r.reply).length },
+        { name: "Payments", label: "Payments Logs", icon: "CreditCard", badge: 0 }
       );
     }
 
     items.push(
-      { name: "Customers", label: "Customers", icon: "Users", badge: 0 },
-      { name: "Reviews", label: `Reviews (${reviews.length})`, icon: "Star", badge: reviews.filter(r => !r.reply).length },
-      { name: "Payments", label: "Payments Logs", icon: "CreditCard", badge: 0 },
-      { name: "Billing", label: "Billing & Subscriptions", icon: "Wallet", badge: 0 },
-      { name: "Media Library", label: "Media Library", icon: "Image", badge: 0 },
-      { name: "Activity Logs", label: "Activity Logs", icon: "FileText", badge: 0 },
-      { name: "Notifications", label: "Notifications", icon: "Bell", badge: notifications.filter(n => !n.read).length },
-      { name: "Settings", label: "Settings", icon: "Settings", badge: 0 }
+      { name: "Billing", label: "Billing & Subscriptions", icon: "Wallet", badge: 0 }
     );
+
+    if (businessDetails) {
+      items.push(
+        { name: "Media Library", label: "Media Library", icon: "Image", badge: 0 },
+        { name: "Activity Logs", label: "Activity Logs", icon: "FileText", badge: 0 },
+        { name: "Notifications", label: "Notifications", icon: "Bell", badge: notifications.filter(n => !n.read).length },
+        { name: "Settings", label: "Settings", icon: "Settings", badge: 0 }
+      );
+    }
 
     return items;
   };
@@ -1487,6 +1591,138 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
           ) : (
             <AnimatePresence mode="wait">
             
+            {/* TAB: MY WEBSITES */}
+            {activeTab === "My Websites" && (
+              <motion.div
+                key="my-websites-tab"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="space-y-6 text-left"
+              >
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-zinc-950/60 p-6 rounded-2xl border border-zinc-900">
+                  <div>
+                    <h3 className="text-lg font-bold text-white font-display">My Websites</h3>
+                    <p className="text-xs text-zinc-500 font-mono">Select, edit, duplicate, or delete your websites and storefront templates.</p>
+                  </div>
+                  <button
+                    onClick={() => onNavigate("onboarding")}
+                    className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all hover:scale-[1.02] cursor-pointer"
+                  >
+                    <LucideIcon name="Plus" className="w-4 h-4" />
+                    Create New Website
+                  </button>
+                </div>
+
+                {businessesList.length === 0 ? (
+                  <div className="p-12 text-center space-y-4 bg-zinc-950/30 rounded-2xl border border-zinc-900 border-dashed">
+                    <div className="w-12 h-12 rounded-full bg-zinc-900 flex items-center justify-center mx-auto text-zinc-500">
+                      <LucideIcon name="Globe" className="w-6 h-6" />
+                    </div>
+                    <div className="space-y-1 max-w-xs mx-auto">
+                      <h4 className="text-sm font-bold text-zinc-300 font-display">No websites found</h4>
+                      <p className="text-xs text-zinc-500 leading-normal">
+                        You haven't created any websites yet. Click "Create New Website" to launch your template onboarding wizard.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {businessesList.map((biz) => {
+                      const isCurrentlyActive = Number(biz.id) === Number(businessId);
+                      return (
+                        <div
+                          key={biz.id}
+                          className={`p-5 rounded-2xl bg-zinc-950/40 border transition-all flex flex-col justify-between ${
+                            isCurrentlyActive ? "border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]" : "border-zinc-900 hover:border-zinc-800"
+                          }`}
+                        >
+                          <div className="space-y-4">
+                            <div className="flex items-start justify-between">
+                              <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-850 flex items-center justify-center font-bold text-white tracking-wider font-mono overflow-hidden">
+                                {biz.logo_url ? (
+                                  <img src={biz.logo_url} alt={biz.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <LucideIcon name="Globe" className="w-5 h-5 text-zinc-400" />
+                                )}
+                              </div>
+                              <div className="flex gap-1.5">
+                                <button
+                                  onClick={() => handleSelectBusiness(biz.id)}
+                                  className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                                    isCurrentlyActive 
+                                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                      : "bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300"
+                                  }`}
+                                  disabled={isCurrentlyActive}
+                                >
+                                  {isCurrentlyActive ? "Active" : "Select & Edit"}
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="space-y-1 text-left">
+                              <h4 className="text-sm font-bold text-white tracking-tight flex items-center gap-1.5">
+                                {biz.name}
+                                {biz.is_published ? (
+                                  <span className="w-2 h-2 rounded-full bg-emerald-500" title="Published" />
+                                ) : (
+                                  <span className="w-2 h-2 rounded-full bg-zinc-600" title="Draft" />
+                                )}
+                              </h4>
+                              <p className="text-xs text-zinc-400 truncate font-mono">/site/{biz.subdomain}</p>
+                              {biz.description && (
+                                <p className="text-[11px] text-zinc-500 line-clamp-2 mt-1 leading-relaxed">{biz.description}</p>
+                              )}
+                            </div>
+
+                            <div className="flex flex-wrap gap-2 pt-1">
+                              {biz.business_type && (
+                                <span className="bg-emerald-500/10 text-emerald-400 text-[9px] font-black uppercase tracking-wider font-mono px-2 py-0.5 rounded border border-emerald-500/20">
+                                  {biz.business_type}
+                                </span>
+                              )}
+                              <span className={`text-[9px] font-bold uppercase tracking-wider font-mono px-2 py-0.5 rounded border ${
+                                biz.is_published 
+                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                  : "bg-zinc-900 text-zinc-400 border-zinc-800"
+                              }`}>
+                                {biz.is_published ? "Published" : "Draft"}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 mt-6 pt-4 border-t border-zinc-900/60">
+                            <button
+                              onClick={() => window.open(window.location.origin + "/site/" + biz.subdomain, "_blank")}
+                              className="flex-1 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-[10px] font-bold text-zinc-300 hover:text-white flex items-center justify-center gap-1 cursor-pointer"
+                            >
+                              <LucideIcon name="ExternalLink" className="w-3 h-3" />
+                              Open
+                            </button>
+                            <button
+                              onClick={() => handleDuplicateBusiness(biz.id)}
+                              className="py-1.5 px-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-[10px] font-bold text-zinc-350 hover:text-white flex items-center justify-center gap-1 cursor-pointer"
+                              title="Duplicate website template"
+                            >
+                              <LucideIcon name="Copy" className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteBusiness(biz.id)}
+                              className="py-1.5 px-2.5 rounded-lg bg-red-950/20 hover:bg-red-950/45 border border-red-900/30 text-[10px] font-bold text-red-400 hover:text-red-300 flex items-center justify-center gap-1 cursor-pointer"
+                              title="Delete Website"
+                            >
+                              <LucideIcon name="Trash2" className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </motion.div>
+            )}
+
             {/* TAB: DASHBOARD OVERVIEW */}
             {activeTab === "Dashboard" && (() => {
               // Calculate checklist status

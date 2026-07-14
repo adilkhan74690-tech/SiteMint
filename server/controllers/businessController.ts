@@ -707,3 +707,234 @@ export async function unpublishBusiness(req: Request, res: Response, next: NextF
     next(error);
   }
 }
+
+/**
+ * Fetch all businesses/websites owned by the current owner.
+ */
+export async function getOwnerBusinesses(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const userId = req.user?.userId;
+  if (!userId) {
+    res.status(401).json({ status: "error", message: "Unauthorized context." });
+    return;
+  }
+
+  try {
+    const businesses = await query(
+      "SELECT * FROM `businesses` WHERE `owner_id` = ? ORDER BY `created_at` DESC",
+      [userId]
+    );
+    res.json({
+      status: "success",
+      data: businesses
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Select/switch the active business/website context.
+ */
+export async function selectBusiness(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const userId = req.user?.userId;
+  const { id } = req.params;
+  if (!userId) {
+    res.status(401).json({ status: "error", message: "Unauthorized context." });
+    return;
+  }
+
+  try {
+    const biz: any[] = await query("SELECT id FROM `businesses` WHERE `id` = ? AND `owner_id` = ?", [id, userId]);
+    if (biz.length === 0) {
+      res.status(404).json({ status: "error", message: "Business website not found or unauthorized." });
+      return;
+    }
+
+    await query("UPDATE `users` SET `business_id` = ? WHERE `id` = ?", [id, userId]);
+
+    // Generate new Access and Refresh tokens containing the new businessId!
+    const tokenPayload = {
+      userId,
+      businessId: Number(id),
+      email: req.user?.email || "",
+      role: req.user?.role || "owner"
+    };
+
+    const accessToken = generateAccessToken(tokenPayload);
+    const refreshToken = generateRefreshToken(tokenPayload);
+
+    // Save refresh token to user record
+    await query("UPDATE `users` SET `refresh_token` = ? WHERE `id` = ?", [refreshToken, userId]);
+
+    // Set refresh token cookie
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+
+    res.json({
+      status: "success",
+      message: "Business selected successfully.",
+      data: {
+        business_id: Number(id),
+        token: accessToken
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Duplicate a business website and theme settings.
+ */
+export async function duplicateBusiness(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const userId = req.user?.userId;
+  const { id } = req.params;
+  if (!userId) {
+    res.status(401).json({ status: "error", message: "Unauthorized context." });
+    return;
+  }
+
+  let connection;
+  try {
+    connection = await getConnection();
+    await connection.beginTransaction();
+
+    const [biz]: any = await connection.execute("SELECT * FROM `businesses` WHERE `id` = ? AND `owner_id` = ?", [id, userId]);
+    if (biz.length === 0) {
+      res.status(404).json({ status: "error", message: "Business not found or unauthorized." });
+      await connection.rollback();
+      return;
+    }
+
+    const sourceBiz = biz[0];
+    const newSubdomain = `${sourceBiz.subdomain}-copy-${crypto.randomInt(1000, 9999)}`;
+    const newUuid = crypto.randomUUID();
+
+    const [bizResult]: any = await connection.execute(
+      `INSERT INTO \`businesses\` (\`uuid\`, \`name\`, \`subdomain\`, \`contact_email\`, \`contact_phone\`, \`status\`, \`owner_id\`, \`is_completed\`, \`business_type\`, \`address\`, \`description\`, \`upi_id\`, \`logo_url\`, \`is_published\`) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        newUuid,
+        `${sourceBiz.name} (Copy)`,
+        newSubdomain,
+        sourceBiz.contact_email,
+        sourceBiz.contact_phone,
+        sourceBiz.status,
+        userId,
+        sourceBiz.is_completed,
+        sourceBiz.business_type,
+        sourceBiz.address,
+        sourceBiz.description,
+        sourceBiz.upi_id,
+        sourceBiz.logo_url,
+        sourceBiz.is_published
+      ]
+    );
+    const newBusinessId = bizResult.insertId;
+
+    const [theme]: any = await connection.execute("SELECT * FROM `theme_settings` WHERE `business_id` = ?", [id]);
+    if (theme.length > 0) {
+      const sourceTheme = theme[0];
+      await connection.execute(
+        `INSERT INTO \`theme_settings\` (\`business_id\`, \`template_id\`, \`primary_color\`, \`secondary_color\`, \`font_family\`, \`custom_css\`, \`custom_settings_json\`)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          newBusinessId,
+          sourceTheme.template_id,
+          sourceTheme.primary_color,
+          sourceTheme.secondary_color,
+          sourceTheme.font_family,
+          sourceTheme.custom_css,
+          sourceTheme.custom_settings_json
+        ]
+      );
+    }
+
+    // Copy products if any
+    const [products]: any = await connection.execute("SELECT * FROM `products` WHERE `business_id` = ?", [id]);
+    for (const prod of products) {
+      await connection.execute(
+        `INSERT INTO \`products\` (\`business_id\`, \`name\`, \`slug\`, \`description\`, \`price\`, \`compare_at_price\`, \`sku\`, \`inventory_qty\`, \`is_active\`)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          newBusinessId,
+          prod.name,
+          `${prod.slug}-copy-${crypto.randomInt(100, 999)}`,
+          prod.description,
+          prod.price,
+          prod.compare_at_price,
+          prod.sku,
+          prod.inventory_qty,
+          prod.is_active
+        ]
+      );
+    }
+
+    // Copy services if any
+    const [services]: any = await connection.execute("SELECT * FROM `services` WHERE `business_id` = ?", [id]);
+    for (const serv of services) {
+      await connection.execute(
+        `INSERT INTO \`services\` (\`business_id\`, \`name\`, \`description\`, \`duration_minutes\`, \`price\`, \`capacity\`, \`is_active\`)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          newBusinessId,
+          serv.name,
+          serv.description,
+          serv.duration_minutes,
+          serv.price,
+          serv.capacity,
+          serv.is_active
+        ]
+      );
+    }
+
+    await connection.commit();
+    res.json({
+      status: "success",
+      message: "Business duplicated successfully.",
+      data: { id: newBusinessId }
+    });
+  } catch (error) {
+    if (connection) await connection.rollback();
+    next(error);
+  } finally {
+    if (connection) connection.release();
+  }
+}
+
+/**
+ * Delete a business website.
+ */
+export async function deleteBusinessByOwner(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const userId = req.user?.userId;
+  const { id } = req.params;
+  if (!userId) {
+    res.status(401).json({ status: "error", message: "Unauthorized context." });
+    return;
+  }
+
+  try {
+    const result: any = await query("DELETE FROM `businesses` WHERE `id` = ? AND `owner_id` = ?", [id, userId]);
+    if (result.affectedRows === 0) {
+      res.status(404).json({ status: "error", message: "Business not found or unauthorized." });
+      return;
+    }
+
+    const users: any = await query("SELECT business_id FROM `users` WHERE `id` = ?", [userId]);
+    if (users.length > 0 && Number(users[0].business_id) === Number(id)) {
+      const nextBiz: any = await query("SELECT id FROM `businesses` WHERE `owner_id` = ? LIMIT 1", [userId]);
+      const nextBizId = nextBiz.length > 0 ? nextBiz[0].id : null;
+      await query("UPDATE `users` SET `business_id` = ? WHERE `id` = ?", [nextBizId, userId]);
+    }
+
+    res.json({
+      status: "success",
+      message: "Business deleted successfully."
+    });
+  } catch (error) {
+    next(error);
+  }
+}

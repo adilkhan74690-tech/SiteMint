@@ -68,8 +68,6 @@ export default function AuthScreens({ currentView, onNavigate, onLoginSuccess }:
       onLoginSuccess(email || result.data?.user?.email || "adil.khan@company.com", role);
       if (role === "SUPER_ADMIN") {
         onNavigate("super-admin" as any);
-      } else if (result.data?.user?.onboarded === false) {
-        onNavigate("onboarding");
       } else {
         onNavigate("dashboard");
       }
@@ -88,6 +86,7 @@ export default function AuthScreens({ currentView, onNavigate, onLoginSuccess }:
       setErrorMessage("Passwords do not match");
       return;
     }
+
     if (!agreeTerms) {
       setErrorMessage("Please accept the Terms & Conditions");
       return;
@@ -131,7 +130,7 @@ export default function AuthScreens({ currentView, onNavigate, onLoginSuccess }:
 
       setIsLoading(false);
       onLoginSuccess(email);
-      onNavigate("onboarding");
+      onNavigate("dashboard");
     } catch (error: any) {
       setIsLoading(false);
       setErrorMessage(error.message || "An error occurred during registration.");

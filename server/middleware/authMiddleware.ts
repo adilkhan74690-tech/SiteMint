@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { verifyAccessToken, TokenPayload } from "../utils/jwt.js";
+import { query } from "../config/database.js";
 
 // Extend Express Request interface to include user payload
 declare global {
@@ -13,7 +14,7 @@ declare global {
 /**
  * Middleware to authenticate requests via JWT access tokens.
  */
-export function authenticateUser(req: Request, res: Response, next: NextFunction): void {
+export async function authenticateUser(req: Request, res: Response, next: NextFunction): Promise<void> {
   const authHeader = req.headers.authorization;
   
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -29,6 +30,15 @@ export function authenticateUser(req: Request, res: Response, next: NextFunction
   try {
     const decoded = verifyAccessToken(token);
     req.user = decoded;
+    
+    // Dynamically load active business_id from database to guarantee accuracy
+    if (decoded.userId) {
+      const users: any = await query("SELECT business_id, role FROM `users` WHERE `id` = ?", [decoded.userId]);
+      if (users.length > 0) {
+        req.user.businessId = users[0].business_id;
+        req.user.role = users[0].role;
+      }
+    }
     next();
   } catch (error: any) {
     res.status(401).json({

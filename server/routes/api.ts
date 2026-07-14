@@ -18,7 +18,11 @@ import {
   updateStaff,
   deleteStaff,
   updateBusinessSettings,
-  unpublishBusiness
+  unpublishBusiness,
+  getOwnerBusinesses,
+  selectBusiness,
+  duplicateBusiness,
+  deleteBusinessByOwner
 } from "../controllers/businessController.js";
 import {
   listProducts,
@@ -113,6 +117,10 @@ router.delete("/admin/announcements/:id", authenticateUser, requireRole(["SUPER_
 // ==========================================
 // 2. Business & Tenant Branding Routes
 // ==========================================
+router.get("/businesses", authenticateUser, getOwnerBusinesses);
+router.post("/businesses/:id/select", authenticateUser, selectBusiness);
+router.post("/businesses/:id/duplicate", authenticateUser, duplicateBusiness);
+router.delete("/businesses/:id", authenticateUser, requireRole(["owner"]), deleteBusinessByOwner);
 router.get("/businesses/settings", getBusinessSettings);
 router.get("/businesses/templates", getTemplates);
 router.put("/businesses/onboard", authenticateUser, onboardBusiness);

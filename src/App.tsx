@@ -181,10 +181,8 @@ export default function App() {
             setUserEmail(user.email);
             if (user.role === "SUPER_ADMIN") {
               setCurrentView("super-admin");
-            } else if (user.onboarded) {
-              setCurrentView("dashboard");
             } else {
-              setCurrentView("onboarding");
+              setCurrentView("dashboard");
             }
           } else {
             // Token is invalid/expired
@@ -201,10 +199,8 @@ export default function App() {
               setUserEmail(payload.email);
               if (payload.role === "SUPER_ADMIN") {
                 setCurrentView("super-admin");
-              } else if (payload.businessId) {
-                setCurrentView("dashboard");
               } else {
-                setCurrentView("onboarding");
+                setCurrentView("dashboard");
               }
             }
           } catch (err) {
@@ -227,25 +223,10 @@ export default function App() {
       }
     }
     
-    // Smart user redirection: if they are already logged in, take them straight to onboarding or dashboard.
+    // Smart user redirection: if they are already logged in, take them straight to dashboard.
     // If not, take them to the beautiful register page.
     if (userEmail) {
-      const token = localStorage.getItem("sitemint_token");
-      let hasBusiness = false;
-      if (token) {
-        try {
-          const payload = JSON.parse(atob(token.split(".")[1]));
-          if (payload && payload.businessId) {
-            hasBusiness = true;
-          }
-        } catch (e) {}
-      }
-      
-      if (hasBusiness) {
-        setCurrentView("dashboard");
-      } else {
-        setCurrentView("onboarding");
-      }
+      setCurrentView("dashboard");
     } else {
       setCurrentView("register");
     }
@@ -261,6 +242,8 @@ export default function App() {
     setUserEmail(email);
     if (role === "SUPER_ADMIN") {
       setCurrentView("super-admin");
+    } else {
+      setCurrentView("dashboard");
     }
   };
 

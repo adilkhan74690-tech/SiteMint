@@ -126,6 +126,18 @@ export async function loginUser(req: Request, res: Response, next: NextFunction)
 
     const user = users[0];
 
+    // Auto-link existing business if business_id is null to prevent context loss
+    if (user.role === "owner" && !user.business_id) {
+      const existingBiz: any = await query("SELECT id, status, owner_id, is_completed FROM `businesses` WHERE `owner_id` = ? LIMIT 1", [user.id]);
+      if (existingBiz.length > 0) {
+        user.business_id = existingBiz[0].id;
+        user.business_status = existingBiz[0].status;
+        user.business_owner_id = existingBiz[0].owner_id;
+        user.business_is_completed = existingBiz[0].is_completed;
+        await query("UPDATE `users` SET `business_id` = ? WHERE `id` = ?", [user.business_id, user.id]);
+      }
+    }
+
     if (user.business_status === "suspended") {
       res.status(403).json({
         status: "error",
@@ -280,7 +292,20 @@ export async function getProfile(req: Request, res: Response, next: NextFunction
       return;
     }
 
-    const user = users[0];
+    let user = users[0];
+
+    // Auto-link existing business if business_id is null to prevent context loss
+    if (user.role === "owner" && !user.business_id) {
+      const existingBiz: any = await query("SELECT id, status, owner_id, is_completed FROM `businesses` WHERE `owner_id` = ? LIMIT 1", [user.id]);
+      if (existingBiz.length > 0) {
+        user.business_id = existingBiz[0].id;
+        user.business_status = existingBiz[0].status;
+        user.business_owner_id = existingBiz[0].owner_id;
+        user.business_is_completed = existingBiz[0].is_completed;
+        await query("UPDATE `users` SET `business_id` = ? WHERE `id` = ?", [user.business_id, user.id]);
+      }
+    }
+
     const onboarded = !!(user.business_id && (user.business_owner_id || user.business_is_completed));
 
     res.json({
