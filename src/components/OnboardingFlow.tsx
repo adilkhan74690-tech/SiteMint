@@ -661,32 +661,48 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4" id="categories-onboarding-grid">
                     {CATEGORIES.map((cat) => {
                       const isSelected = selectedCategory.id === cat.id;
+                      const isLive = ["salon", "gym", "restaurant", "spa"].includes(cat.id);
                       return (
                         <div
                           key={cat.id}
-                          onClick={() => handleCategorySelect(cat)}
-                          className={`group relative p-5 rounded-2xl border text-center cursor-pointer transition-all duration-300 ${
-                            isSelected
-                              ? "bg-zinc-900 border-mint/60 shadow-[0_4px_20px_rgba(0,245,160,0.1)]"
-                              : "bg-zinc-950 border-zinc-800/80 hover:bg-zinc-900/50 hover:border-zinc-700"
+                          onClick={() => isLive && handleCategorySelect(cat)}
+                          tabIndex={isLive ? 0 : -1}
+                          title={isLive ? undefined : "This template will be available in a future update."}
+                          className={`group relative p-5 rounded-2xl border text-center transition-all duration-300 ${
+                            !isLive
+                              ? "opacity-40 grayscale cursor-not-allowed bg-zinc-950/20 border-zinc-900"
+                              : isSelected
+                                ? "bg-zinc-900 border-mint/60 shadow-[0_4px_20px_rgba(0,245,160,0.1)] cursor-pointer"
+                                : "bg-zinc-950 border-zinc-800/80 hover:bg-zinc-900/50 hover:border-zinc-700 cursor-pointer"
                           }`}
                           id={`cat-card-${cat.id}`}
                         >
                           <div 
                             className={`w-12 h-12 rounded-xl mx-auto flex items-center justify-center mb-4 transition-colors ${
-                              isSelected ? "bg-mint text-black" : "bg-zinc-900 text-zinc-400 group-hover:text-white"
+                              !isLive
+                                ? "bg-zinc-950 text-zinc-600"
+                                : isSelected
+                                  ? "bg-mint text-black"
+                                  : "bg-zinc-900 text-zinc-400 group-hover:text-white"
                             }`}
                           >
                             <LucideIcon name={cat.icon} className="w-5 h-5" />
                           </div>
                           
-                          <h4 className={`text-sm font-semibold tracking-tight transition-colors ${isSelected ? "text-white" : "text-zinc-300"}`}>
+                          <h4 className={`text-sm font-semibold tracking-tight transition-colors ${!isLive ? "text-zinc-500" : isSelected ? "text-white" : "text-zinc-300"}`}>
                             {cat.label}
                           </h4>
                           <p className="text-[10px] text-zinc-500 mt-1 font-mono uppercase tracking-wider">{cat.tag}</p>
 
+                          {/* Coming Soon Badge */}
+                          {!isLive && (
+                            <span className="absolute top-2 right-2 bg-zinc-900 border border-zinc-800 text-zinc-500 text-[8px] font-bold px-1.5 py-0.5 rounded font-mono uppercase tracking-wider">
+                              Soon
+                            </span>
+                          )}
+
                           {/* Selected Check Indicator */}
-                          {isSelected && (
+                          {isLive && isSelected && (
                             <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-mint text-black flex items-center justify-center scale-90">
                               <LucideIcon name="Check" className="w-3.5 h-3.5 stroke-[3]" />
                             </div>
@@ -1310,7 +1326,10 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
                   </div>
 
                   <button
-                    disabled={currentStep === 3 && !isStep1Valid}
+                    disabled={
+                      (currentStep === 1 && !["salon", "gym", "restaurant", "spa"].includes(selectedCategory.id)) ||
+                      (currentStep === 3 && !isStep1Valid)
+                    }
                     onClick={handleNext}
                     className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-mint hover:text-[#00D185] disabled:opacity-30 disabled:pointer-events-none transition-colors"
                     id="btn-onboarding-next"
