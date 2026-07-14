@@ -163,9 +163,10 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
   const [subdomain, setSubdomain] = useState("");
   const [upiId, setUpiId] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -175,31 +176,8 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
       return;
     }
 
-    const token = localStorage.getItem("sitemint_token");
-    const formData = new FormData();
-    formData.append("file", file);
-
-    setIsUploadingLogo(true);
-    try {
-      const response = await fetch("/api/feedback/media", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`
-        },
-        body: formData
-      });
-
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.message || "Failed to upload logo.");
-      }
-
-      setLogoUrl(result.data.url);
-    } catch (err: any) {
-      alert("Logo upload error: " + err.message);
-    } finally {
-      setIsUploadingLogo(false);
-    }
+    setLogoFile(file);
+    setLogoUrl(URL.createObjectURL(file));
   };
 
   // Keep subdomain in sync with business name until user edits it manually
@@ -287,12 +265,55 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
     }
   };
 
+  const handleSelectTemplateAndPrefill = (tpl: any) => {
+    setSelectedTemplate(tpl);
+    
+    // Prefill suggesting details
+    if (tpl.code === "gym") {
+      setBusinessName("Iron Peak Fitness");
+      setTagline("Train Beyond Limits");
+      setDescription("Premium gym with certified trainers.");
+      setPhone("9876543210");
+      setAddress("123 Fitness Ave, Suite 100");
+      setUpiId("merchant@upi");
+      setSubdomain("iron-peak-fitness");
+    } else if (tpl.code === "restaurant") {
+      setBusinessName("The Gourmet Bistro");
+      setTagline("Exquisite Culinary Experience");
+      setDescription("Cozy dining with local chef specialties.");
+      setPhone("9876543211");
+      setAddress("456 Foodie Lane");
+      setUpiId("merchant@upi");
+      setSubdomain("the-gourmet-bistro");
+    } else if (tpl.code === "salon") {
+      setBusinessName("Luminous Salon & Spa");
+      setTagline("Elevate Your Radiance");
+      setDescription("Luxury boutique hair, styling and therapy services.");
+      setPhone("9876543212");
+      setAddress("789 Beauty Blvd");
+      setUpiId("merchant@upi");
+      setSubdomain("luminous-salon-spa");
+    } else if (tpl.code === "clothing") {
+      setBusinessName("Vanguard Closet");
+      setTagline("Modern Contemporary Apparel");
+      setDescription("High-quality fabrics and curated fashion items.");
+      setPhone("9876543213");
+      setAddress("101 Fashion St");
+      setUpiId("merchant@upi");
+      setSubdomain("vanguard-closet");
+    }
+    
+    // Automatically transition to Step 3
+    setCurrentStep(3);
+  };
+
   // Step 1: Business info validate
-  const isStep1Valid = businessName && tagline && phone && address && description && subdomain && upiId;
+  const isStep1Valid = !!(businessName && tagline && phone && address && description && subdomain && upiId);
 
   const handleOnboardingComplete = async () => {
-    const token = localStorage.getItem("sitemint_token");
+    let token = localStorage.getItem("sitemint_token");
     try {
+      // 1. First onboarding save (without logo_url to allow business creation first)
       const response = await fetch("/api/businesses/onboard", {
         method: "PUT",
         headers: {
@@ -307,7 +328,7 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
           description,
           subdomain,
           upi_id: upiId,
-          logo_url: logoUrl,
+          logo_url: null, // Defer logo upload
           template_id: selectedTemplate.id || 1,
           primary_color: selectedTheme.primary,
           secondary_color: selectedTheme.secondary,
@@ -320,6 +341,61 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
         throw new Error(result.message || "Failed to onboard business.");
       }
 
+      // Save the new token containing the businessId
+      const newToken = result.data?.token;
+      if (newToken) {
+        localStorage.setItem("sitemint_token", newToken);
+        token = newToken;
+      }
+
+      // 2. Upload Logo if a file was selected locally
+      if (logoFile) {
+        const formData = new FormData();
+        formData.append("file", logoFile);
+
+        const uploadRes = await fetch("/api/feedback/media", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${token}`
+          },
+          body: formData
+        });
+
+        const uploadResult = await uploadRes.json();
+        if (!uploadRes.ok) {
+          throw new Error(uploadResult.message || "Failed to upload logo brand to Cloudinary.");
+        }
+
+        const cloudinaryLogoUrl = uploadResult.data.url;
+
+        // 3. Persist the logo URL to MySQL
+        const finalRes = await fetch("/api/businesses/onboard", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            name: businessName,
+            business_type: selectedCategory.label,
+            contact_phone: phone,
+            address,
+            description,
+            subdomain,
+            upi_id: upiId,
+            logo_url: cloudinaryLogoUrl,
+            template_id: selectedTemplate.id || 1,
+            primary_color: selectedTheme.primary,
+            secondary_color: selectedTheme.secondary,
+            font_family: selectedTheme.font || "Inter"
+          })
+        });
+
+        if (!finalRes.ok) {
+          throw new Error("Failed to save logo URL reference in MySQL.");
+        }
+      }
+
       onComplete();
     } catch (err: any) {
       alert("Error completing onboarding: " + err.message);
@@ -327,9 +403,9 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
   };
 
   const stepperLabels = [
-    { id: 1, label: "Info", icon: "FileText" },
-    { id: 2, label: "Category", icon: "Grid" },
-    { id: 3, label: "Template", icon: "Layers" },
+    { id: 1, label: "Category", icon: "Grid" },
+    { id: 2, label: "Template", icon: "Layers" },
+    { id: 3, label: "Info", icon: "FileText" },
     { id: 4, label: "Theme", icon: "Palette" },
     { id: 5, label: "Preview", icon: "Eye" },
     { id: 6, label: "Publish", icon: "Zap" },
@@ -374,7 +450,7 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
               return (
                 <button
                   key={step.id}
-                  disabled={step.id > currentStep && !isStep1Valid}
+                  disabled={step.id > 3 && !isStep1Valid}
                   onClick={() => setCurrentStep(step.id)}
                   className="flex flex-col items-center gap-2 group focus:outline-none transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   id={`stepper-node-${step.id}`}
@@ -419,11 +495,11 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
               className="w-full rounded-2xl border border-zinc-800/80 bg-zinc-950/70 backdrop-blur-xl p-6 sm:p-10 shadow-[0_24px_80px_rgba(0,0,0,0.8)]"
             >
               
-              {/* STEP 1: BUSINESS INFORMATION */}
-              {currentStep === 1 && (
-                <div className="space-y-6" id="step-1-business-info">
+              {/* STEP 3: BUSINESS INFORMATION */}
+              {currentStep === 3 && (
+                <div className="space-y-6" id="step-3-business-info">
                   <div className="border-b border-zinc-900 pb-4 mb-4">
-                    <h3 className="text-lg font-bold text-white font-display">Step 1: Business Identity</h3>
+                    <h3 className="text-lg font-bold text-white font-display">Step 3: Business Identity</h3>
                     <p className="text-xs text-zinc-400">Specify details that will automatically compile onto your website header, footer, and interactive sections.</p>
                   </div>
 
@@ -576,11 +652,11 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
                 </div>
               )}
 
-              {/* STEP 2: CHOOSE BUSINESS CATEGORY */}
-              {currentStep === 2 && (
-                <div className="space-y-6" id="step-2-category">
+              {/* STEP 1: CHOOSE BUSINESS CATEGORY */}
+              {currentStep === 1 && (
+                <div className="space-y-6" id="step-1-category">
                   <div className="border-b border-zinc-900 pb-4 mb-4">
-                    <h3 className="text-lg font-bold text-white font-display">Step 2: Business Category</h3>
+                    <h3 className="text-lg font-bold text-white font-display">Step 1: Business Category</h3>
                     <p className="text-xs text-zinc-400">Selecting a category optimizes the functional module plugins (e.g. scheduling forms, menus, booking grids).</p>
                   </div>
 
@@ -624,8 +700,8 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
                 </div>
               )}
 
-              {/* STEP 3: CHOOSE WEBSITE TEMPLATE */}
-              {currentStep === 3 && (() => {
+              {/* STEP 2: CHOOSE WEBSITE TEMPLATE */}
+              {currentStep === 2 && (() => {
                 const filteredTemplates = WEB_TEMPLATES.filter((tpl) => {
                   const categoryMatch = tpl.category
                     ? tpl.category.toLowerCase().includes(templateSearch.toLowerCase())
@@ -638,9 +714,9 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
                 });
 
                 return (
-                  <div className="space-y-6" id="step-3-template">
+                  <div className="space-y-6" id="step-2-template">
                     <div className="border-b border-zinc-900 pb-4 mb-4">
-                      <h3 className="text-lg font-bold text-white font-display">Step 3: Website Template Structure</h3>
+                      <h3 className="text-lg font-bold text-white font-display">Step 2: Website Template Structure</h3>
                       <p className="text-xs text-zinc-400">Pick a professional template blueprint layout. It governs structural grid behaviors, text sizes, and margins.</p>
                     </div>
 
@@ -701,7 +777,7 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
                           return (
                             <div
                               key={tpl.id}
-                              onClick={() => setSelectedTemplate(tpl)}
+                              onClick={() => handleSelectTemplateAndPrefill(tpl)}
                               className={`group rounded-2xl border bg-zinc-950 overflow-hidden cursor-pointer transition-all duration-300 flex flex-col ${
                                 isSelected
                                   ? "border-mint ring-1 ring-mint shadow-[0_12px_40px_rgba(0,245,160,0.15)]"
@@ -768,7 +844,7 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setSelectedTemplate(tpl);
+                                      handleSelectTemplateAndPrefill(tpl);
                                     }}
                                     className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer ${
                                       isSelected 
@@ -1236,7 +1312,7 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
                   </div>
 
                   <button
-                    disabled={currentStep === 1 && !isStep1Valid}
+                    disabled={currentStep === 3 && !isStep1Valid}
                     onClick={handleNext}
                     className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-mint hover:text-[#00D185] disabled:opacity-30 disabled:pointer-events-none transition-colors"
                     id="btn-onboarding-next"

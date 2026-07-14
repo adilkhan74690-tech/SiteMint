@@ -10,6 +10,7 @@ interface GymTemplateProps {
   // Allows optional linking with our interactive builder state
   initialBrandName?: string;
   initialThemeAccent?: string;
+  isStandalone?: boolean;
 }
 
 // Initial Mock Datasets for Gym
@@ -34,7 +35,7 @@ const GALLERY_PHOTOS = [
   "https://images.unsplash.com/photo-1593079831268-3381b0db4a77?auto=format&fit=crop&w=600&q=80",
 ];
 
-export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Athletics", initialThemeAccent = "#00F5A0" }: GymTemplateProps) {
+export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Athletics", initialThemeAccent = "#00F5A0", isStandalone = false }: GymTemplateProps) {
   // Live dynamic theme values
   const [brandName, setBrandName] = useState(initialBrandName);
   const [accentColor, setAccentColor] = useState(initialThemeAccent);
@@ -54,7 +55,14 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
     const queryParams = new URLSearchParams(window.location.search);
     const querySubdomain = queryParams.get("subdomain");
     const hostnameSubdomain = window.location.hostname.split(".")[0];
-    const subdomain = querySubdomain || (hostnameSubdomain !== "localhost" && hostnameSubdomain !== "www" && hostnameSubdomain !== "sitemint" ? hostnameSubdomain : null) || "vanguard-athletic-lab";
+
+    const pathname = window.location.pathname;
+    let pathSubdomain = "";
+    if (pathname.startsWith("/site/")) {
+      pathSubdomain = pathname.split("/")[2];
+    }
+
+    const subdomain = querySubdomain || pathSubdomain || (hostnameSubdomain !== "localhost" && hostnameSubdomain !== "www" && hostnameSubdomain !== "sitemint" ? hostnameSubdomain : null) || "vanguard-athletic-lab";
 
     fetch(`/api/businesses/settings?subdomain=${subdomain}`)
       .then((r) => r.json())
@@ -143,73 +151,75 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
     >
       
       {/* ----------------- CONTROLLERS & DEMO FLIGHT TOOLBAR ----------------- */}
-      <div className="bg-zinc-950 border-b border-zinc-900 sticky top-0 z-50 px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-md" id="demo-toolbar">
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={onBackToHub}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs font-semibold text-zinc-400 hover:text-white transition-all"
-            id="btn-back-hub"
-          >
-            <LucideIcon name="ArrowLeft" className="w-3.5 h-3.5" />
-            Back to SiteMint Hub
-          </button>
-          <span className="text-zinc-700">|</span>
-          <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-zinc-500">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>Independent Live Template</span>
-          </div>
-        </div>
-
-        {/* Dynamic color & naming sandbox widget built into the frame */}
-        <div className="flex items-center gap-4 flex-wrap" id="sandbox-controls">
-          {/* Custom Brand Naming input */}
-          <div className="flex items-center gap-1.5 bg-zinc-900 px-2.5 py-1 rounded-lg border border-zinc-800">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">Brand:</span>
-            <input 
-              type="text" 
-              value={brandName} 
-              onChange={(e) => setBrandName(e.target.value)}
-              className="bg-transparent text-white text-xs font-bold focus:outline-none w-28 placeholder-zinc-600"
-              placeholder="Brand Name"
-              id="sandbox-brand-name-input"
-            />
-          </div>
-
-          {/* Color Selector */}
-          <div className="flex items-center gap-1 bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-800">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase px-1">Accent:</span>
-            {["#00F5A0", "#EC4899", "#06B6D4", "#F59E0B"].map((col) => (
-              <button
-                key={col}
-                onClick={() => setAccentColor(col)}
-                className={`w-4 h-4 rounded-full border transition-all ${accentColor === col ? "border-white scale-110" : "border-transparent"}`}
-                style={{ backgroundColor: col }}
-                title={`Change theme to ${col}`}
-              />
-            ))}
-            <input 
-              type="color" 
-              value={accentColor} 
-              onChange={(e) => setAccentColor(e.target.value)} 
-              className="w-4 h-4 bg-transparent border-0 cursor-pointer ml-1 p-0"
-              title="Custom Picker"
-            />
-          </div>
-
-          {/* Typography Selector */}
-          <div className="flex items-center gap-1 bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-800">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase px-1">Font:</span>
-            <select 
-              value={typography} 
-              onChange={(e) => setTypography(e.target.value)}
-              className="bg-transparent text-white text-xs focus:outline-none cursor-pointer"
+      {!isStandalone && (
+        <div className="bg-zinc-950 border-b border-zinc-900 sticky top-0 z-50 px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-md" id="demo-toolbar">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={onBackToHub}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs font-semibold text-zinc-400 hover:text-white transition-all"
+              id="btn-back-hub"
             >
-              <option value="Space Grotesk">Space Grotesk</option>
-              <option value="Default">System Sans</option>
-            </select>
+              <LucideIcon name="ArrowLeft" className="w-3.5 h-3.5" />
+              Back to SiteMint Hub
+            </button>
+            <span className="text-zinc-700">|</span>
+            <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-zinc-500">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span>Independent Live Template</span>
+            </div>
+          </div>
+
+          {/* Dynamic color & naming sandbox widget built into the frame */}
+          <div className="flex items-center gap-4 flex-wrap" id="sandbox-controls">
+            {/* Custom Brand Naming input */}
+            <div className="flex items-center gap-1.5 bg-zinc-900 px-2.5 py-1 rounded-lg border border-zinc-800">
+              <span className="text-[10px] font-mono text-zinc-500 uppercase">Brand:</span>
+              <input 
+                type="text" 
+                value={brandName} 
+                onChange={(e) => setBrandName(e.target.value)}
+                className="bg-transparent text-white text-xs font-bold focus:outline-none w-28 placeholder-zinc-600"
+                placeholder="Brand Name"
+                id="sandbox-brand-name-input"
+              />
+            </div>
+
+            {/* Color Selector */}
+            <div className="flex items-center gap-1 bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-800">
+              <span className="text-[10px] font-mono text-zinc-500 uppercase px-1">Accent:</span>
+              {["#00F5A0", "#EC4899", "#06B6D4", "#F59E0B"].map((col) => (
+                <button
+                  key={col}
+                  onClick={() => setAccentColor(col)}
+                  className={`w-4 h-4 rounded-full border transition-all ${accentColor === col ? "border-white scale-110" : "border-transparent"}`}
+                  style={{ backgroundColor: col }}
+                  title={`Change theme to ${col}`}
+                />
+              ))}
+              <input 
+                type="color" 
+                value={accentColor} 
+                onChange={(e) => setAccentColor(e.target.value)} 
+                className="w-4 h-4 bg-transparent border-0 cursor-pointer ml-1 p-0"
+                title="Custom Picker"
+              />
+            </div>
+
+            {/* Typography Selector */}
+            <div className="flex items-center gap-1 bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-800">
+              <span className="text-[10px] font-mono text-zinc-550 uppercase px-1">Font:</span>
+              <select 
+                value={typography} 
+                onChange={(e) => setTypography(e.target.value)}
+                className="bg-transparent text-white text-xs focus:outline-none cursor-pointer"
+              >
+                <option value="Space Grotesk">Space Grotesk</option>
+                <option value="Default">System Sans</option>
+              </select>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* ----------------- LOCAL MOCK STOREFRONT NAVBAR ----------------- */}
       <nav className="bg-[#09090B]/90 backdrop-blur-md border-b border-zinc-900/60 sticky top-14 z-40 px-6 py-4 flex items-center justify-between" id="gym-nav">

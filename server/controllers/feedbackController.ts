@@ -206,3 +206,23 @@ export async function markNotificationAsRead(req: Request, res: Response, next: 
     next(error);
   }
 }
+
+/**
+ * Delete a media asset from MySQL registry.
+ */
+export async function deleteMedia(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const businessId = req.user?.businessId;
+  const { id } = req.params;
+
+  if (!businessId) {
+    res.status(401).json({ status: "error", message: "Unauthorized context." });
+    return;
+  }
+
+  try {
+    await query("DELETE FROM `media` WHERE `id` = ? AND `business_id` = ?", [id, businessId]);
+    res.json({ status: "success", message: "Media deleted successfully." });
+  } catch (error) {
+    next(error);
+  }
+}

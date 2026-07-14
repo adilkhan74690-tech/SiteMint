@@ -36,6 +36,7 @@ export default function App() {
     "landing" | "login" | "register" | "forgot-password" | "reset-password" | "onboarding" | "dashboard" | "super-admin" | "preview-gym" | "preview-restaurant" | "preview-salon" | "preview-clothing" | "preview-404" | "preview-403" | "preview-500"
   >("landing");
   const [userEmail, setUserEmail] = useState("");
+  const [isStandalone, setIsStandalone] = useState(false);
 
   // Theme support: default to dark
   const [theme, setTheme] = useState<"dark" | "light">(() => {
@@ -62,7 +63,7 @@ export default function App() {
     localStorage.setItem("sitemint-theme", theme);
   }, [theme]);
 
-  // Subdomain routing detection
+  // Subdomain & path routing detection
   useEffect(() => {
     const hostname = window.location.hostname;
     const parts = hostname.split(".");
@@ -79,7 +80,15 @@ export default function App() {
     // Also support sandbox test urls e.g. localhost:3000/?subdomain=xxx
     const searchParams = new URLSearchParams(window.location.search);
     const querySubdomain = searchParams.get("subdomain");
-    const activeSubdomain = querySubdomain || detectedSubdomain;
+    
+    // Detect slug in pathname e.g. /site/hair-salon -> hair-salon
+    const pathname = window.location.pathname;
+    let pathSubdomain = "";
+    if (pathname.startsWith("/site/")) {
+      pathSubdomain = pathname.split("/")[2];
+    }
+
+    const activeSubdomain = querySubdomain || pathSubdomain || detectedSubdomain;
 
     if (activeSubdomain) {
       setLoading(true);
@@ -88,6 +97,7 @@ export default function App() {
         .then((result) => {
           setLoading(false);
           if (result.status === "success" && result.data?.business) {
+            setIsStandalone(true); // Standalone view mode triggered
             const templateCode = result.data.theme_settings?.template?.code || "gym";
             if (templateCode === "gym") {
               setCurrentView("preview-gym");
@@ -144,15 +154,88 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Restore user session from token on mount
+  useEffect(() => {
+    const token = localStorage.getItem("sitemint_token");
+    if (token) {
+      const fetchProfile = async () => {
+        try {
+          const res = await fetch("/api/auth/me", {
+            headers: {
+              "Authorization": `Bearer ${token}`
+            }
+          });
+          const result = await res.json();
+          if (res.ok && result.status === "success" && result.data?.user) {
+            const user = result.data.user;
+            setUserEmail(user.email);
+            if (user.role === "SUPER_ADMIN") {
+              setCurrentView("super-admin");
+            } else if (user.onboarded) {
+              setCurrentView("dashboard");
+            } else {
+              setCurrentView("onboarding");
+            }
+          } else {
+            // Token is invalid/expired
+            localStorage.removeItem("sitemint_token");
+            setUserEmail("");
+            setCurrentView("landing");
+          }
+        } catch (e) {
+          console.error("Failed to fetch session profile:", e);
+          // Fall back to local payload decode if server is down
+          try {
+            const payload = JSON.parse(atob(token.split(".")[1]));
+            if (payload && payload.email) {
+              setUserEmail(payload.email);
+              if (payload.role === "SUPER_ADMIN") {
+                setCurrentView("super-admin");
+              } else if (payload.businessId) {
+                setCurrentView("dashboard");
+              } else {
+                setCurrentView("onboarding");
+              }
+            }
+          } catch (err) {
+            localStorage.removeItem("sitemint_token");
+            setUserEmail("");
+            setCurrentView("landing");
+          }
+        }
+      };
+
+      fetchProfile();
+    }
+  }, []);
+
   const handleOpenCheckout = (planId?: string) => {
     if (planId) {
       setSelectedPlanId(planId);
+      if (planId !== "starter") {
+        localStorage.setItem("sitemint_checkout_trigger_plan", planId);
+      }
     }
     
-    // Smart user redirection: if they are already logged in, take them straight to onboarding.
+    // Smart user redirection: if they are already logged in, take them straight to onboarding or dashboard.
     // If not, take them to the beautiful register page.
     if (userEmail) {
-      setCurrentView("onboarding");
+      const token = localStorage.getItem("sitemint_token");
+      let hasBusiness = false;
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split(".")[1]));
+          if (payload && payload.businessId) {
+            hasBusiness = true;
+          }
+        } catch (e) {}
+      }
+      
+      if (hasBusiness) {
+        setCurrentView("dashboard");
+      } else {
+        setCurrentView("onboarding");
+      }
     } else {
       setCurrentView("register");
     }
@@ -172,6 +255,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem("sitemint_token");
     setUserEmail("");
     setCurrentView("landing");
   };
@@ -370,6 +454,7 @@ export default function App() {
               >
                 <GymTemplate 
                   onBackToHub={() => handleNavigate("landing")}
+                  isStandalone={isStandalone}
                 />
               </motion.div>
             )}
@@ -386,6 +471,7 @@ export default function App() {
               >
                 <RestaurantTemplate 
                   onBackToHub={() => handleNavigate("landing")}
+                  isStandalone={isStandalone}
                 />
               </motion.div>
             )}
@@ -402,6 +488,7 @@ export default function App() {
               >
                 <SalonTemplate 
                   onBackToHub={() => handleNavigate("landing")}
+                  isStandalone={isStandalone}
                 />
               </motion.div>
             )}
@@ -418,6 +505,7 @@ export default function App() {
               >
                 <ClothingTemplate 
                   onBackToHub={() => handleNavigate("landing")}
+                  isStandalone={isStandalone}
                 />
               </motion.div>
             )}

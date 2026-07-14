@@ -8,78 +8,63 @@ import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from ".
  * Handle multi-tenant registration of a new Business and its Owner.
  */
 export async function registerBusiness(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const { name, subdomain, contact_email, contact_phone, full_name, password } = req.body;
+  const { contact_email, full_name, password } = req.body;
 
-  if (!name || !subdomain || !contact_email || !full_name || !password) {
+  if (!contact_email || !full_name || !password) {
     res.status(400).json({
       status: "error",
-      message: "Please provide all required fields: name, subdomain, contact_email, full_name, and password."
+      message: "Please provide all required fields: contact_email, full_name, and password."
     });
     return;
   }
 
   const hashedPassword = await hashPassword(password);
-  const businessUuid = crypto.randomUUID();
 
-  // Live database transaction
   let connection;
   try {
     connection = await getConnection();
     await connection.beginTransaction();
 
-    // 1. Insert the Business
-    const [bizResult]: any = await connection.execute(
-      `INSERT INTO \`businesses\` (\`uuid\`, \`name\`, \`subdomain\`, \`contact_email\`, \`contact_phone\`, \`status\`) 
-       VALUES (?, ?, ?, ?, ?, 'trial')`,
-      [businessUuid, name, subdomain, contact_email, contact_phone || null]
+    // Verify if the email is already in use
+    const [existingUsers]: any = await connection.execute(
+      "SELECT id FROM `users` WHERE `email` = ?",
+      [contact_email]
     );
-    const businessId = bizResult.insertId;
 
-    // 2. Insert the User (Owner)
-    const [userResult]: any = await connection.execute(
-      `INSERT INTO \`users\` (\`business_id\`, \`email\`, \`password_hash\`, \`full_name\`, \`role\`, \`status\`) 
-       VALUES (?, ?, ?, ?, 'owner', 'active')`,
-      [businessId, contact_email, hashedPassword, full_name]
-    );
-    const userId = userResult.insertId;
-
-    // 3. Create Default Theme Settings (Defaulting to Template Code 'gym' / Template ID 1)
-    // Find template ID or insert a default template if none exist
-    let [templates]: any = await connection.execute("SELECT id FROM templates LIMIT 1");
-    let templateId;
-    if (templates.length > 0) {
-      templateId = templates[0].id;
-    } else {
-      const [newTemplateResult]: any = await connection.execute(
-        `INSERT INTO \`templates\` (\`code\`, \`name\`, \`category\`, \`is_active\`) 
-         VALUES ('gym', 'Apex Gym', 'Fitness', TRUE)`
-      );
-      templateId = newTemplateResult.insertId;
+    if (existingUsers.length > 0) {
+      res.status(409).json({
+        status: "error",
+        message: "An owner or employee is already registered with this email address."
+      });
+      await connection.rollback();
+      return;
     }
 
-    await connection.execute(
-      `INSERT INTO \`theme_settings\` (\`business_id\`, \`template_id\`, \`primary_color\`, \`secondary_color\`, \`font_family\`) 
-       VALUES (?, ?, '#10B981', '#111827', 'Inter')`,
-      [businessId, templateId]
+    // Insert the User (Owner) with a NULL business context
+    const [userResult]: any = await connection.execute(
+      `INSERT INTO \`users\` (\`business_id\`, \`email\`, \`password_hash\`, \`full_name\`, \`role\`, \`status\`) 
+       VALUES (NULL, ?, ?, ?, 'owner', 'active')`,
+      [contact_email, hashedPassword, full_name]
     );
+    const userId = userResult.insertId;
 
     await connection.commit();
 
     const accessToken = generateAccessToken({
       userId,
-      businessId,
+      businessId: null as any,
       email: contact_email,
       role: "owner"
     });
 
     const refreshToken = generateRefreshToken({
       userId,
-      businessId,
+      businessId: null as any,
       email: contact_email,
       role: "owner"
     });
 
-    // Save refresh token to user
+    // Save refresh token to user record
     await connection.execute(
       "UPDATE `users` SET `refresh_token` = ? WHERE `id` = ?",
       [refreshToken, userId]
@@ -94,40 +79,14 @@ export async function registerBusiness(req: Request, res: Response, next: NextFu
 
     res.status(201).json({
       status: "success",
-      message: "Business and owner registered successfully.",
+      message: "Owner registered successfully.",
       data: {
-        business: { id: businessId, uuid: businessUuid, name, subdomain, contact_email },
         user: { id: userId, email: contact_email, full_name, role: "owner" },
         token: accessToken
       }
     });
   } catch (error: any) {
     if (connection) await connection.rollback();
-    
-    // Gracefully handle duplicate entries (MySQL code 1062 or code "ER_DUP_ENTRY")
-    if (error.code === "ER_DUP_ENTRY" || error.errno === 1062) {
-      const errorMsg = error.message || "";
-      if (errorMsg.includes("subdomain")) {
-        res.status(409).json({
-          status: "error",
-          message: "The requested subdomain is already registered by another tenant. Please select a different subdomain."
-        });
-        return;
-      }
-      if (errorMsg.includes("email") || errorMsg.includes("users")) {
-        res.status(409).json({
-          status: "error",
-          message: "An owner or employee is already registered with this email address."
-        });
-        return;
-      }
-      res.status(409).json({
-        status: "error",
-        message: "Registration conflict: A business or user with these details is already registered."
-      });
-      return;
-    }
-    
     next(error);
   } finally {
     if (connection) connection.release();
@@ -147,7 +106,7 @@ export async function loginUser(req: Request, res: Response, next: NextFunction)
     });
     return;
   }  try {
-    let sql = "SELECT u.*, b.status as business_status, b.upi_id as business_upi FROM `users` u LEFT JOIN `businesses` b ON u.business_id = b.id WHERE u.email = ?";
+    let sql = "SELECT u.*, b.status as business_status, b.owner_id as business_owner_id, b.is_completed as business_is_completed FROM `users` u LEFT JOIN `businesses` b ON u.business_id = b.id WHERE u.email = ?";
     let params = [email];
 
     if (subdomain && subdomain !== "undefined" && subdomain !== "null") {
@@ -203,6 +162,8 @@ export async function loginUser(req: Request, res: Response, next: NextFunction)
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
+    const onboarded = !!(user.business_id && (user.business_owner_id || user.business_is_completed));
+
     res.json({
       status: "success",
       message: "Logged in successfully.",
@@ -215,7 +176,7 @@ export async function loginUser(req: Request, res: Response, next: NextFunction)
           full_name: user.full_name,
           role: user.role,
           status: user.status,
-          onboarded: !!user.business_upi
+          onboarded
         }
       }
     });
@@ -293,4 +254,50 @@ export async function logoutUser(req: Request, res: Response, next: NextFunction
     status: "success",
     message: "Logged out and invalidated session successfully."
   });
+}
+
+/**
+ * Get dynamic profile details and onboarding status of the current user
+ */
+export async function getProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const userId = req.user?.userId;
+  if (!userId) {
+    res.status(401).json({ status: "error", message: "Unauthorized context." });
+    return;
+  }
+
+  try {
+    const users: any = await query(
+      `SELECT u.*, b.status as business_status, b.owner_id as business_owner_id, b.is_completed as business_is_completed 
+       FROM \`users\` u 
+       LEFT JOIN \`businesses\` b ON u.business_id = b.id 
+       WHERE u.id = ?`,
+      [userId]
+    );
+
+    if (users.length === 0) {
+      res.status(404).json({ status: "error", message: "User registry not found." });
+      return;
+    }
+
+    const user = users[0];
+    const onboarded = !!(user.business_id && (user.business_owner_id || user.business_is_completed));
+
+    res.json({
+      status: "success",
+      data: {
+        user: {
+          id: user.id,
+          business_id: user.business_id,
+          email: user.email,
+          full_name: user.full_name,
+          role: user.role,
+          status: user.status,
+          onboarded
+        }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
 }

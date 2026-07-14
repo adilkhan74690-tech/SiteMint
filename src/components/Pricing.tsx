@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { motion } from "motion/react";
 import { pricingPlans } from "../data";
 import LucideIcon from "./LucideIcon";
@@ -8,8 +7,6 @@ interface PricingProps {
 }
 
 export default function Pricing({ onOpenCheckout }: PricingProps) {
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("yearly");
-
   return (
     <section className="py-24 bg-[#09090B] border-t border-zinc-900 relative overflow-hidden" id="pricing">
       {/* Background Ornaments */}
@@ -27,39 +24,13 @@ export default function Pricing({ onOpenCheckout }: PricingProps) {
             Simple, transparent pricing.
           </h3>
           <p className="text-base text-zinc-400">
-            Choose a plan that fits your business scale. No setup fees, no transaction commissions, and complete code export flexibility on premium tiers.
+            Transparent, simple plans designed to scale with your business in India. GST invoices available.
           </p>
-
-          {/* Monthly / Yearly Toggle */}
-          <div className="flex items-center justify-center gap-3 mt-10" id="billing-cycle-toggle-wrapper">
-            <span className={`text-sm font-semibold transition-colors ${billingCycle === "monthly" ? "text-white" : "text-zinc-500"}`}>
-              Monthly
-            </span>
-            <button
-              onClick={() => setBillingCycle(billingCycle === "monthly" ? "yearly" : "monthly")}
-              className="relative w-14 h-7 bg-zinc-900 rounded-full p-1 border border-zinc-800 transition-colors focus:outline-none"
-              aria-label="Toggle Billing Cycle"
-              id="btn-billing-toggle"
-            >
-              <div
-                className={`w-5 h-5 bg-mint rounded-full shadow-md transition-transform duration-300 ${
-                  billingCycle === "yearly" ? "translate-x-7" : "translate-x-0"
-                }`}
-              />
-            </button>
-            <span className={`text-sm font-semibold transition-colors flex items-center gap-1.5 ${billingCycle === "yearly" ? "text-white" : "text-zinc-500"}`}>
-              Yearly
-              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                Save 20%
-              </span>
-            </span>
-          </div>
         </div>
 
         {/* Pricing Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch" id="pricing-grid">
           {pricingPlans.map((plan) => {
-            const price = billingCycle === "monthly" ? plan.priceMonthly : plan.priceYearly;
             return (
               <motion.div
                 key={plan.id}
@@ -77,36 +48,40 @@ export default function Pricing({ onOpenCheckout }: PricingProps) {
                 {/* Popular Ribbon/Badge */}
                 {plan.isPopular && (
                   <span className="absolute top-4 right-4 text-[10px] font-bold font-mono uppercase tracking-wider px-3 py-1 rounded bg-mint/10 border border-mint/20 text-mint">
-                    Recommended
+                    MOST POPULAR
                   </span>
                 )}
 
                 {/* Plan Content */}
                 <div className="space-y-6">
-                  <div className="space-y-1">
+                  <div className="space-y-1 text-left">
                     <h4 className="text-xl font-bold text-white font-display">{plan.name}</h4>
                     <p className="text-xs text-zinc-400 font-mono uppercase tracking-wide">
                       {plan.id} Tier
                     </p>
                   </div>
 
-                  <p className="text-sm text-zinc-400 leading-relaxed min-h-[48px]">
+                  <p className="text-sm text-zinc-450 leading-relaxed min-h-[48px] text-left">
                     {plan.description}
                   </p>
 
                   {/* Pricing Display */}
                   <div className="flex items-baseline gap-1" id={`price-display-${plan.id}`}>
-                    <span className="text-4xl font-extrabold text-white font-display">$</span>
+                    <span className="text-4xl font-extrabold text-white font-display">₹</span>
                     <span className="text-5xl font-black text-white font-display tracking-tight">
-                      {price}
+                      {plan.priceMonthly}
                     </span>
-                    <span className="text-sm text-zinc-500 font-mono ml-1">/ mo</span>
+                    {plan.priceMonthly > 0 ? (
+                      <span className="text-sm text-zinc-500 font-mono ml-1">/ month</span>
+                    ) : (
+                      <span className="text-sm text-mint font-mono ml-1.5 font-bold">Free Trial</span>
+                    )}
                   </div>
 
                   {/* Feature Checklist */}
                   <div className="border-t border-zinc-900 pt-6 space-y-3.5">
-                    <p className="text-xs font-bold uppercase tracking-wider text-zinc-500 font-mono">Features Included:</p>
-                    <ul className="space-y-3 text-sm text-zinc-300" id={`pricing-features-list-${plan.id}`}>
+                    <p className="text-xs font-bold uppercase tracking-wider text-zinc-500 font-mono text-left">Features Included:</p>
+                    <ul className="space-y-3 text-sm text-zinc-300 text-left" id={`pricing-features-list-${plan.id}`}>
                       {plan.features.map((feat, idx) => (
                         <li key={idx} className="flex items-start gap-3">
                           <LucideIcon name="Check" className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
@@ -120,10 +95,10 @@ export default function Pricing({ onOpenCheckout }: PricingProps) {
                 {/* Call to Action Button */}
                 <button
                   onClick={() => onOpenCheckout(plan.id)}
-                  className={`w-full mt-8 py-3.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-1.5 ${
+                  className={`w-full mt-8 py-3.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     plan.isPopular
                       ? "bg-mint text-black hover:bg-[#00D185] shadow-[0_4px_25px_rgba(16,185,129,0.35)]"
-                      : "bg-zinc-900 border border-zinc-800 text-white hover:border-zinc-600 hover:bg-zinc-800"
+                      : "bg-zinc-900 border border-zinc-800 text-white hover:border-zinc-650 hover:bg-zinc-850"
                   }`}
                   id={`btn-pricing-cta-${plan.id}`}
                 >
@@ -133,6 +108,26 @@ export default function Pricing({ onOpenCheckout }: PricingProps) {
               </motion.div>
             );
           })}
+        </div>
+
+        {/* Indian Business Trust Section */}
+        <div className="mt-20 p-6 rounded-2xl bg-zinc-950/40 border border-zinc-900 grid grid-cols-2 md:grid-cols-4 gap-6 text-center max-w-4xl mx-auto" id="pricing-trust-seals">
+          <div className="flex items-center gap-2.5 justify-center text-xs text-zinc-300">
+            <LucideIcon name="ShieldCheck" className="w-5 h-5 text-mint" />
+            <span className="font-semibold">Secure payments with Razorpay</span>
+          </div>
+          <div className="flex items-center gap-2.5 justify-center text-xs text-zinc-300">
+            <LucideIcon name="CalendarCheck" className="w-5 h-5 text-mint" />
+            <span className="font-semibold">30-Day Free Trial</span>
+          </div>
+          <div className="flex items-center gap-2.5 justify-center text-xs text-zinc-300">
+            <LucideIcon name="FileText" className="w-5 h-5 text-mint" />
+            <span className="font-semibold">GST Invoice Available</span>
+          </div>
+          <div className="flex items-center gap-2.5 justify-center text-xs text-zinc-300">
+            <LucideIcon name="XCircle" className="w-5 h-5 text-mint" />
+            <span className="font-semibold">Cancel Anytime</span>
+          </div>
         </div>
 
       </div>

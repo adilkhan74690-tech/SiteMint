@@ -9,6 +9,7 @@ interface RestaurantTemplateProps {
   onBackToHub: () => void;
   initialBrandName?: string;
   initialThemeAccent?: string;
+  isStandalone?: boolean;
 }
 
 // Initial Mock Datasets for Restaurant
@@ -35,7 +36,7 @@ const FOOD_GALLERY = [
   "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=500&q=80",
 ];
 
-export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'Aura Bistro", initialThemeAccent = "#EC4899" }: RestaurantTemplateProps) {
+export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'Aura Bistro", initialThemeAccent = "#EC4899", isStandalone = false }: RestaurantTemplateProps) {
   // Live Customizer
   const [brandName, setBrandName] = useState(initialBrandName);
   const [accentColor, setAccentColor] = useState(initialThemeAccent);
@@ -58,7 +59,14 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
     const queryParams = new URLSearchParams(window.location.search);
     const querySubdomain = queryParams.get("subdomain");
     const hostnameSubdomain = window.location.hostname.split(".")[0];
-    const subdomain = querySubdomain || (hostnameSubdomain !== "localhost" && hostnameSubdomain !== "www" && hostnameSubdomain !== "sitemint" ? hostnameSubdomain : null) || "bistro-deluxe";
+
+    const pathname = window.location.pathname;
+    let pathSubdomain = "";
+    if (pathname.startsWith("/site/")) {
+      pathSubdomain = pathname.split("/")[2];
+    }
+
+    const subdomain = querySubdomain || pathSubdomain || (hostnameSubdomain !== "localhost" && hostnameSubdomain !== "www" && hostnameSubdomain !== "sitemint" ? hostnameSubdomain : null) || "bistro-deluxe";
 
     fetch(`/api/businesses/settings?subdomain=${subdomain}`)
       .then((r) => r.json())
@@ -180,68 +188,70 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
     >
       
       {/* ----------------- CONTROLLERS & DEMO FLIGHT TOOLBAR ----------------- */}
-      <div className="bg-[#120B19] border-b border-zinc-900/60 sticky top-0 z-50 px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-md" id="restaurant-toolbar">
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={onBackToHub}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-850 text-xs font-semibold text-zinc-400 hover:text-white transition-all"
-            id="btn-back-hub-rest"
-          >
-            <LucideIcon name="ArrowLeft" className="w-3.5 h-3.5" />
-            Back to SiteMint Hub
-          </button>
-          <span className="text-zinc-800">|</span>
-          <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-zinc-500">
-            <span className="w-2 h-2 rounded-full bg-red-400" />
-            <span>Independent Live Template</span>
-          </div>
-        </div>
-
-        {/* Brand overrides sandbox */}
-        <div className="flex items-center gap-4 flex-wrap" id="rest-sandbox">
-          <div className="flex items-center gap-1.5 bg-zinc-900 px-2.5 py-1 rounded-lg border border-zinc-850">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">Brand:</span>
-            <input 
-              type="text" 
-              value={brandName} 
-              onChange={(e) => setBrandName(e.target.value)}
-              className="bg-transparent text-white text-xs font-bold focus:outline-none w-28 placeholder-zinc-700"
-              placeholder="Restaurant Name"
-              id="sandbox-brand-rest-input"
-            />
-          </div>
-
-          <div className="flex items-center gap-1 bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-850">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase px-1">Accent:</span>
-            {["#EC4899", "#F43F5E", "#F59E0B", "#10B981"].map((col) => (
-              <button
-                key={col}
-                onClick={() => setAccentColor(col)}
-                className={`w-4 h-4 rounded-full border transition-all ${accentColor === col ? "border-white scale-110" : "border-transparent"}`}
-                style={{ backgroundColor: col }}
-              />
-            ))}
-            <input 
-              type="color" 
-              value={accentColor} 
-              onChange={(e) => setAccentColor(e.target.value)} 
-              className="w-4 h-4 bg-transparent border-0 cursor-pointer ml-1 p-0"
-            />
-          </div>
-
-          <div className="flex items-center gap-1 bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-850">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase px-1">Font:</span>
-            <select 
-              value={typography} 
-              onChange={(e) => setTypography(e.target.value)}
-              className="bg-transparent text-white text-xs focus:outline-none cursor-pointer"
+      {!isStandalone && (
+        <div className="bg-[#120B19] border-b border-zinc-900/60 sticky top-0 z-50 px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-md" id="restaurant-toolbar">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={onBackToHub}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-850 text-xs font-semibold text-zinc-400 hover:text-white transition-all"
+              id="btn-back-hub-rest"
             >
-              <option value="Playfair Display">Playfair Display</option>
-              <option value="Default">System Sans</option>
-            </select>
+              <LucideIcon name="ArrowLeft" className="w-3.5 h-3.5" />
+              Back to SiteMint Hub
+            </button>
+            <span className="text-zinc-800">|</span>
+            <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-zinc-500">
+              <span className="w-2 h-2 rounded-full bg-red-400" />
+              <span>Independent Live Template</span>
+            </div>
+          </div>
+
+          {/* Brand overrides sandbox */}
+          <div className="flex items-center gap-4 flex-wrap" id="rest-sandbox">
+            <div className="flex items-center gap-1.5 bg-zinc-900 px-2.5 py-1 rounded-lg border border-zinc-850">
+              <span className="text-[10px] font-mono text-zinc-500 uppercase">Brand:</span>
+              <input 
+                type="text" 
+                value={brandName} 
+                onChange={(e) => setBrandName(e.target.value)}
+                className="bg-transparent text-white text-xs font-bold focus:outline-none w-28 placeholder-zinc-700"
+                placeholder="Restaurant Name"
+                id="sandbox-brand-rest-input"
+              />
+            </div>
+
+            <div className="flex items-center gap-1 bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-850">
+              <span className="text-[10px] font-mono text-zinc-500 uppercase px-1">Accent:</span>
+              {["#EC4899", "#F43F5E", "#F59E0B", "#10B981"].map((col) => (
+                <button
+                  key={col}
+                  onClick={() => setAccentColor(col)}
+                  className={`w-4 h-4 rounded-full border transition-all ${accentColor === col ? "border-white scale-110" : "border-transparent"}`}
+                  style={{ backgroundColor: col }}
+                />
+              ))}
+              <input 
+                type="color" 
+                value={accentColor} 
+                onChange={(e) => setAccentColor(e.target.value)} 
+                className="w-4 h-4 bg-transparent border-0 cursor-pointer ml-1 p-0"
+              />
+            </div>
+
+            <div className="flex items-center gap-1 bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-850">
+              <span className="text-[10px] font-mono text-zinc-500 uppercase px-1">Font:</span>
+              <select 
+                value={typography} 
+                onChange={(e) => setTypography(e.target.value)}
+                className="bg-transparent text-white text-xs focus:outline-none cursor-pointer"
+              >
+                <option value="Playfair Display">Playfair Display</option>
+                <option value="Default">System Sans</option>
+              </select>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* ----------------- LOCAL MOCK STOREFRONT NAVBAR ----------------- */}
       <nav className="bg-[#0A050D]/90 backdrop-blur-md border-b border-zinc-900/40 sticky top-14 z-40 px-6 py-4 flex items-center justify-between" id="rest-nav">

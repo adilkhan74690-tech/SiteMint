@@ -9,6 +9,7 @@ interface SalonTemplateProps {
   onBackToHub: () => void;
   initialBrandName?: string;
   initialThemeAccent?: string;
+  isStandalone?: boolean;
 }
 
 // Initial Mock Datasets for Salon
@@ -39,8 +40,8 @@ const REVIEWS = [
   { name: "Victoria K.", date: "June 2026", rating: 5, comment: "The booking calendar lets you bundle multiple treatments and selects the stylist in one slick workflow. My gel nails and blowout look flawless." },
 ];
 
-export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna Studio", initialThemeAccent = "#06B6D4" }: SalonTemplateProps) {
-  // Live Customizer
+export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna Studio", initialThemeAccent = "#06B6D4", isStandalone = false }: SalonTemplateProps) {
+  // Live dynamic theme variables settings
   const [brandName, setBrandName] = useState(initialBrandName);
   const [accentColor, setAccentColor] = useState(initialThemeAccent);
   const [typography, setTypography] = useState("Default");
@@ -59,7 +60,14 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
     const queryParams = new URLSearchParams(window.location.search);
     const querySubdomain = queryParams.get("subdomain");
     const hostnameSubdomain = window.location.hostname.split(".")[0];
-    const subdomain = querySubdomain || (hostnameSubdomain !== "localhost" && hostnameSubdomain !== "www" && hostnameSubdomain !== "sitemint" ? hostnameSubdomain : null) || "svelte-hair-co";
+
+    const pathname = window.location.pathname;
+    let pathSubdomain = "";
+    if (pathname.startsWith("/site/")) {
+      pathSubdomain = pathname.split("/")[2];
+    }
+
+    const subdomain = querySubdomain || pathSubdomain || (hostnameSubdomain !== "localhost" && hostnameSubdomain !== "www" && hostnameSubdomain !== "sitemint" ? hostnameSubdomain : null) || "svelte-hair-co";
 
     fetch(`/api/businesses/settings?subdomain=${subdomain}`)
       .then((r) => r.json())
@@ -147,68 +155,70 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
     >
       
       {/* ----------------- CONTROLLERS & DEMO FLIGHT TOOLBAR ----------------- */}
-      <div className="bg-[#0E1219] border-b border-zinc-900 sticky top-0 z-50 px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-md" id="salon-toolbar">
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={onBackToHub}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs font-semibold text-zinc-400 hover:text-white transition-all"
-            id="btn-back-hub-salon"
-          >
-            <LucideIcon name="ArrowLeft" className="w-3.5 h-3.5" />
-            Back to SiteMint Hub
-          </button>
-          <span className="text-zinc-800">|</span>
-          <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-zinc-500">
-            <span className="w-2 h-2 rounded-full bg-cyan-400" />
-            <span>Independent Live Template</span>
-          </div>
-        </div>
-
-        {/* Brand overrides sandbox */}
-        <div className="flex items-center gap-4 flex-wrap" id="salon-sandbox">
-          <div className="flex items-center gap-1.5 bg-zinc-900 px-2.5 py-1 rounded-lg border border-zinc-800">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase">Brand:</span>
-            <input 
-              type="text" 
-              value={brandName} 
-              onChange={(e) => setBrandName(e.target.value)}
-              className="bg-transparent text-white text-xs font-bold focus:outline-none w-28 placeholder-zinc-700"
-              placeholder="Salon Name"
-              id="sandbox-brand-salon-input"
-            />
-          </div>
-
-          <div className="flex items-center gap-1 bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-800">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase px-1">Accent:</span>
-            {["#06B6D4", "#EC4899", "#8B5CF6", "#10B981"].map((col) => (
-              <button
-                key={col}
-                onClick={() => setAccentColor(col)}
-                className={`w-4 h-4 rounded-full border transition-all ${accentColor === col ? "border-white scale-110" : "border-transparent"}`}
-                style={{ backgroundColor: col }}
-              />
-            ))}
-            <input 
-              type="color" 
-              value={accentColor} 
-              onChange={(e) => setAccentColor(e.target.value)} 
-              className="w-4 h-4 bg-transparent border-0 cursor-pointer ml-1 p-0"
-            />
-          </div>
-
-          <div className="flex items-center gap-1 bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-800">
-            <span className="text-[10px] font-mono text-zinc-500 uppercase px-1">Font:</span>
-            <select 
-              value={typography} 
-              onChange={(e) => setTypography(e.target.value)}
-              className="bg-transparent text-white text-xs focus:outline-none cursor-pointer"
+      {!isStandalone && (
+        <div className="bg-[#0E1219] border-b border-zinc-900 sticky top-0 z-50 px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-md" id="salon-toolbar">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={onBackToHub}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs font-semibold text-zinc-400 hover:text-white transition-all"
+              id="btn-back-hub-salon"
             >
-              <option value="Default">System Sans</option>
-              <option value="Playfair Display">Playfair Display</option>
-            </select>
+              <LucideIcon name="ArrowLeft" className="w-3.5 h-3.5" />
+              Back to SiteMint Hub
+            </button>
+            <span className="text-zinc-800">|</span>
+            <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-zinc-500">
+              <span className="w-2 h-2 rounded-full bg-cyan-400" />
+              <span>Independent Live Template</span>
+            </div>
+          </div>
+
+          {/* Brand overrides sandbox */}
+          <div className="flex items-center gap-4 flex-wrap" id="salon-sandbox">
+            <div className="flex items-center gap-1.5 bg-zinc-900 px-2.5 py-1 rounded-lg border border-zinc-800">
+              <span className="text-[10px] font-mono text-zinc-500 uppercase">Brand:</span>
+              <input 
+                type="text" 
+                value={brandName} 
+                onChange={(e) => setBrandName(e.target.value)}
+                className="bg-transparent text-white text-xs font-bold focus:outline-none w-28 placeholder-zinc-700"
+                placeholder="Salon Name"
+                id="sandbox-brand-salon-input"
+              />
+            </div>
+
+            <div className="flex items-center gap-1 bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-800">
+              <span className="text-[10px] font-mono text-zinc-500 uppercase px-1">Accent:</span>
+              {["#06B6D4", "#EC4899", "#8B5CF6", "#10B981"].map((col) => (
+                <button
+                  key={col}
+                  onClick={() => setAccentColor(col)}
+                  className={`w-4 h-4 rounded-full border transition-all ${accentColor === col ? "border-white scale-110" : "border-transparent"}`}
+                  style={{ backgroundColor: col }}
+                />
+              ))}
+              <input 
+                type="color" 
+                value={accentColor} 
+                onChange={(e) => setAccentColor(e.target.value)} 
+                className="w-4 h-4 bg-transparent border-0 cursor-pointer ml-1 p-0"
+              />
+            </div>
+
+            <div className="flex items-center gap-1 bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-800">
+              <span className="text-[10px] font-mono text-zinc-500 uppercase px-1">Font:</span>
+              <select 
+                value={typography} 
+                onChange={(e) => setTypography(e.target.value)}
+                className="bg-transparent text-white text-xs focus:outline-none cursor-pointer"
+              >
+                <option value="Default">System Sans</option>
+                <option value="Playfair Display">Playfair Display</option>
+              </select>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* ----------------- LOCAL MOCK STOREFRONT NAVBAR ----------------- */}
       <nav className="bg-[#090B0F]/90 backdrop-blur-md border-b border-zinc-900 sticky top-14 z-40 px-6 py-4 flex items-center justify-between" id="salon-nav">

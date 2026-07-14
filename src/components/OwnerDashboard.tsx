@@ -71,6 +71,117 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
   const [paymentsList, setPaymentsList] = useState<any[]>([]);
   const [staff, setStaff] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [subscription, setSubscription] = useState<any>(null);
+  const [subTransactions, setSubTransactions] = useState<any[]>([]);
+
+  // Settings Form States
+  const [settingsName, setSettingsName] = useState("");
+  const [settingsDescription, setSettingsDescription] = useState("");
+  const [settingsCategory, setSettingsCategory] = useState("");
+  const [settingsPhone, setSettingsPhone] = useState("");
+  const [settingsEmail, setSettingsEmail] = useState("");
+  const [settingsAddress, setSettingsAddress] = useState("");
+  const [settingsMaps, setSettingsMaps] = useState("");
+  const [settingsUpi, setSettingsUpi] = useState("");
+  const [settingsSlug, setSettingsSlug] = useState("");
+  const [settingsSeoTitle, setSettingsSeoTitle] = useState("");
+  const [settingsSeoDesc, setSettingsSeoDesc] = useState("");
+  const [settingsFavicon, setSettingsFavicon] = useState("");
+  const [settingsIsPublished, setSettingsIsPublished] = useState(false);
+  const [settingsPrimaryColor, setSettingsPrimaryColor] = useState("#10B981");
+  const [settingsSecondaryColor, setSettingsSecondaryColor] = useState("#111827");
+  const [settingsFontFamily, setSettingsFontFamily] = useState("Inter");
+
+  // Social Links
+  const [socialFb, setSocialFb] = useState("");
+  const [socialInsta, setSocialInsta] = useState("");
+  const [socialTw, setSocialTw] = useState("");
+  const [socialWa, setSocialWa] = useState("");
+
+  // Working Hours
+  const [workingHoursObj, setWorkingHoursObj] = useState<any>({});
+
+  // Product addition/edit states extension
+  const [newProdDesc, setNewProdDesc] = useState("");
+  const [newProdSku, setNewProdSku] = useState("");
+  const [editingProductId, setEditingProductId] = useState<number | null>(null);
+
+  // Service addition/edit states
+  const [services, setServices] = useState<any[]>([]);
+  const [newServName, setNewServName] = useState("");
+  const [newServPrice, setNewServPrice] = useState("");
+  const [newServDuration, setNewServDuration] = useState("");
+  const [newServDesc, setNewServDesc] = useState("");
+  const [newServImage, setNewServImage] = useState("");
+  const [isAddingService, setIsAddingService] = useState(false);
+  const [editingServiceId, setEditingServiceId] = useState<number | null>(null);
+
+  // Load settings inputs when businessDetails loads
+  useEffect(() => {
+    if (businessDetails) {
+      setSettingsName(businessDetails.name || "");
+      setSettingsDescription(businessDetails.description || "");
+      setSettingsCategory(businessDetails.business_type || "");
+      setSettingsPhone(businessDetails.contact_phone || "");
+      setSettingsEmail(businessDetails.contact_email || "");
+      setSettingsAddress(businessDetails.address || "");
+      setSettingsMaps(businessDetails.google_maps_location || "");
+      setSettingsUpi(businessDetails.upi_id || "");
+      setSettingsSlug(businessDetails.subdomain || "");
+      setSettingsSeoTitle(businessDetails.seo_title || "");
+      setSettingsSeoDesc(businessDetails.seo_description || "");
+      setSettingsFavicon(businessDetails.favicon_url || "");
+      setSettingsIsPublished(!!businessDetails.is_published);
+      setLogoPreview(businessDetails.logo_url || "");
+      setBannerPreview(businessDetails.banner_url || "");
+
+      if (businessDetails.theme_settings) {
+        setSettingsPrimaryColor(businessDetails.theme_settings.primary_color || "#10B981");
+        setSettingsSecondaryColor(businessDetails.theme_settings.secondary_color || "#111827");
+        setSettingsFontFamily(businessDetails.theme_settings.font_family || "Inter");
+      }
+
+      // Decode social links
+      try {
+        const socials = typeof businessDetails.social_links === "string" 
+          ? JSON.parse(businessDetails.social_links) 
+          : (businessDetails.social_links || {});
+        setSocialFb(socials.facebook || "");
+        setSocialInsta(socials.instagram || "");
+        setSocialTw(socials.twitter || "");
+        setSocialWa(socials.whatsapp || "");
+      } catch (e) {
+        setSocialFb(""); setSocialInsta(""); setSocialTw(""); setSocialWa("");
+      }
+
+      // Decode working hours
+      try {
+        const hours = typeof businessDetails.working_hours === "string"
+          ? JSON.parse(businessDetails.working_hours)
+          : (businessDetails.working_hours || {});
+        setWorkingHoursObj(hours);
+      } catch (e) {
+        setWorkingHoursObj({});
+      }
+    }
+  }, [businessDetails]);
+
+  const fetchSubscriptionData = async () => {
+    const token = localStorage.getItem("sitemint_token");
+    if (!token) return;
+    try {
+      const res = await fetch("/api/subscriptions/status", {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const result = await res.json();
+      if (result.status === "success") {
+        setSubscription(result.data.subscription);
+        setSubTransactions(result.data.transactions);
+      }
+    } catch (err) {
+      console.error("Failed to load subscription status:", err);
+    }
+  };
 
   const fetchDashboardData = async () => {
     const token = localStorage.getItem("sitemint_token");
@@ -119,8 +230,20 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
       // 2. Fetch Bookings
       const bookingsRes = await fetch("/api/bookings", { headers });
       const bookingsResult = await bookingsRes.json();
-      if (bookingsResult.status === "success") {
-        setBookings(bookingsResult.data);
+      if (bookingsResult.status === "success" && Array.isArray(bookingsResult.data)) {
+        setBookings(bookingsResult.data.map((b: any) => {
+          const dateObj = new Date(b.start_time);
+          return {
+            id: String(b.id),
+            customer: `${b.customer_first_name || ""} ${b.customer_last_name || ""}`.trim() || "Guest",
+            email: b.customer_email || "N/A",
+            service: b.service_name || "Service Offer",
+            date: dateObj.toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' }),
+            time: dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            amount: b.service_price || 0,
+            status: b.status ? (b.status.charAt(0).toUpperCase() + b.status.slice(1).toLowerCase()) : "Pending"
+          };
+        }));
       }
 
       // 3. Fetch Products
@@ -128,6 +251,13 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
       const productsResult = await productsRes.json();
       if (productsResult.status === "success") {
         setProducts(productsResult.data);
+      }
+
+      // Fetch Services
+      const servicesRes = await fetch(`/api/catalog/services?business_id=${activeBizId}`, { headers });
+      const servicesResult = await servicesRes.json();
+      if (servicesResult.status === "success" && Array.isArray(servicesResult.data)) {
+        setServices(servicesResult.data);
       }
 
       // 4. Fetch Orders
@@ -178,6 +308,20 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
           spent: Number(c.total_spent || 0)
         })));
       }
+
+      // Fetch Real Media Gallery
+      const mediaRes = await fetch("/api/feedback/media", { headers });
+      const mediaResult = await mediaRes.json();
+      if (mediaResult.status === "success" && Array.isArray(mediaResult.data)) {
+        setMediaLibrary(mediaResult.data.map((m: any) => ({
+          id: m.id,
+          name: m.file_name || "image.png",
+          size: m.file_size ? `${(m.file_size / (1024 * 1024)).toFixed(1)} MB` : "N/A",
+          type: m.mime_type?.split("/")[0].toUpperCase() || "IMAGE",
+          url: m.url,
+          date: new Date(m.created_at || m.uploaded_at).toISOString().split("T")[0]
+        })));
+      }
     } catch (error) {
       console.error("Error loading dashboard data:", error);
     }
@@ -217,7 +361,81 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
     if (!confirmPublish) return;
 
     try {
-      const response = await fetch("/api/businesses/publish", {
+      logSystemActivity("Publishing Website", "Saving configurations and compiling storefront...", "system");
+      
+      // 1. Save latest configurations first (PUT settings)
+      const savePayload = {
+        name: settingsName || brandName,
+        description: settingsDescription || slogan,
+        business_type: settingsCategory || "salon",
+        contact_phone: settingsPhone,
+        contact_email: settingsEmail,
+        address: settingsAddress,
+        google_maps_location: settingsMaps,
+        upi_id: settingsUpi,
+        subdomain: settingsSlug || (brandName ? brandName.toLowerCase().replace(/[^a-z0-9]/g, "") : "site"),
+        seo_title: settingsSeoTitle,
+        seo_description: settingsSeoDesc,
+        favicon_url: settingsFavicon,
+        is_published: true, // mark published!
+        logo_url: logoPreview,
+        banner_url: bannerPreview,
+        social_links: {
+          facebook: socialFb,
+          instagram: socialInsta,
+          twitter: socialTw,
+          whatsapp: socialWa
+        },
+        working_hours: workingHoursObj,
+        primary_color: settingsPrimaryColor || themeAccent,
+        secondary_color: settingsSecondaryColor || themeSecondary,
+        font_family: settingsFontFamily || typography
+      };
+
+      const saveRes = await fetch("/api/businesses/settings", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(savePayload)
+      });
+      const saveResult = await saveRes.json();
+      if (!saveRes.ok) throw new Error(saveResult.message || "Failed to save settings during publish.");
+
+      // 2. Double-check is_published status on backend publish trigger
+      const pubRes = await fetch("/api/businesses/publish", {
+        method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
+      const pubResult = await pubRes.json();
+      if (!pubRes.ok) throw new Error(pubResult.message || "Failed to save published status.");
+
+      logSystemActivity("Website Published", "Successfully deployed latest configurations to live route.", "system");
+      alert("🎉 Congratulations! Your website is now live!");
+
+      fetchDashboardData();
+
+      // 3. Open localhost:3000/site/{business_slug} in development
+      const slug = settingsSlug || savePayload.subdomain;
+      window.open(window.location.origin + "/site/" + slug, "_blank");
+    } catch (err: any) {
+      alert("Error publishing website: " + err.message);
+    }
+  };
+
+  const handleUnpublishWebsite = async () => {
+    const token = localStorage.getItem("sitemint_token");
+    if (!token) return;
+
+    const confirmUnpublish = window.confirm("Are you sure you want to take your website offline?");
+    if (!confirmUnpublish) return;
+
+    try {
+      const response = await fetch("/api/businesses/unpublish", {
         method: "PUT",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -226,23 +444,77 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
       });
       const result = await response.json();
       if (!response.ok) {
-        throw new Error(result.message || "Failed to publish website.");
+        throw new Error(result.message || "Failed to unpublish website.");
       }
-      alert("🎉 Congratulations! Your website is now live!");
+      alert("Your website is now offline.");
       fetchDashboardData();
     } catch (err: any) {
-      alert("Error publishing website: " + err.message);
+      alert("Error unpublishing website: " + err.message);
+    }
+  };
+
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const token = localStorage.getItem("sitemint_token");
+    if (!token) return;
+
+    const payload = {
+      name: settingsName,
+      description: settingsDescription,
+      business_type: settingsCategory,
+      contact_phone: settingsPhone,
+      contact_email: settingsEmail,
+      address: settingsAddress,
+      google_maps_location: settingsMaps,
+      upi_id: settingsUpi,
+      subdomain: settingsSlug,
+      seo_title: settingsSeoTitle,
+      seo_description: settingsSeoDesc,
+      favicon_url: settingsFavicon,
+      is_published: settingsIsPublished,
+      logo_url: logoPreview,
+      banner_url: bannerPreview,
+      social_links: {
+        facebook: socialFb,
+        instagram: socialInsta,
+        twitter: socialTw,
+        whatsapp: socialWa
+      },
+      working_hours: workingHoursObj,
+      primary_color: settingsPrimaryColor,
+      secondary_color: settingsSecondaryColor,
+      font_family: settingsFontFamily
+    };
+
+    try {
+      logSystemActivity("Saving Settings", "Saving all business changes to MySQL...", "system");
+      const res = await fetch("/api/businesses/settings", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "Failed to save settings.");
+
+      logSystemActivity("Settings Saved", "Successfully saved settings changes to MySQL.", "system");
+      alert("Settings saved successfully!");
+      fetchDashboardData();
+    } catch (err: any) {
+      alert("Error saving settings: " + err.message);
     }
   };
 
   const handleCopyLink = () => {
-    const url = `https://${businessDetails?.subdomain || "site"}.sitemint.app`;
+    const url = window.location.origin + "/site/" + (businessDetails?.subdomain || "site");
     navigator.clipboard.writeText(url);
     alert("Website link copied to clipboard!");
   };
 
   const handleShare = () => {
-    const url = `https://${businessDetails?.subdomain || "site"}.sitemint.app`;
+    const url = window.location.origin + "/site/" + (businessDetails?.subdomain || "site");
     if (navigator.share) {
       navigator.share({
         title: brandName,
@@ -380,6 +652,7 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
       { name: "Customers", label: "Customers", icon: "Users", badge: 0 },
       { name: "Reviews", label: `Reviews (${reviews.length})`, icon: "Star", badge: reviews.filter(r => !r.reply).length },
       { name: "Payments", label: "Payments Logs", icon: "CreditCard", badge: 0 },
+      { name: "Billing", label: "Billing & Subscriptions", icon: "Wallet", badge: 0 },
       { name: "Media Library", label: "Media Library", icon: "Image", badge: 0 },
       { name: "Activity Logs", label: "Activity Logs", icon: "FileText", badge: 0 },
       { name: "Notifications", label: "Notifications", icon: "Bell", badge: notifications.filter(n => !n.read).length },
@@ -391,6 +664,17 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
 
   useEffect(() => {
     fetchDashboardData();
+    fetchSubscriptionData();
+
+    // Check for landing page direct checkout upgrade trigger
+    const triggerPlan = localStorage.getItem("sitemint_checkout_trigger_plan");
+    if (triggerPlan) {
+      localStorage.removeItem("sitemint_checkout_trigger_plan");
+      setActiveTab("Billing");
+      setTimeout(() => {
+        handleUpgradeSubscription(triggerPlan);
+      }, 600);
+    }
   }, []);
   const [bookingQuery, setBookingQuery] = useState("");
   const [productQuery, setProductQuery] = useState("");
@@ -403,6 +687,10 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
   const [staffEmail, setStaffEmail] = useState("");
   const [staffRole, setStaffRole] = useState<"manager" | "staff">("staff");
   const [staffTitle, setStaffTitle] = useState("");
+  const [staffPhotoUrl, setStaffPhotoUrl] = useState("");
+  const [staffWorkingDays, setStaffWorkingDays] = useState("");
+  const [staffWorkingHours, setStaffWorkingHours] = useState("");
+  const [staffServicesAssigned, setStaffServicesAssigned] = useState("");
   const [isStaffFormOpen, setIsStaffFormOpen] = useState(false);
 
   // Input states for creating a product
@@ -434,6 +722,189 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
   const [dragActive, setDragActive] = useState(false);
 
   // Activity logger trigger helper
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handleUpgradeSubscription = async (planId: string) => {
+    const token = localStorage.getItem("sitemint_token");
+    if (!token) return;
+
+    try {
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        alert("Failed to load Razorpay checkout script. Please check your internet connectivity.");
+        return;
+      }
+
+      const res = await fetch("/api/subscriptions/razorpay/order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ plan_id: planId })
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.message || "Failed to create checkout transaction order.");
+      }
+
+      const { order_id, amount, currency } = result.data;
+
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_mockkeyid",
+        amount: amount,
+        currency: currency,
+        name: "SiteMint Subscription",
+        description: `Upgrade tenant site to ${planId.toUpperCase()} tier`,
+        order_id: order_id,
+        handler: async function (response: any) {
+          try {
+            const verifyRes = await fetch("/api/subscriptions/razorpay/verify", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                plan_id: planId
+              })
+            });
+
+            const verifyResult = await verifyRes.json();
+            if (!verifyRes.ok) {
+              throw new Error(verifyResult.message || "Razorpay validation response mismatch.");
+            }
+
+            alert(`🎉 Congratulations! Your subscription is upgraded to ${planId.toUpperCase()}.`);
+            fetchSubscriptionData();
+            fetchDashboardData();
+          } catch (err: any) {
+            alert("Verification mismatch: " + err.message);
+          }
+        },
+        prefill: {
+          email: userEmail || ""
+        },
+        theme: {
+          color: "#10B981"
+        }
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+    } catch (err: any) {
+      alert("Checkout Init Error: " + err.message);
+    }
+  };
+
+  const handleDownloadInvoice = (tx: any, planName: string) => {
+    const invoiceWindow = window.open("", "_blank");
+    if (!invoiceWindow) return;
+
+    invoiceWindow.document.write(`
+      <html>
+        <head>
+          <title>GST Tax Invoice - SMT-${tx.id}</title>
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; padding: 40px; line-height: 1.5; background: #fff; }
+            .invoice-box { max-width: 800px; margin: auto; padding: 40px; border: 1px solid #e2e8f0; border-radius: 12px; }
+            table { width: 100%; line-height: inherit; text-align: left; border-collapse: collapse; }
+            table td { padding: 12px 8px; vertical-align: top; }
+            table tr td:nth-child(2) { text-align: right; }
+            .logo { font-size: 32px; font-weight: 800; color: #10B981; margin-bottom: 8px; }
+            .heading { font-weight: 700; border-bottom: 2px solid #e2e8f0; background: #f8fafc; font-size: 13px; text-transform: uppercase; color: #475569; }
+            .item td { border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+            .total { font-weight: 800; border-top: 2px solid #e2e8f0; font-size: 16px; color: #0f172a; }
+            .footer { margin-top: 60px; font-size: 11px; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="invoice-box">
+            <table>
+              <tr>
+                <td>
+                  <div class="logo">SiteMint</div>
+                  <div style="font-size: 12px; color: #64748b;">Instant SaaS Builder Platform</div>
+                </td>
+                <td>
+                  <strong>INVOICE #:</strong> SMT-${tx.id}<br/>
+                  <strong>Date:</strong> ${new Date(tx.created_at).toLocaleDateString()}<br/>
+                  <strong>Status:</strong> <span style="color:#10b981; font-weight:bold;">Paid</span>
+                </td>
+              </tr>
+            </table>
+
+            <div style="margin-top: 30px; margin-bottom: 40px;">
+              <table>
+                <tr class="heading">
+                  <td>Issuer / Provider Details</td>
+                  <td>Billed To Customer</td>
+                </tr>
+                <tr style="font-size: 13px; color: #334155;">
+                  <td>
+                    <strong>SiteMint Tech India Pvt Ltd</strong><br/>
+                    GSTIN: 27AAAAA1111A1Z1<br/>
+                    Mumbai, Maharashtra, India
+                  </td>
+                  <td>
+                    <strong>Tenant ID:</strong> ${tx.business_id}<br/>
+                    <strong>Email:</strong> ${userEmail || "Billed Owner"}
+                  </td>
+                </tr>
+              </table>
+            </div>
+
+            <table>
+              <tr class="heading">
+                <td>Item Description</td>
+                <td>Line Total</td>
+              </tr>
+              <tr class="item">
+                <td>SiteMint Platform Monthly Subscription - Plan: ${planName}</td>
+                <td>₹${Number(tx.amount).toFixed(2)}</td>
+              </tr>
+              <tr class="item">
+                <td>Taxable Subtotal Value</td>
+                <td>₹${(Number(tx.amount) / 1.18).toFixed(2)}</td>
+              </tr>
+              <tr class="item">
+                <td>CGST (9.0%)</td>
+                <td>₹${((Number(tx.amount) / 1.18) * 0.09).toFixed(2)}</td>
+              </tr>
+              <tr class="item">
+                <td>SGST (9.0%)</td>
+                <td>₹${((Number(tx.amount) / 1.18) * 0.09).toFixed(2)}</td>
+              </tr>
+              <tr class="total">
+                <td>Grand Total (inclusive of 18% GST)</td>
+                <td>₹${Number(tx.amount).toFixed(2)}</td>
+              </tr>
+            </table>
+
+            <div class="footer">
+              This document is a digitally compiled tax invoice issued by SiteMint Tech India Pvt Ltd.<br/>
+              Support Inquiries: support@sitemint.app
+            </div>
+          </div>
+          <script>window.print();</script>
+        </body>
+      </html>
+    `);
+    invoiceWindow.document.close();
+  };
+
   const logSystemActivity = (event: string, detail: string, type: string = "system") => {
     const newAct = {
       id: `act-${Date.now()}`,
@@ -471,42 +942,151 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
     );
   };
 
-  const handleProductStockChange = (id: string, newStock: number) => {
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id === id) {
-          const updatedStatus = newStock > 0 ? "Active" : "Out of Stock";
-          logSystemActivity(`Stock Level Adjusted`, `Set ${p.name} stock to ${newStock}.`, "product");
-          return { ...p, stock: newStock, status: updatedStatus };
-        }
-        return p;
-      })
-    );
+  const handleProductStockChange = async (id: number | string, newStock: number) => {
+    const token = localStorage.getItem("sitemint_token");
+    if (!token) return;
+
+    try {
+      // Update local state first for immediate UI update
+      setProducts((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, inventory_qty: newStock } : p))
+      );
+
+      await fetch(`/api/catalog/products/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ inventory_qty: newStock })
+      });
+    } catch (err) {
+      console.error("Failed to update product stock in MySQL:", err);
+    }
   };
 
-  const handleAddProductSubmit = (e: React.FormEvent) => {
+  const handleAddProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProdName || !newProdPrice) return;
 
-    const newProd = {
-      id: `P-0${products.length + 1}`,
-      name: newProdName,
-      price: Number(newProdPrice),
-      stock: Number(newProdStock) || 10,
-      status: Number(newProdStock) > 0 ? "Active" : "Out of Stock",
-      sales: 0,
-      image: newProdImage || "https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?auto=format&fit=crop&w=300&q=80",
-    };
+    const token = localStorage.getItem("sitemint_token");
+    try {
+      const res = await fetch("/api/catalog/products", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: newProdName,
+          price: Number(newProdPrice),
+          inventory_qty: Number(newProdStock) || 0,
+          image_url: newProdImage || null,
+          description: newProdDesc || ""
+        })
+      });
 
-    setProducts((prev) => [...prev, newProd]);
-    logSystemActivity(`Product Catalog Expanded`, `New item "${newProdName}" added to SiteMint storefront.`, "product");
-    
-    // Reset form
-    setNewProdName("");
-    setNewProdPrice("");
-    setNewProdStock("");
-    setNewProdImage("");
-    setIsAddingProduct(false);
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "Failed to add product.");
+
+      logSystemActivity("Product Catalog Expanded", `New product "${newProdName}" added successfully.`, "product");
+      fetchDashboardData();
+
+      // Reset
+      setNewProdName("");
+      setNewProdPrice("");
+      setNewProdStock("");
+      setNewProdImage("");
+      setNewProdDesc("");
+      setIsAddingProduct(false);
+    } catch (err: any) {
+      alert("Error adding product: " + err.message);
+    }
+  };
+
+  const handleDeleteProduct = async (id: number | string) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this product?");
+    if (!confirmDelete) return;
+
+    const token = localStorage.getItem("sitemint_token");
+    try {
+      logSystemActivity("Deleting Product", "Deleting product record from MySQL...", "product");
+      const res = await fetch(`/api/catalog/products/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "Failed to delete product.");
+
+      logSystemActivity("Product Deleted", "Removed product from storefront catalog.", "product");
+      fetchDashboardData();
+    } catch (err: any) {
+      alert("Error deleting product: " + err.message);
+    }
+  };
+
+  const handleAddServiceSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newServName || !newServPrice || !newServDuration) return;
+
+    const token = localStorage.getItem("sitemint_token");
+    try {
+      const res = await fetch("/api/catalog/services", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: newServName,
+          price: Number(newServPrice),
+          duration_minutes: Number(newServDuration),
+          description: newServDesc || "",
+          image_url: newServImage || null
+        })
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "Failed to add service.");
+
+      logSystemActivity("Service Catalog Expanded", `New service "${newServName}" added successfully.`, "catalog");
+      fetchDashboardData();
+
+      // Reset
+      setNewServName("");
+      setNewServPrice("");
+      setNewServDuration("");
+      setNewServDesc("");
+      setNewServImage("");
+      setIsAddingService(false);
+    } catch (err: any) {
+      alert("Error adding service: " + err.message);
+    }
+  };
+
+  const handleDeleteService = async (id: number | string) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this service?");
+    if (!confirmDelete) return;
+
+    const token = localStorage.getItem("sitemint_token");
+    try {
+      logSystemActivity("Deleting Service", "Deleting service record from MySQL...", "catalog");
+      const res = await fetch(`/api/catalog/services/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "Failed to delete service.");
+
+      logSystemActivity("Service Deleted", "Removed service from storefront catalog.", "catalog");
+      fetchDashboardData();
+    } catch (err: any) {
+      alert("Error deleting service: " + err.message);
+    }
   };
 
   const handleAddReviewReply = (id: string) => {
@@ -534,14 +1114,15 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
   };
 
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
 
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const validTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+    const validTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"];
     if (!validTypes.includes(file.type)) {
-      alert("Invalid format. Please upload PNG, JPG, or WebP.");
+      alert("Invalid format. Please upload PNG, JPG, WebP, or GIF.");
       return;
     }
 
@@ -560,44 +1141,10 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
         body: formData
       });
       const uploadResult = await uploadRes.json();
-      if (!uploadRes.ok) {
-        throw new Error(uploadResult.message || "Failed to upload to Cloudinary.");
-      }
-      
-      const newLogoUrl = uploadResult.data.url;
-      setLogoPreview(newLogoUrl);
+      if (!uploadRes.ok) throw new Error(uploadResult.message || "Upload failed.");
 
-      // Save in MySQL immediately!
-      logSystemActivity("Saving Settings", "Saving logo URL to MySQL...", "system");
-      const onboardRes = await fetch("/api/businesses/onboard", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          name: businessDetails?.name || brandName,
-          business_type: businessDetails?.business_type || "gym",
-          subdomain: businessDetails?.subdomain || "site",
-          upi_id: businessDetails?.upi_id || "vanguard@upi",
-          contact_phone: businessDetails?.contact_phone || "",
-          address: businessDetails?.address || "",
-          description: businessDetails?.description || slogan,
-          logo_url: newLogoUrl,
-          primary_color: themeAccent,
-          secondary_color: themeSecondary,
-          font_family: typography,
-          template_id: businessDetails?.template_id || 1
-        })
-      });
-
-      const onboardResult = await onboardRes.json();
-      if (!onboardRes.ok) {
-        throw new Error(onboardResult.message || "Failed to update business profile in MySQL.");
-      }
-
-      logSystemActivity("Logo Upload Completed", "Logo successfully stored and saved.", "system");
-      fetchDashboardData();
+      setLogoPreview(uploadResult.data.url);
+      logSystemActivity("Logo Upload Completed", "Logo successfully uploaded to Cloudinary.", "system");
     } catch (err: any) {
       alert("Logo upload failed: " + err.message);
     } finally {
@@ -605,46 +1152,50 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
     }
   };
 
-  const handleRemoveLogo = async () => {
-    const confirmRemove = window.confirm("Are you sure you want to remove your business logo?");
-    if (!confirmRemove) return;
+  const handleRemoveLogo = () => {
+    setLogoPreview("");
+    logSystemActivity("Logo Cleared", "Logo preview cleared. Click Save to apply changes.", "system");
+  };
+
+  const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"];
+    if (!validTypes.includes(file.type)) {
+      alert("Invalid format. Please upload PNG, JPG, WebP, or GIF.");
+      return;
+    }
 
     const token = localStorage.getItem("sitemint_token");
+    const formData = new FormData();
+    formData.append("file", file);
+
+    setIsUploadingBanner(true);
     try {
-      logSystemActivity("Removing Logo", "Deleting logo reference in MySQL database...", "system");
-      const onboardRes = await fetch("/api/businesses/onboard", {
-        method: "PUT",
+      logSystemActivity("Uploading Cover Banner", "Uploading image to Cloudinary...", "system");
+      const uploadRes = await fetch("/api/feedback/media", {
+        method: "POST",
         headers: {
-          "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({
-          name: businessDetails?.name || brandName,
-          business_type: businessDetails?.business_type || "gym",
-          subdomain: businessDetails?.subdomain || "site",
-          upi_id: businessDetails?.upi_id || "vanguard@upi",
-          contact_phone: businessDetails?.contact_phone || "",
-          address: businessDetails?.address || "",
-          description: businessDetails?.description || slogan,
-          logo_url: null,
-          primary_color: themeAccent,
-          secondary_color: themeSecondary,
-          font_family: typography,
-          template_id: businessDetails?.template_id || 1
-        })
+        body: formData
       });
+      const uploadResult = await uploadRes.json();
+      if (!uploadRes.ok) throw new Error(uploadResult.message || "Upload failed.");
 
-      const onboardResult = await onboardRes.json();
-      if (!onboardRes.ok) {
-        throw new Error(onboardResult.message || "Failed to clear logo in MySQL.");
-      }
-
-      setLogoPreview("");
-      logSystemActivity("Logo Cleared", "Business logo removed successfully.", "system");
-      fetchDashboardData();
+      setBannerPreview(uploadResult.data.url);
+      logSystemActivity("Cover Banner Upload Completed", "Banner successfully uploaded to Cloudinary.", "system");
     } catch (err: any) {
-      alert("Logo removal failed: " + err.message);
+      alert("Banner upload failed: " + err.message);
+    } finally {
+      setIsUploadingBanner(false);
     }
+  };
+
+  const handleRemoveBanner = () => {
+    setBannerPreview("");
+    logSystemActivity("Banner Cleared", "Cover preview cleared. Click Save to apply changes.", "system");
   };
 
   const handleStaffSubmit = async (e: React.FormEvent) => {
@@ -661,7 +1212,11 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
       full_name: staffName,
       email: staffEmail,
       role: staffRole,
-      staff_title: staffTitle
+      staff_title: staffTitle,
+      staff_photo_url: staffPhotoUrl,
+      working_days: staffWorkingDays,
+      working_hours: staffWorkingHours,
+      services_assigned: staffServicesAssigned
     };
 
     try {
@@ -699,6 +1254,10 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
       setStaffEmail("");
       setStaffRole("staff");
       setStaffTitle("");
+      setStaffPhotoUrl("");
+      setStaffWorkingDays("");
+      setStaffWorkingHours("");
+      setStaffServicesAssigned("");
       setIsStaffFormOpen(false);
       fetchDashboardData();
     } catch (err: any) {
@@ -730,87 +1289,7 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
     }
   };
 
-  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const url = URL.createObjectURL(e.target.files[0]);
-      setBannerPreview(url);
-      logSystemActivity("Banner Asset Updated", "Storefront banner updated under active workspace.", "system");
-    }
-  };
 
-  // Drag and Drop Simulator for Media Library
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      const url = URL.createObjectURL(file);
-      const newMedia = {
-        id: `med-${mediaLibrary.length + 1}`,
-        name: file.name,
-        size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-        type: file.type.split("/")[0].toUpperCase() || "File",
-        url: url,
-        date: new Date().toISOString().split("T")[0],
-      };
-      setMediaLibrary((prev) => [newMedia, ...prev]);
-      logSystemActivity("Media Library Asset Appended", `Successfully processed and mounted file: ${file.name}`, "system");
-    }
-  };
-
-  const handleManualMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const url = URL.createObjectURL(file);
-      const newMedia = {
-        id: `med-${mediaLibrary.length + 1}`,
-        name: file.name,
-        size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-        type: file.type.split("/")[0].toUpperCase() || "File",
-        url: url,
-        date: new Date().toISOString().split("T")[0],
-      };
-      setMediaLibrary((prev) => [newMedia, ...prev]);
-      logSystemActivity("Media Library Asset Appended", `Successfully processed and mounted file: ${file.name}`, "system");
-    }
-  };
-
-  // Quick Preset Themes Application
-  const applyPresetTheme = (primary: string, secondary: string, bg: string) => {
-    setThemeAccent(primary);
-    setThemeSecondary(secondary);
-    setThemeBg(bg);
-    logSystemActivity("Color Palette Reset", `Interactive workspace changed colors.`, "system");
-  };
-
-  // Navigation Sidebar Elements
-  const sidebarItems = [
-    { name: "Dashboard", label: "Dashboard", icon: "LayoutDashboard", badge: 0 },
-    { name: "Website Builder", label: "Website Builder", icon: "Globe", badge: 0 },
-    { name: "Theme Customizer", label: "Theme Customizer", icon: "Palette", badge: 0 },
-    { name: "Analytics", label: "Analytics", icon: "LineChart", badge: 0 },
-    { name: "Bookings", label: `Bookings (${bookings.length})`, icon: "Calendar", badge: bookings.filter(b => b.status === "Pending" || b.status === "pending").length },
-    { name: "Customers", label: `Customers (${customers.length})`, icon: "Users", badge: 0 },
-    { name: "Products", label: `Products (${products.length})`, icon: "ShoppingBag", badge: 0 },
-    { name: "Orders", label: `Orders (${orders.length})`, icon: "ShoppingCart", badge: orders.filter(o => o.status === "Processing" || o.status === "pending").length },
-    { name: "Reviews", label: `Reviews (${reviews.length})`, icon: "Star", badge: reviews.filter(r => !r.reply).length },
-    { name: "Payments", label: "Payments", icon: "CreditCard", badge: 0 },
-    { name: "Media Library", label: "Media Library", icon: "Image", badge: 0 },
-    { name: "Activity Logs", label: "Activity Logs", icon: "FileText", badge: 0 },
-    { name: "Notifications", label: "Notifications", icon: "Bell", badge: notifications.filter(n => !n.read).length },
-    { name: "Settings", label: "Settings", icon: "Settings", badge: 0 },
-  ];
 
   return (
     <div className="min-h-screen bg-[#070709] text-white flex flex-col md:flex-row font-sans" id="owner-dashboard-container">
@@ -979,7 +1458,34 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
 
         {/* TAB WORKSPACE ROUTER ROUTING MODULES */}
         <div className="flex-grow" id="workspace-tab-rendered-container">
-          <AnimatePresence mode="wait">
+          {subscription?.status === "expired" && activeTab !== "Billing" ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="py-16 text-center max-w-xl mx-auto space-y-6 flex flex-col justify-center items-center animate-fade-in"
+            >
+              <div className="w-20 h-20 rounded-2xl bg-zinc-950 border border-red-500/20 text-red-400 flex items-center justify-center shadow-xl glow-red">
+                <LucideIcon name="AlertTriangle" className="w-10 h-10 animate-bounce text-red-450" />
+              </div>
+              <div className="space-y-2 text-center">
+                <h3 className="text-2xl font-bold tracking-tight text-white font-display">Your Free Trial Has Expired</h3>
+                <p className="text-xs text-zinc-400 leading-relaxed max-w-md">
+                  Your 30-day free trial on the Starter plan has expired. To continue customizing your site, managing bookings, inventory, orders, and staff roles, please upgrade to a premium subscription plan.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3.5 w-full max-w-xs pt-4 justify-center">
+                <button
+                  onClick={() => setActiveTab("Billing")}
+                  className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all hover:scale-[1.02] shadow-[0_4px_25px_rgba(16,185,129,0.3)] cursor-pointer"
+                >
+                  <LucideIcon name="Wallet" className="w-4 h-4" />
+                  Upgrade Subscription
+                </button>
+              </div>
+            </motion.div>
+          ) : (
+            <AnimatePresence mode="wait">
             
             {/* TAB: DASHBOARD OVERVIEW */}
             {activeTab === "Dashboard" && (() => {
@@ -1139,7 +1645,7 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                           <div className="space-y-1.5">
                             <h3 className="text-sm font-bold text-white font-display">🎉 Your website is live.</h3>
                             <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-2.5 flex items-center justify-between text-xs text-zinc-300 font-mono">
-                              <span className="truncate pr-2">https://{businessDetails?.subdomain || "site"}.sitemint.app</span>
+                              <span className="truncate pr-2">{window.location.origin}/site/{businessDetails?.subdomain || "site"}</span>
                               <button 
                                 onClick={handleCopyLink}
                                 className="p-1 rounded bg-zinc-950 border border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-white"
@@ -1151,7 +1657,7 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                           </div>
                           <div className="grid grid-cols-3 gap-2">
                             <button
-                              onClick={() => window.open(`https://${businessDetails?.subdomain || "site"}.sitemint.app`, "_blank")}
+                              onClick={() => window.open(window.location.origin + "/site/" + (businessDetails?.subdomain || "site"), "_blank")}
                               className="px-2 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-[10px] font-bold text-zinc-300 hover:text-white flex items-center justify-center gap-1 cursor-pointer"
                             >
                               <LucideIcon name="ExternalLink" className="w-3 h-3" />
@@ -1510,10 +2016,14 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                         className="p-5 rounded-2xl bg-zinc-950/40 border border-zinc-900 hover:border-zinc-800 transition-all flex flex-col justify-between"
                       >
                         <div className="space-y-4">
-                          {/* Top Row: initials + delete */}
+                          {/* Top Row: initials/photo + delete */}
                           <div className="flex items-start justify-between">
-                            <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-850 flex items-center justify-center font-bold text-white tracking-wider font-mono">
-                              {member.full_name.split(" ").map((n: string) => n[0]).join("").toUpperCase().substring(0, 2)}
+                            <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-850 flex items-center justify-center font-bold text-white tracking-wider font-mono overflow-hidden">
+                              {member.staff_photo_url ? (
+                                <img src={member.staff_photo_url} alt={member.full_name} className="w-full h-full object-cover" />
+                              ) : (
+                                member.full_name.split(" ").map((n: string) => n[0]).join("").toUpperCase().substring(0, 2)
+                              )}
                             </div>
                             <div className="flex gap-1.5">
                               <button
@@ -1523,6 +2033,10 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                                   setStaffEmail(member.email);
                                   setStaffRole(member.role);
                                   setStaffTitle(member.staff_title || "");
+                                  setStaffPhotoUrl(member.staff_photo_url || "");
+                                  setStaffWorkingDays(member.working_days || "");
+                                  setStaffWorkingHours(member.working_hours || "");
+                                  setStaffServicesAssigned(member.services_assigned || "");
                                   setIsStaffFormOpen(true);
                                 }}
                                 className="w-7 h-7 rounded-lg bg-zinc-900 hover:bg-zinc-850 border border-zinc-850 flex items-center justify-center text-zinc-400 hover:text-white transition-all cursor-pointer"
@@ -1557,6 +2071,18 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                             <span className="bg-zinc-900 border border-zinc-800 text-emerald-400 text-[9px] font-bold uppercase tracking-wider font-mono px-2 py-0.5 rounded">
                               {member.status}
                             </span>
+                          </div>
+
+                          <div className="space-y-1 text-left text-[11px] text-zinc-400 border-t border-zinc-900/60 pt-2.5 mt-2">
+                            {member.working_days && (
+                              <p><span className="text-zinc-500 font-mono">Days:</span> {member.working_days}</p>
+                            )}
+                            {member.working_hours && (
+                              <p><span className="text-zinc-500 font-mono">Hours:</span> {member.working_hours}</p>
+                            )}
+                            {member.services_assigned && (
+                              <p><span className="text-zinc-500 font-mono">Services:</span> {member.services_assigned}</p>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1602,6 +2128,52 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                             placeholder="alex@vanguard.co"
                             value={staffEmail}
                             onChange={(e) => setStaffEmail(e.target.value)}
+                            className="w-full bg-zinc-950 border border-zinc-850 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-zinc-700"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-mono font-bold text-zinc-550 uppercase tracking-widest block">Profile Photo URL</label>
+                          <input
+                            type="url"
+                            placeholder="https://images.unsplash.com/..."
+                            value={staffPhotoUrl}
+                            onChange={(e) => setStaffPhotoUrl(e.target.value)}
+                            className="w-full bg-zinc-950 border border-zinc-850 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-zinc-700"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-mono font-bold text-zinc-550 uppercase tracking-widest block">Working Days</label>
+                            <input
+                              type="text"
+                              placeholder="Mon, Tue, Wed, Thu, Fri"
+                              value={staffWorkingDays}
+                              onChange={(e) => setStaffWorkingDays(e.target.value)}
+                              className="w-full bg-zinc-950 border border-zinc-850 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-zinc-700"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-mono font-bold text-zinc-550 uppercase tracking-widest block">Shift Hours</label>
+                            <input
+                              type="text"
+                              placeholder="09:00 - 18:00"
+                              value={staffWorkingHours}
+                              onChange={(e) => setStaffWorkingHours(e.target.value)}
+                              className="w-full bg-zinc-950 border border-zinc-850 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-zinc-700"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-mono font-bold text-zinc-550 uppercase tracking-widest block">Assigned Services (IDs or Names)</label>
+                          <input
+                            type="text"
+                            placeholder="1, 2 or haircut, massage"
+                            value={staffServicesAssigned}
+                            onChange={(e) => setStaffServicesAssigned(e.target.value)}
                             className="w-full bg-zinc-950 border border-zinc-850 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-zinc-700"
                           />
                         </div>
@@ -1813,10 +2385,19 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
 
                   {/* RIGHT: Live Preview (Desktop, Tablet, Mobile) */}
                   <div className="xl:col-span-2 space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-zinc-950/60 p-4 rounded-2xl border border-zinc-900">
-                      <div className="text-left">
-                        <h4 className="text-sm font-bold text-white font-display">Live Frame Preview</h4>
-                        <p className="text-[11px] text-zinc-500">Simulating visual engine compilation in real-time</p>
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 bg-zinc-950/60 p-4 rounded-2xl border border-zinc-900">
+                      <div className="text-left flex-grow flex items-center justify-between">
+                        <div>
+                          <h4 className="text-sm font-bold text-white font-display">Live Frame Preview</h4>
+                          <p className="text-[11px] text-zinc-500">Simulating visual engine compilation in real-time</p>
+                        </div>
+                        <button
+                          onClick={() => window.open(window.location.origin + "/site/" + (settingsSlug || businessDetails?.subdomain || "site"), "_blank")}
+                          className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:bg-zinc-850 hover:text-white text-zinc-400 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-lg mr-4"
+                        >
+                          <LucideIcon name="ExternalLink" className="w-3.5 h-3.5" />
+                          Launch Preview
+                        </button>
                       </div>
 
                       {/* Viewport Modes selector */}
@@ -1857,7 +2438,7 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                           </div>
                           <div className="bg-zinc-950 border border-zinc-850 text-[10px] font-mono text-zinc-500 px-4 py-0.5 rounded-md flex items-center gap-1">
                             <LucideIcon name="Shield" className="w-3 h-3 text-emerald-400" />
-                            {brandName.toLowerCase().replace(/[^a-z0-9]/g, "") || "custom"}.sitemint.app
+                            localhost:3000/site/{settingsSlug || businessDetails?.subdomain || "site"}
                           </div>
                           <div className="w-8" />
                         </div>
@@ -2514,9 +3095,9 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                       .map((p) => (
                         <div key={p.id} className="bg-zinc-950/40 border border-zinc-900 rounded-2xl overflow-hidden hover:border-zinc-800 transition-all flex flex-col justify-between">
                           <div className="aspect-square w-full bg-zinc-900 relative">
-                            <img src={p.image} alt={p.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            <img src={p.image_url || "https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?auto=format&fit=crop&w=300&q=80"} alt={p.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                             <div className="absolute top-2 right-2 bg-black/80 backdrop-blur-md text-emerald-400 font-mono font-bold text-xs px-2.5 py-1 rounded-lg border border-zinc-850">
-                              ${p.price}
+                              ₹{p.price}
                             </div>
                           </div>
 
@@ -2527,9 +3108,9 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                             </div>
 
                             <div className="flex justify-between items-center text-[10px] text-zinc-400">
-                              <span>Sales: <span className="font-bold text-white">{p.sales} units</span></span>
-                              <span className={p.stock > 0 ? "text-emerald-400" : "text-red-400"}>
-                                {p.stock > 0 ? `${p.stock} units left` : "Out of Stock"}
+                              <span>Inventory: <span className="font-bold text-white">{p.inventory_qty || 0} units</span></span>
+                              <span className={(p.inventory_qty || 0) > 0 ? "text-emerald-400" : "text-red-400"}>
+                                {(p.inventory_qty || 0) > 0 ? "In Stock" : "Out of Stock"}
                               </span>
                             </div>
 
@@ -2540,10 +3121,20 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                                 type="range" 
                                 min="0" 
                                 max="100" 
-                                value={p.stock} 
+                                value={p.inventory_qty || 0} 
                                 onChange={(e) => handleProductStockChange(p.id, Number(e.target.value))}
                                 className="w-full accent-emerald-400" 
                               />
+                            </div>
+
+                            <div className="pt-2 border-t border-zinc-900 flex justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteProduct(p.id)}
+                                className="px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[10px] font-bold border border-red-500/20 cursor-pointer"
+                              >
+                                Delete
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -2628,7 +3219,186 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                             type="submit"
                             className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-bold py-3 rounded-xl text-xs hover:opacity-95"
                           >
-                            Mouth New Catalog Block
+                            Add Product
+                          </button>
+                        </form>
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            )}
+
+            {/* TAB: SERVICES */}
+            {activeTab === "Services" && (
+              <motion.div
+                key="services-tab"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="space-y-6 text-left"
+              >
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div className="relative flex-grow max-w-lg">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500">
+                      <LucideIcon name="Search" className="w-4 h-4" />
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="Search services..."
+                      className="w-full bg-zinc-950/60 border border-zinc-900 rounded-xl pl-10 pr-4 py-2 text-xs text-white focus:outline-none focus:border-emerald-400 transition-all"
+                    />
+                  </div>
+
+                  <button
+                    onClick={() => setIsAddingService(true)}
+                    className="bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 hover:opacity-95 cursor-pointer"
+                  >
+                    <LucideIcon name="Plus" className="w-4 h-4 stroke-[3]" />
+                    Add Service
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {services.length === 0 ? (
+                    <div className="lg:col-span-4 md:col-span-2 p-12 text-center rounded-2xl border border-dashed border-zinc-800/80 bg-zinc-950/20 space-y-4">
+                      <div className="w-12 h-12 rounded-full bg-zinc-900/60 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-500">
+                        <LucideIcon name="Scissors" className="w-6 h-6" />
+                      </div>
+                      <div className="space-y-1 max-w-sm mx-auto">
+                        <h4 className="text-sm font-bold text-white">No Services Added</h4>
+                        <p className="text-xs text-zinc-500 leading-normal">
+                          Add service offerings (durations & pricing) for online booking.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    services.map((s) => (
+                      <div key={s.id} className="bg-zinc-950/40 border border-zinc-900 rounded-2xl overflow-hidden hover:border-zinc-800 transition-all flex flex-col justify-between">
+                        <div className="aspect-video w-full bg-zinc-900 relative">
+                          <img src={s.image_url || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=300&q=80"} alt={s.name} className="w-full h-full object-cover" />
+                          <div className="absolute top-2 right-2 bg-black/80 backdrop-blur-md text-emerald-400 font-mono font-bold text-xs px-2.5 py-1 rounded-lg border border-zinc-850">
+                            ₹{s.price}
+                          </div>
+                        </div>
+
+                        <div className="p-4 space-y-3">
+                          <div className="space-y-0.5">
+                            <span className="text-[9px] font-mono text-zinc-500 uppercase">SERVICE ID: {s.id}</span>
+                            <h4 className="text-xs font-bold text-white truncate">{s.name}</h4>
+                          </div>
+
+                          <div className="flex justify-between items-center text-[10px] text-zinc-400">
+                            <span>Duration: <span className="font-bold text-white">{s.duration_minutes} mins</span></span>
+                          </div>
+
+                          <p className="text-[11px] text-zinc-500 line-clamp-2 leading-relaxed">{s.description || "No description provided."}</p>
+
+                          <div className="pt-2 border-t border-zinc-900 flex justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteService(s.id)}
+                              className="px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[10px] font-bold border border-red-500/20 cursor-pointer"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Add Service Modal */}
+                <AnimatePresence>
+                  {isAddingService && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+                    >
+                      <motion.div
+                        initial={{ scale: 0.95 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0.95 }}
+                        className="w-full max-w-md bg-zinc-950 border border-zinc-850 rounded-2xl p-6 relative"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setIsAddingService(false)}
+                          className="absolute top-4 right-4 text-zinc-500 hover:text-white"
+                        >
+                          <LucideIcon name="X" className="w-5 h-5" />
+                        </button>
+
+                        <form onSubmit={handleAddServiceSubmit} className="space-y-4 text-left">
+                          <h3 className="text-base font-bold text-white font-display border-b border-zinc-900 pb-2">Add New Service</h3>
+
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Service Name</label>
+                            <input 
+                              type="text" 
+                              required
+                              value={newServName}
+                              onChange={(e) => setNewServName(e.target.value)}
+                              placeholder="e.g. Therapeutic Sports Massage"
+                              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Price (₹)</label>
+                              <input 
+                                type="number" 
+                                required
+                                value={newServPrice}
+                                onChange={(e) => setNewServPrice(e.target.value)}
+                                placeholder="1200"
+                                className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Duration (Minutes)</label>
+                              <input 
+                                type="number" 
+                                required
+                                value={newServDuration}
+                                onChange={(e) => setNewServDuration(e.target.value)}
+                                placeholder="60"
+                                className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Image URL (Optional)</label>
+                            <input 
+                              type="url" 
+                              value={newServImage}
+                              onChange={(e) => setNewServImage(e.target.value)}
+                              placeholder="https://images.unsplash.com/photo-..."
+                              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Description</label>
+                            <textarea 
+                              value={newServDesc}
+                              onChange={(e) => setNewServDesc(e.target.value)}
+                              placeholder="Describe the treatment or class..."
+                              rows={3}
+                              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400 resize-none"
+                            />
+                          </div>
+
+                          <button
+                            type="submit"
+                            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-bold py-3 rounded-xl text-xs hover:opacity-95 cursor-pointer"
+                          >
+                            Add Service
                           </button>
                         </form>
                       </motion.div>
@@ -2867,42 +3637,38 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                   {/* Balance details */}
                   <div className="p-6 rounded-2xl bg-zinc-950/40 border border-zinc-900 flex flex-col justify-between h-44">
                     <div>
-                      <span className="text-[10px] font-mono text-zinc-500 uppercase">Available Balance</span>
-                      <h4 className="text-3xl font-black text-white font-display mt-1">$4,180.20</h4>
+                      <span className="text-[10px] font-mono text-zinc-500 uppercase">Settled Earnings</span>
+                      <h4 className="text-3xl font-black text-white font-display mt-1">₹{paymentsList
+                        .filter((p: any) => p.status === "captured" || p.status === "completed" || p.status === "SUCCESS")
+                        .reduce((sum: number, p: any) => sum + Number(p.amount), 0)}</h4>
                     </div>
-
-                    <button
-                      onClick={() => {
-                        logSystemActivity("Payout Dispatched", "Withdrew $4,180.20 from reserve account.", "payout");
-                        alert("Payout request successfully submitted to bank routing. Processing completes within 30 minutes.");
-                      }}
-                      className="w-full bg-emerald-500 text-black font-bold py-2.5 rounded-xl text-xs hover:opacity-95"
-                    >
-                      Instant Withdrawal Payout
-                    </button>
+                    <p className="text-[11px] text-zinc-500 leading-normal">
+                      Cleared and fully settled funds from direct customer checkouts.
+                    </p>
                   </div>
 
                   {/* Pending cleared */}
                   <div className="p-6 rounded-2xl bg-zinc-950/40 border border-zinc-900 flex flex-col justify-between h-44">
                     <div>
-                      <span className="text-[10px] font-mono text-zinc-500 uppercase">Processing Queue</span>
-                      <h4 className="text-3xl font-black text-zinc-300 font-display mt-1">$1,249.30</h4>
+                      <span className="text-[10px] font-mono text-zinc-550 uppercase">Pending Verification</span>
+                      <h4 className="text-3xl font-black text-zinc-300 font-display mt-1">₹{paymentsList
+                        .filter((p: any) => p.status === "pending")
+                        .reduce((sum: number, p: any) => sum + Number(p.amount), 0)}</h4>
                     </div>
                     <p className="text-[11px] text-zinc-500 leading-normal">
-                      Funds auto-clear directly inside 48-hour cycles.
+                      Direct UPI bank transfers awaiting manual approval confirmation.
                     </p>
                   </div>
 
                   {/* Fees matrix */}
                   <div className="p-6 rounded-2xl bg-zinc-950/40 border border-zinc-900 flex flex-col justify-between h-44">
                     <div>
-                      <span className="text-[10px] font-mono text-zinc-500 uppercase">Total Life Earnings</span>
-                      <h4 className="text-3xl font-black text-cyan-400 font-display mt-1">$18,429.00</h4>
+                      <span className="text-[10px] font-mono text-zinc-550 uppercase">Direct UPI Commission</span>
+                      <h4 className="text-3xl font-black text-cyan-400 font-display mt-1">0.0%</h4>
                     </div>
-                    <div className="flex justify-between items-center text-xs font-mono text-zinc-500">
-                      <span>Gateway Commission:</span>
-                      <span className="text-emerald-400">0.0% SiteMint</span>
-                    </div>
+                    <p className="text-[11px] text-zinc-500 leading-normal">
+                      Direct peer-to-peer bank transfers have absolutely zero merchant gateway charges.
+                    </p>
                   </div>
 
                 </div>
@@ -2976,6 +3742,296 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
               </motion.div>
             )}
 
+            {/* TAB: BILLING & SUBSCRIPTIONS */}
+            {activeTab === "Billing" && (
+              <motion.div
+                key="billing-tab"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="space-y-8 text-left"
+              >
+                {/* 1. Subscription Overview */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" id="billing-overview-cards">
+                  {/* Current Plan Card */}
+                  <div className="p-6 rounded-2xl bg-zinc-950/60 border border-zinc-900 flex flex-col justify-between space-y-4">
+                    <div>
+                      <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest block font-bold">Current Subscription</span>
+                      <h4 className="text-2xl font-black text-white font-display uppercase mt-1">
+                        {subscription ? subscription.plan_name : "Starter (Trial)"}
+                      </h4>
+                      <p className="text-xs text-zinc-400 mt-1">
+                        Status: <span className={`font-bold uppercase ${
+                          subscription?.status === "active" ? "text-[#10B981]" :
+                          subscription?.status === "trial" ? "text-amber-400" : "text-red-400"
+                        }`}>{subscription?.status || "trial"}</span>
+                      </p>
+                    </div>
+                    {subscription?.status === "trial" && (
+                      <div className="space-y-1">
+                        <p className="text-[11px] text-zinc-500 font-mono">Trial Days Remaining:</p>
+                        <p className="text-xl font-bold text-amber-400 font-mono">{subscription?.trial_remaining ?? 30} Days</p>
+                      </div>
+                    )}
+                    {subscription?.renewal_date && (
+                      <div className="space-y-1">
+                        <p className="text-[11px] text-zinc-500 font-mono">Renewal Date:</p>
+                        <p className="text-xs font-semibold text-zinc-300 font-mono">
+                          {new Date(subscription.renewal_date).toLocaleDateString()}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Pricing summary */}
+                  <div className="p-6 rounded-2xl bg-zinc-950/60 border border-zinc-900 flex flex-col justify-between space-y-4">
+                    <div>
+                      <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest block font-bold">Billing Cycle Amount</span>
+                      <h4 className="text-3xl font-black text-white font-mono mt-2">
+                        ₹{subscription?.plan_id === "business" ? "999" : subscription?.plan_id === "pro" ? "499" : "0"}<span className="text-xs text-zinc-500 font-sans">/month</span>
+                      </h4>
+                    </div>
+                    <p className="text-xs text-zinc-500 leading-normal">
+                      Taxes (18% GST) are auto-applied on premium invoice generations.
+                    </p>
+                  </div>
+
+                  {/* Quick Action */}
+                  <div className="p-6 rounded-2xl bg-zinc-950/60 border border-zinc-900 flex flex-col justify-between space-y-4">
+                    <div>
+                      <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest block font-bold">Manage Billing</span>
+                      <p className="text-xs text-zinc-400 mt-2">
+                        Upgrade or cancel your active subscription plan. Cancellations take effect immediately.
+                      </p>
+                    </div>
+                    {subscription?.status === "active" ? (
+                      <button
+                        onClick={async () => {
+                          if (confirm("Are you sure you want to cancel your active premium subscription? Your website features will be downgraded.")) {
+                            try {
+                              const token = localStorage.getItem("sitemint_token");
+                              const res = await fetch("/api/subscriptions/cancel", {
+                                method: "POST",
+                                headers: { "Authorization": `Bearer ${token}` }
+                              });
+                              const result = await res.json();
+                              if (res.ok) {
+                                alert("Subscription cancelled successfully.");
+                                fetchSubscriptionData();
+                              } else {
+                                alert(result.message);
+                              }
+                            } catch (err: any) {
+                              alert("Cancellation error: " + err.message);
+                            }
+                          }
+                        }}
+                        className="w-full bg-red-950/30 hover:bg-red-900/20 text-red-400 border border-red-900/30 font-bold py-2.5 rounded-xl text-xs transition-colors"
+                      >
+                        Cancel Subscription
+                      </button>
+                    ) : (
+                      <div className="text-xs font-semibold text-zinc-500 italic py-2">
+                        No active premium payment cycle.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 2. Upgrade / Compare Tiers */}
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-base font-bold text-white font-display">Upgrade Plan</h3>
+                    <p className="text-xs text-zinc-400">Scale your features. Pay securely with Razorpay checkout.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6" id="dashboard-pricing-grid">
+                    {[
+                      {
+                        id: "starter",
+                        name: "Starter",
+                        price: "₹0",
+                        trial: "30-Day Free Trial",
+                        features: [
+                          "1 Website",
+                          "SiteMint Subdomain",
+                          "Mobile Responsive Website",
+                          "Basic Website Builder",
+                          "Basic Booking System",
+                          "SSL Certificate",
+                          "SEO Ready",
+                          "Basic Dashboard",
+                          "Email Support"
+                        ]
+                      },
+                      {
+                        id: "pro",
+                        name: "Pro",
+                        price: "₹499/month",
+                        badge: "MOST POPULAR",
+                        features: [
+                          "Everything in Starter plus",
+                          "Custom Domain Support",
+                          "Razorpay Payment Integration",
+                          "Cloudinary Media Upload",
+                          "Unlimited Products / Services",
+                          "Customer Reviews",
+                          "Appointment Booking",
+                          "WhatsApp Notifications",
+                          "Analytics Dashboard",
+                          "Priority Support"
+                        ]
+                      },
+                      {
+                        id: "business",
+                        name: "Business",
+                        price: "₹999/month",
+                        features: [
+                          "Everything in Pro plus",
+                          "Unlimited Staff",
+                          "Multi Branch Support",
+                          "Inventory Management",
+                          "Customer Management",
+                          "Role Based Staff Access",
+                          "Advanced Analytics",
+                          "API Access",
+                          "Premium Support"
+                        ]
+                      }
+                    ].map((plan) => {
+                      const isActive = subscription?.plan_id === plan.id;
+                      return (
+                        <div
+                          key={plan.id}
+                          className={`p-6 rounded-2xl border flex flex-col justify-between text-left relative ${
+                            plan.id === "pro"
+                              ? "bg-zinc-950/60 border-[#10B981]/35 glow-mint shadow-2xl scale-[1.01]"
+                              : "bg-zinc-950/20 border-zinc-900 hover:border-zinc-800"
+                          }`}
+                        >
+                          {plan.badge && (
+                            <span className="absolute top-4 right-4 text-[9px] font-bold font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-[#10B981]/10 border border-[#10B981]/20 text-[#10B981]">
+                              {plan.badge}
+                            </span>
+                          )}
+
+                          <div className="space-y-4">
+                            <div>
+                              <h4 className="text-sm font-bold text-white font-display uppercase tracking-wider">{plan.name}</h4>
+                              <p className="text-2xl font-black text-white font-mono mt-1">{plan.price}</p>
+                              {plan.trial && <p className="text-[10px] text-[#10B981] font-bold font-mono mt-0.5">{plan.trial}</p>}
+                            </div>
+
+                            <ul className="space-y-2 text-[11px] text-zinc-400 border-t border-zinc-900 pt-4">
+                              {plan.features.map((feat, idx) => (
+                                <li key={idx} className="flex items-start gap-2">
+                                  <LucideIcon name="Check" className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                                  <span>{feat}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+
+                          <button
+                            disabled={isActive || plan.id === "starter"}
+                            onClick={() => handleUpgradeSubscription(plan.id)}
+                            className={`w-full mt-6 py-2.5 rounded-xl font-bold text-xs transition-all ${
+                              isActive
+                                ? "bg-zinc-900 text-zinc-550 border border-zinc-800 cursor-default"
+                                : plan.id === "starter"
+                                ? "bg-zinc-900 text-zinc-650 border border-zinc-850 cursor-default opacity-50"
+                                : plan.id === "pro"
+                                ? "bg-[#10B981] text-black hover:opacity-95"
+                                : "bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-white"
+                            }`}
+                          >
+                            {isActive ? "Active Plan" : plan.id === "starter" ? "Locked" : plan.id === "pro" ? "Upgrade to Pro" : "Get Business"}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 3. Trust Seals Section */}
+                <div className="p-4 rounded-xl bg-zinc-900/20 border border-zinc-900/60 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                  <div className="flex items-center gap-2 justify-center text-xs text-zinc-350">
+                    <LucideIcon name="ShieldCheck" className="w-4 h-4 text-emerald-400" />
+                    <span>Razorpay Secure</span>
+                  </div>
+                  <div className="flex items-center gap-2 justify-center text-xs text-zinc-350">
+                    <LucideIcon name="CalendarCheck" className="w-4 h-4 text-emerald-400" />
+                    <span>30-Day Free Trial</span>
+                  </div>
+                  <div className="flex items-center gap-2 justify-center text-xs text-zinc-350">
+                    <LucideIcon name="FileText" className="w-4 h-4 text-emerald-400" />
+                    <span>GST Invoice Available</span>
+                  </div>
+                  <div className="flex items-center gap-2 justify-center text-xs text-zinc-350">
+                    <LucideIcon name="XCircle" className="w-4 h-4 text-emerald-400" />
+                    <span>Cancel Anytime</span>
+                  </div>
+                </div>
+
+                {/* 4. Payment History Ledger */}
+                <div className="p-6 rounded-2xl bg-zinc-950/40 border border-zinc-900">
+                  <h4 className="text-base font-bold text-white font-display mb-4">Subscription Billing Invoice Ledger</h4>
+
+                  {subTransactions.length === 0 ? (
+                    <p className="text-xs text-zinc-500 py-2">No billing transactions recorded.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="border-b border-zinc-900 text-zinc-500 font-mono uppercase text-[10px]">
+                            <th className="pb-3 pr-2">Date</th>
+                            <th className="pb-3 pr-2">Plan Details</th>
+                            <th className="pb-3 pr-2">Amount Paid</th>
+                            <th className="pb-3 pr-2">Payment status</th>
+                            <th className="pb-3 pr-2">Payment ID</th>
+                            <th className="pb-3 text-right">Invoice</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-900/60 font-medium">
+                          {subTransactions.map((tx) => {
+                            const matchedPlan = tx.amount > 500 ? "Business" : "Pro";
+                            return (
+                              <tr key={tx.id} className="text-zinc-300">
+                                <td className="py-3.5 pr-2 font-mono">{new Date(tx.created_at).toLocaleDateString()}</td>
+                                <td className="py-3.5 pr-2 font-bold text-white">{matchedPlan} monthly subscription</td>
+                                <td className="py-3.5 pr-2 font-mono">₹{tx.amount}</td>
+                                <td className="py-3.5 pr-2">
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${
+                                    tx.status === "success" ? "bg-emerald-500/10 text-[#10B981]" :
+                                    tx.status === "pending" ? "bg-amber-500/10 text-amber-400" : "bg-red-500/10 text-red-400"
+                                  }`}>
+                                    {tx.status}
+                                  </span>
+                                </td>
+                                <td className="py-3.5 pr-2 font-mono text-[10px] text-zinc-550 select-all">{tx.payment_id || "N/A"}</td>
+                                <td className="py-3.5 text-right">
+                                  {tx.status === "success" ? (
+                                    <button
+                                      onClick={() => handleDownloadInvoice(tx, matchedPlan)}
+                                      className="px-2.5 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 font-bold transition-all text-[10px]"
+                                    >
+                                      Download Invoice
+                                    </button>
+                                  ) : (
+                                    <span className="text-[10px] text-zinc-550 italic">Invoice unavailable</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+
             {/* TAB: MEDIA LIBRARY */}
             {activeTab === "Media Library" && (
               <motion.div
@@ -3034,9 +4090,30 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                         </span>
                       </div>
 
-                      <div className="p-3 text-left space-y-1">
-                        <p className="text-xs font-bold text-white truncate" title={item.name}>{item.name}</p>
-                        <p className="text-[9px] font-mono text-zinc-500">Processed: {item.date}</p>
+                      <div className="p-3 text-left space-y-2">
+                        <div>
+                          <p className="text-xs font-bold text-white truncate" title={item.name}>{item.name}</p>
+                          <p className="text-[9px] font-mono text-zinc-500">Processed: {item.date}</p>
+                        </div>
+                        <div className="flex justify-between items-center pt-1.5 border-t border-zinc-900/60">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(item.url);
+                              alert("Direct link copied!");
+                            }}
+                            className="text-[9px] font-mono text-cyan-400 hover:underline cursor-pointer"
+                          >
+                            Copy URL
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteMedia(item.id)}
+                            className="text-[9px] font-mono text-red-400 hover:underline cursor-pointer"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -3148,57 +4225,448 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="space-y-6 text-left"
+                className="space-y-6 text-left pb-12"
               >
-                <div className="p-6 bg-zinc-950/40 border border-zinc-900 rounded-2xl space-y-6">
-                  <div className="border-b border-zinc-900 pb-3">
-                    <h3 className="text-base font-bold text-white font-display">Domain Security & Mapping</h3>
-                    <p className="text-xs text-zinc-500">Configure global metadata bindings and secure subdomain redirects.</p>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">Bound Subdomain Prefix</label>
-                      <div className="flex gap-2 max-w-lg">
-                        <input 
-                          type="text" 
-                          defaultValue="vanguardathletic" 
-                          className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2.5 text-xs font-mono" 
-                        />
-                        <span className="bg-zinc-950 border border-zinc-850 px-3 py-2 text-xs font-mono text-zinc-500 rounded-xl flex items-center">
-                          .sitemint.app
-                        </span>
-                      </div>
+                <form onSubmit={handleSaveSettings} className="space-y-6">
+                  {/* General settings */}
+                  <div className="p-6 bg-zinc-950/40 border border-zinc-900 rounded-2xl space-y-4">
+                    <div className="border-b border-zinc-900 pb-3">
+                      <h3 className="text-base font-bold text-white font-display">General Information</h3>
+                      <p className="text-xs text-zinc-500">Configure your public business profile details.</p>
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">Active SSL Handshake</label>
-                      <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 flex items-center gap-3">
-                        <LucideIcon name="ShieldCheck" className="w-6 h-6 text-emerald-400 shrink-0" />
-                        <div>
-                          <p className="text-xs font-bold text-white">Let's Encrypt Certificate Verified</p>
-                          <p className="text-[10px] text-zinc-500">Auto-renews dynamically on Sep 12, 2026. Encryption is active for all transactions.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">Business Name</label>
+                        <input 
+                          type="text" 
+                          required
+                          value={settingsName}
+                          onChange={(e) => setSettingsName(e.target.value)}
+                          className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs" 
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">Business Category</label>
+                        <select 
+                          value={settingsCategory}
+                          onChange={(e) => setSettingsCategory(e.target.value)}
+                          className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none"
+                        >
+                          <option value="gym">Gym / Fitness</option>
+                          <option value="salon">Salon / Spa</option>
+                          <option value="restaurant">Restaurant / Cafe</option>
+                          <option value="clothing">Clothing / Retail</option>
+                          <option value="dentist">Dentist / Medical</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">Contact Phone</label>
+                        <input 
+                          type="text" 
+                          value={settingsPhone}
+                          onChange={(e) => setSettingsPhone(e.target.value)}
+                          className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs" 
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">Contact Email</label>
+                        <input 
+                          type="email" 
+                          value={settingsEmail}
+                          onChange={(e) => setSettingsEmail(e.target.value)}
+                          className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs" 
+                        />
+                      </div>
+                      <div className="space-y-1.5 md:col-span-2">
+                        <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">Business Description</label>
+                        <textarea 
+                          value={settingsDescription}
+                          onChange={(e) => setSettingsDescription(e.target.value)}
+                          rows={3}
+                          className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs resize-none" 
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">Business Address</label>
+                        <input 
+                          type="text" 
+                          value={settingsAddress}
+                          onChange={(e) => setSettingsAddress(e.target.value)}
+                          className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs" 
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">Google Maps Embed URL</label>
+                        <input 
+                          type="url" 
+                          value={settingsMaps}
+                          onChange={(e) => setSettingsMaps(e.target.value)}
+                          placeholder="https://maps.google.com/..."
+                          className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs font-mono" 
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">UPI VPA Address (For Customer Payments)</label>
+                        <input 
+                          type="text" 
+                          required
+                          value={settingsUpi}
+                          onChange={(e) => setSettingsUpi(e.target.value)}
+                          placeholder="business@upi"
+                          className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs font-mono" 
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Brand & Assets settings */}
+                  <div className="p-6 bg-zinc-950/40 border border-zinc-900 rounded-2xl space-y-4">
+                    <div className="border-b border-zinc-900 pb-3">
+                      <h3 className="text-base font-bold text-white font-display">Branding & Identity</h3>
+                      <p className="text-xs text-zinc-500">Customize logos, themes, and brand aesthetics.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {/* Logo selection */}
+                      <div className="space-y-2">
+                        <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">Brand Logo</span>
+                        <div className="aspect-square bg-zinc-900/60 border border-zinc-800 rounded-2xl flex flex-col items-center justify-center relative overflow-hidden group">
+                          {logoPreview ? (
+                            <>
+                              <img src={logoPreview} alt="Logo Preview" className="w-full h-full object-contain p-4" />
+                              <button 
+                                type="button"
+                                onClick={handleRemoveLogo}
+                                className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-xs font-bold text-red-400 hover:text-red-300 transition-all"
+                              >
+                                Remove Logo
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={triggerLogoUpload}
+                              className="text-xs text-zinc-500 hover:text-emerald-400 transition-all font-semibold flex flex-col items-center gap-1 font-sans cursor-pointer"
+                            >
+                              <LucideIcon name="Image" className="w-6 h-6 mb-1" />
+                              {isUploadingLogo ? "Uploading..." : "Upload Logo"}
+                            </button>
+                          )}
+                          <input 
+                            type="file" 
+                            ref={logoInputRef} 
+                            onChange={handleLogoChange} 
+                            accept="image/*" 
+                            className="hidden" 
+                          />
+                        </div>
+                      </div>
+
+                      {/* Cover image selection */}
+                      <div className="space-y-2 md:col-span-2">
+                        <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">Cover Banner Image</span>
+                        <div className="aspect-[3/1] bg-zinc-900/60 border border-zinc-800 rounded-2xl flex flex-col items-center justify-center relative overflow-hidden group">
+                          {bannerPreview ? (
+                            <>
+                              <img src={bannerPreview} alt="Banner Preview" className="w-full h-full object-cover" />
+                              <button 
+                                type="button"
+                                onClick={handleRemoveBanner}
+                                className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-xs font-bold text-red-400 hover:text-red-300 transition-all"
+                              >
+                                Remove Cover
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={triggerBannerUpload}
+                              className="text-xs text-zinc-500 hover:text-emerald-400 transition-all font-semibold flex flex-col items-center gap-1 font-sans cursor-pointer"
+                            >
+                              <LucideIcon name="Image" className="w-6 h-6 mb-1" />
+                              {isUploadingBanner ? "Uploading..." : "Upload Cover Image"}
+                            </button>
+                          )}
+                          <input 
+                            type="file" 
+                            ref={bannerInputRef} 
+                            onChange={handleBannerChange} 
+                            accept="image/*" 
+                            className="hidden" 
+                          />
                         </div>
                       </div>
                     </div>
 
-                    <div className="pt-4">
-                      <button
-                        onClick={() => {
-                          logSystemActivity("Domain mappings updated", "Changed active edge redirects.", "system");
-                          alert("System variables successfully compiled to edge CDN routing tables.");
-                        }}
-                        className="bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-bold px-4 py-2.5 rounded-xl text-xs hover:opacity-95"
-                      >
-                        Re-compile Routing Maps
-                      </button>
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 pt-2">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">Primary Brand Color</label>
+                        <div className="flex gap-2">
+                          <input 
+                            type="color" 
+                            value={settingsPrimaryColor}
+                            onChange={(e) => setSettingsPrimaryColor(e.target.value)}
+                            className="w-8 h-8 rounded border border-zinc-800 bg-transparent cursor-pointer" 
+                          />
+                          <input 
+                            type="text" 
+                            value={settingsPrimaryColor}
+                            onChange={(e) => setSettingsPrimaryColor(e.target.value)}
+                            className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-2 text-[10px] font-mono text-center" 
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">Secondary Base Color</label>
+                        <div className="flex gap-2">
+                          <input 
+                            type="color" 
+                            value={settingsSecondaryColor}
+                            onChange={(e) => setSettingsSecondaryColor(e.target.value)}
+                            className="w-8 h-8 rounded border border-zinc-800 bg-transparent cursor-pointer" 
+                          />
+                          <input 
+                            type="text" 
+                            value={settingsSecondaryColor}
+                            onChange={(e) => setSettingsSecondaryColor(e.target.value)}
+                            className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-2 text-[10px] font-mono text-center" 
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">Typography Override</label>
+                        <select 
+                          value={settingsFontFamily}
+                          onChange={(e) => setSettingsFontFamily(e.target.value)}
+                          className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none"
+                        >
+                          <option value="Inter">Inter (Sleek Clean)</option>
+                          <option value="Space Grotesk">Space Grotesk (Tech/Modern)</option>
+                          <option value="Playfair Display">Playfair Display (Elegant Serif)</option>
+                          <option value="Outfit">Outfit (Bold Geometric)</option>
+                          <option value="Plus Jakarta Sans">Plus Jakarta Sans (SaaS Default)</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">Favicon Address (Optional)</label>
+                        <input 
+                          type="url" 
+                          value={settingsFavicon}
+                          onChange={(e) => setSettingsFavicon(e.target.value)}
+                          placeholder="https://icon.png"
+                          className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs" 
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
+
+                  {/* Social links & Hours */}
+                  <div className="p-6 bg-zinc-950/40 border border-zinc-900 rounded-2xl space-y-4">
+                    <div className="border-b border-zinc-900 pb-3">
+                      <h3 className="text-base font-bold text-white font-display">Socials & Working Schedules</h3>
+                      <p className="text-xs text-zinc-500">Configure public links and working availability calendars.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Social handles */}
+                      <div className="space-y-3">
+                        <span className="text-xs font-bold text-white uppercase tracking-wider block">Social Profiles</span>
+                        <div className="grid grid-cols-1 gap-2">
+                          <div className="flex gap-2">
+                            <span className="bg-zinc-950 border border-zinc-850 px-3 text-xs text-zinc-500 rounded-xl flex items-center justify-center w-24 font-semibold uppercase">Facebook</span>
+                            <input 
+                              type="text" 
+                              value={socialFb}
+                              onChange={(e) => setSocialFb(e.target.value)}
+                              placeholder="https://facebook.com/..."
+                              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs" 
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <span className="bg-zinc-950 border border-zinc-850 px-3 text-xs text-zinc-500 rounded-xl flex items-center justify-center w-24 font-semibold uppercase">Instagram</span>
+                            <input 
+                              type="text" 
+                              value={socialInsta}
+                              onChange={(e) => setSocialInsta(e.target.value)}
+                              placeholder="https://instagram.com/..."
+                              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs" 
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <span className="bg-zinc-950 border border-zinc-850 px-3 text-xs text-zinc-500 rounded-xl flex items-center justify-center w-24 font-semibold uppercase">Twitter</span>
+                            <input 
+                              type="text" 
+                              value={socialTw}
+                              onChange={(e) => setSocialTw(e.target.value)}
+                              placeholder="https://twitter.com/..."
+                              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs" 
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <span className="bg-zinc-950 border border-zinc-850 px-3 text-xs text-zinc-500 rounded-xl flex items-center justify-center w-24 font-semibold uppercase">WhatsApp</span>
+                            <input 
+                              type="text" 
+                              value={socialWa}
+                              onChange={(e) => setSocialWa(e.target.value)}
+                              placeholder="e.g. +919876543210"
+                              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs font-mono" 
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Working hours */}
+                      <div className="space-y-3">
+                        <span className="text-xs font-bold text-white uppercase tracking-wider block">Availability Hours</span>
+                        <div className="bg-zinc-900/30 border border-zinc-900 p-4 rounded-2xl space-y-3 text-xs">
+                          {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day) => {
+                            const dayHours = workingHoursObj[day] || { active: true, open: "09:00", close: "18:00" };
+                            return (
+                              <div key={day} className="flex items-center justify-between gap-2 border-b border-zinc-900/60 pb-2 last:border-0 last:pb-0">
+                                <label className="flex items-center gap-2 font-medium text-zinc-300 cursor-pointer">
+                                  <input 
+                                    type="checkbox" 
+                                    checked={dayHours.active !== false}
+                                    onChange={(e) => {
+                                      setWorkingHoursObj({
+                                        ...workingHoursObj,
+                                        [day]: { ...dayHours, active: e.target.checked }
+                                      });
+                                    }}
+                                    className="accent-emerald-400 cursor-pointer"
+                                  />
+                                  {day}
+                                </label>
+
+                                {dayHours.active !== false ? (
+                                  <div className="flex items-center gap-1 font-mono">
+                                    <input 
+                                      type="text" 
+                                      value={dayHours.open || "09:00"}
+                                      onChange={(e) => {
+                                        setWorkingHoursObj({
+                                          ...workingHoursObj,
+                                          [day]: { ...dayHours, open: e.target.value }
+                                        });
+                                      }}
+                                      className="w-12 bg-zinc-950 border border-zinc-850 text-white text-[10px] text-center rounded py-0.5"
+                                    />
+                                    <span className="text-zinc-600">-</span>
+                                    <input 
+                                      type="text" 
+                                      value={dayHours.close || "18:00"}
+                                      onChange={(e) => {
+                                        setWorkingHoursObj({
+                                          ...workingHoursObj,
+                                          [day]: { ...dayHours, close: e.target.value }
+                                        });
+                                      }}
+                                      className="w-12 bg-zinc-950 border border-zinc-850 text-white text-[10px] text-center rounded py-0.5"
+                                    />
+                                  </div>
+                                ) : (
+                                  <span className="text-[10px] font-bold text-red-500/80 uppercase font-mono">Closed</span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SEO & Visibility details */}
+                  <div className="p-6 bg-zinc-950/40 border border-zinc-900 rounded-2xl space-y-4">
+                    <div className="border-b border-zinc-900 pb-3">
+                      <h3 className="text-base font-bold text-white font-display">SEO & Subdomain Settings</h3>
+                      <p className="text-xs text-zinc-500">Configure edge indexing meta descriptions and domain routing maps.</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">Store Subdomain Slug Prefix</label>
+                        <div className="flex gap-2 max-w-lg">
+                          <input 
+                            type="text" 
+                            required
+                            value={settingsSlug}
+                            onChange={(e) => setSettingsSlug(e.target.value)}
+                            className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs font-mono" 
+                          />
+                          <span className="bg-zinc-950 border border-zinc-850 px-3 py-2 text-xs font-mono text-zinc-500 rounded-xl flex items-center">
+                            .sitemint.app
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">SEO Search Title</label>
+                          <input 
+                            type="text" 
+                            value={settingsSeoTitle}
+                            onChange={(e) => setSettingsSeoTitle(e.target.value)}
+                            placeholder="Vanguard Athletics | Elite Body Lab"
+                            className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs" 
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">SEO Meta Description</label>
+                          <input 
+                            type="text" 
+                            value={settingsSeoDesc}
+                            onChange={(e) => setSettingsSeoDesc(e.target.value)}
+                            placeholder="Book elite training sessions online at Vanguard..."
+                            className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs" 
+                          />
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-zinc-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="space-y-1 text-left">
+                          <p className="text-xs font-bold text-white">Storefront Live Status</p>
+                          <p className="text-[10px] text-zinc-500">Control if the storefront is publicly accessible or down for maintenance.</p>
+                        </div>
+                        <div className="flex gap-2">
+                          {settingsIsPublished ? (
+                            <button
+                              type="button"
+                              onClick={handleUnpublishWebsite}
+                              className="px-4 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold border border-red-500/20 cursor-pointer"
+                            >
+                              Take Site Offline
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={handlePublishWebsite}
+                              className="px-4 py-2 rounded-xl bg-emerald-500 text-black hover:opacity-95 text-xs font-bold cursor-pointer"
+                            >
+                              Deploy Storefront Live
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Save changes sticky bar */}
+                  <div className="p-4 bg-zinc-950/80 border border-zinc-900 backdrop-blur rounded-2xl flex items-center justify-between gap-4 sticky bottom-4 z-10 shadow-xl">
+                    <p className="text-xs text-zinc-400 font-sans">Be sure to save your configurations before navigating away.</p>
+                    <button
+                      type="submit"
+                      className="bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-bold px-6 py-2.5 rounded-xl text-xs hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer shadow-lg"
+                    >
+                      Save Configuration Details
+                    </button>
+                  </div>
+                </form>
               </motion.div>
             )}
 
-          </AnimatePresence>
+            </AnimatePresence>
+          )}
         </div>
 
       </main>

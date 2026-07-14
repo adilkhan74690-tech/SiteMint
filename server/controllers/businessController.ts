@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
+import crypto from "crypto";
 import { query, getConnection } from "../config/database.js";
-import { verifyAccessToken } from "../utils/jwt.js";
+import { verifyAccessToken, generateAccessToken, generateRefreshToken } from "../utils/jwt.js";
 
 /**
  * Fetch a Business Tenant's core branding, theme settings, and associated template configs.
@@ -197,11 +198,6 @@ export async function onboardBusiness(req: Request, res: Response, next: NextFun
   
   const businessId = req.user?.businessId;
 
-  if (!businessId) {
-    res.status(401).json({ status: "error", message: "User session lacks business tenant context." });
-    return;
-  }
-
   if (!name || !subdomain || !upi_id || !business_type) {
     res.status(400).json({ status: "error", message: "Name, subdomain, upi_id, and business_type are required." });
     return;
@@ -212,43 +208,101 @@ export async function onboardBusiness(req: Request, res: Response, next: NextFun
     connection = await getConnection();
     await connection.beginTransaction();
 
-    // Check if the subdomain is taken by another business
-    const [subdomainCheck]: any = await connection.execute(
-      "SELECT id FROM `businesses` WHERE `subdomain` = ? AND `id` != ?",
-      [subdomain, businessId]
-    );
+    let activeBusinessId = businessId;
 
-    if (subdomainCheck.length > 0) {
-      res.status(409).json({
-        status: "error",
-        message: "This subdomain/business slug is already in use by another tenant."
-      });
-      await connection.rollback();
-      return;
+    if (!activeBusinessId) {
+      // 1. Verify subdomain uniqueness during onboarding
+      const [subdomainCheck]: any = await connection.execute(
+        "SELECT id FROM `businesses` WHERE `subdomain` = ?",
+        [subdomain]
+      );
+
+      if (subdomainCheck.length > 0) {
+        res.status(409).json({
+          status: "error",
+          message: "This subdomain/business slug is already in use by another tenant."
+        });
+        await connection.rollback();
+        return;
+      }
+
+      // 2. Create the new Business
+      const businessUuid = crypto.randomUUID();
+      const [bizResult]: any = await connection.execute(
+        `INSERT INTO \`businesses\` (\`uuid\`, \`name\`, \`subdomain\`, \`contact_email\`, \`contact_phone\`, \`status\`, \`owner_id\`, \`is_completed\`) 
+         VALUES (?, ?, ?, ?, ?, 'trial', ?, TRUE)`,
+        [businessUuid, name, subdomain, req.user?.email, contact_phone || null, req.user?.userId]
+      );
+      activeBusinessId = bizResult.insertId;
+
+      // 3. Bind user profile to new business
+      await connection.execute(
+        "UPDATE `users` SET `business_id` = ? WHERE `id` = ?",
+        [activeBusinessId, req.user?.userId]
+      );
+
+      // Create active starter trial subscription (30 days validity)
+      const renewalDate = new Date();
+      renewalDate.setDate(renewalDate.getDate() + 30);
+      await connection.execute(
+        `INSERT INTO \`subscriptions\` (\`business_id\`, \`plan_id\`, \`status\`, \`renewal_date\`)
+         VALUES (?, 'starter', 'trial', ?)`,
+        [activeBusinessId, renewalDate]
+      );
+    } else {
+      // Check subdomain conflicts against other tenants
+      const [subdomainCheck]: any = await connection.execute(
+        "SELECT id FROM `businesses` WHERE `subdomain` = ? AND `id` != ?",
+        [subdomain, activeBusinessId]
+      );
+
+      if (subdomainCheck.length > 0) {
+        res.status(409).json({
+          status: "error",
+          message: "This subdomain/business slug is already in use by another tenant."
+        });
+        await connection.rollback();
+        return;
+      }
+
+      // Update current business profile
+      await connection.execute(
+        `UPDATE \`businesses\` 
+         SET \`name\` = ?, \`business_type\` = ?, \`contact_phone\` = ?, \`address\` = ?, \`description\` = ?, \`subdomain\` = ?, \`upi_id\` = ?, \`logo_url\` = ?
+         WHERE \`id\` = ?`,
+        [
+          name,
+          business_type,
+          contact_phone || null,
+          address || null,
+          description || null,
+          subdomain,
+          upi_id,
+          logo_url || null,
+          activeBusinessId
+        ]
+      );
+
+      // Check if subscription exists, if not, create default starter trial
+      const [existingSubs]: any = await connection.execute(
+        "SELECT id FROM `subscriptions` WHERE `business_id` = ?",
+        [activeBusinessId]
+      );
+      if (existingSubs.length === 0) {
+        const renewalDate = new Date();
+        renewalDate.setDate(renewalDate.getDate() + 30);
+        await connection.execute(
+          `INSERT INTO \`subscriptions\` (\`business_id\`, \`plan_id\`, \`status\`, \`renewal_date\`)
+           VALUES (?, 'starter', 'trial', ?)`,
+          [activeBusinessId, renewalDate]
+        );
+      }
     }
 
-    // 1. Update Business details
-    await connection.execute(
-      `UPDATE \`businesses\` 
-       SET \`name\` = ?, \`business_type\` = ?, \`contact_phone\` = ?, \`address\` = ?, \`description\` = ?, \`subdomain\` = ?, \`upi_id\` = ?, \`logo_url\` = ?
-       WHERE \`id\` = ?`,
-      [
-        name,
-        business_type,
-        contact_phone || null,
-        address || null,
-        description || null,
-        subdomain,
-        upi_id,
-        logo_url || null,
-        businessId
-      ]
-    );
-
-    // 2. Insert or update theme settings
+    // 4. Create or update theme variables settings
     const [currentTheme]: any = await connection.execute(
       "SELECT id FROM `theme_settings` WHERE `business_id` = ?",
-      [businessId]
+      [activeBusinessId]
     );
 
     const activeTemplateId = template_id || 1;
@@ -257,7 +311,7 @@ export async function onboardBusiness(req: Request, res: Response, next: NextFun
         `INSERT INTO \`theme_settings\` (\`business_id\`, \`template_id\`, \`primary_color\`, \`secondary_color\`, \`font_family\`)
          VALUES (?, ?, ?, ?, ?)`,
         [
-          businessId,
+          activeBusinessId,
           activeTemplateId,
           primary_color || "#10B981",
           secondary_color || "#111827",
@@ -274,23 +328,51 @@ export async function onboardBusiness(req: Request, res: Response, next: NextFun
           primary_color || "#10B981",
           secondary_color || "#111827",
           font_family || "Inter",
-          businessId
+          activeBusinessId
         ]
       );
     }
 
-    // Write activity log
+    // 5. Append system operational logs
     await connection.execute(
       `INSERT INTO \`activity_logs\` (\`business_id\`, \`action\`, \`details\`) 
        VALUES (?, 'business_onboarding_completed', ?)`,
-      [businessId, JSON.stringify({ name, subdomain, business_type, upi_id })]
+      [activeBusinessId, JSON.stringify({ name, subdomain, business_type, upi_id })]
     );
 
     await connection.commit();
 
+    // Generate new Access and Refresh tokens containing the new businessId!
+    const tokenPayload = {
+      userId: req.user?.userId || 0,
+      businessId: activeBusinessId,
+      email: req.user?.email || "",
+      role: req.user?.role || "owner"
+    };
+
+    const accessToken = generateAccessToken(tokenPayload);
+    const refreshToken = generateRefreshToken(tokenPayload);
+
+    // Save refresh token to user record
+    await connection.execute(
+      "UPDATE `users` SET `refresh_token` = ? WHERE `id` = ?",
+      [refreshToken, req.user?.userId]
+    );
+
+    // Set refresh token cookie
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+
     res.json({
       status: "success",
-      message: "Business onboarded successfully."
+      message: "Business onboarded successfully.",
+      data: {
+        business_id: activeBusinessId,
+        token: accessToken
+      }
     });
   } catch (error: any) {
     if (connection) await connection.rollback();
@@ -374,7 +456,7 @@ export async function listStaff(req: Request, res: Response, next: NextFunction)
 
   try {
     const staff = await query(
-      "SELECT id, email, full_name, role, status, staff_title FROM `users` WHERE `business_id` = ? AND `role` != 'owner' ORDER BY id ASC",
+      "SELECT id, email, full_name, role, status, staff_title, staff_photo_url, working_days, working_hours, services_assigned FROM `users` WHERE `business_id` = ? AND `role` != 'owner' ORDER BY id ASC",
       [businessId]
     );
 
@@ -392,7 +474,7 @@ export async function listStaff(req: Request, res: Response, next: NextFunction)
  */
 export async function addStaff(req: Request, res: Response, next: NextFunction): Promise<void> {
   const businessId = req.user?.businessId;
-  const { email, full_name, role, staff_title } = req.body;
+  const { email, full_name, role, staff_title, staff_photo_url, working_days, working_hours, services_assigned } = req.body;
 
   if (!businessId) {
     res.status(401).json({ status: "error", message: "User session lacks business tenant context." });
@@ -407,8 +489,19 @@ export async function addStaff(req: Request, res: Response, next: NextFunction):
   try {
     const dummyPasswordHash = "$2b$10$dummyhashdummyhashdummyhashdummyhashdummyhashdu"; // bcrypt default format dummy
     await query(
-      "INSERT INTO `users` (`business_id`, `email`, `password_hash`, `full_name`, `role`, `status`, `staff_title`) VALUES (?, ?, ?, ?, ?, 'active', ?)",
-      [businessId, email, dummyPasswordHash, full_name, role, staff_title || null]
+      "INSERT INTO `users` (`business_id`, `email`, `password_hash`, `full_name`, `role`, `status`, `staff_title`, `staff_photo_url`, `working_days`, `working_hours`, `services_assigned`) VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?)",
+      [
+        businessId,
+        email,
+        dummyPasswordHash,
+        full_name,
+        role,
+        staff_title || null,
+        staff_photo_url || null,
+        working_days || null,
+        working_hours || null,
+        services_assigned || null
+      ]
     );
 
     res.status(201).json({
@@ -426,7 +519,7 @@ export async function addStaff(req: Request, res: Response, next: NextFunction):
 export async function updateStaff(req: Request, res: Response, next: NextFunction): Promise<void> {
   const businessId = req.user?.businessId;
   const { id } = req.params;
-  const { email, full_name, role, staff_title } = req.body;
+  const { email, full_name, role, staff_title, staff_photo_url, working_days, working_hours, services_assigned } = req.body;
 
   if (!businessId) {
     res.status(401).json({ status: "error", message: "User session lacks business tenant context." });
@@ -435,8 +528,19 @@ export async function updateStaff(req: Request, res: Response, next: NextFunctio
 
   try {
     await query(
-      "UPDATE `users` SET `email` = ?, `full_name` = ?, `role` = ?, `staff_title` = ? WHERE `id` = ? AND `business_id` = ?",
-      [email, full_name, role, staff_title || null, id, businessId]
+      "UPDATE `users` SET `email` = ?, `full_name` = ?, `role` = ?, `staff_title` = ?, `staff_photo_url` = ?, `working_days` = ?, `working_hours` = ?, `services_assigned` = ? WHERE `id` = ? AND `business_id` = ?",
+      [
+        email,
+        full_name,
+        role,
+        staff_title || null,
+        staff_photo_url || null,
+        working_days || null,
+        working_hours || null,
+        services_assigned || null,
+        id,
+        businessId
+      ]
     );
 
     res.json({
@@ -466,6 +570,138 @@ export async function deleteStaff(req: Request, res: Response, next: NextFunctio
     res.json({
       status: "success",
       message: "Staff member deleted successfully."
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Update all business settings in MySQL in a single transaction.
+ */
+export async function updateBusinessSettings(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const businessId = req.user?.businessId;
+  if (!businessId) {
+    res.status(401).json({ status: "error", message: "User session lacks business tenant context." });
+    return;
+  }
+
+  const {
+    name, logo_url, banner_url, description, contact_phone, contact_email, address,
+    google_maps_location, business_type, subdomain, upi_id, social_links, working_hours,
+    seo_title, seo_description, favicon_url, is_published,
+    primary_color, secondary_color, font_family, custom_settings_json
+  } = req.body;
+
+  try {
+    // 1. Update businesses table
+    await query(
+      `UPDATE \`businesses\`
+       SET \`name\` = COALESCE(?, \`name\`),
+           \`logo_url\` = ?,
+           \`banner_url\` = ?,
+           \`description\` = ?,
+           \`contact_phone\` = ?,
+           \`contact_email\` = COALESCE(?, \`contact_email\`),
+           \`address\` = ?,
+           \`google_maps_location\` = ?,
+           \`business_type\` = ?,
+           \`subdomain\` = COALESCE(?, \`subdomain\`),
+           \`upi_id\` = ?,
+           \`social_links\` = ?,
+           \`working_hours\` = ?,
+           \`seo_title\` = ?,
+           \`seo_description\` = ?,
+           \`favicon_url\` = ?,
+           \`is_published\` = ?
+       WHERE \`id\` = ?`,
+      [
+        name !== undefined ? name : null,
+        logo_url !== undefined ? logo_url : null,
+        banner_url !== undefined ? banner_url : null,
+        description !== undefined ? description : null,
+        contact_phone !== undefined ? contact_phone : null,
+        contact_email !== undefined ? contact_email : null,
+        address !== undefined ? address : null,
+        google_maps_location !== undefined ? google_maps_location : null,
+        business_type !== undefined ? business_type : null,
+        subdomain !== undefined ? subdomain : null,
+        upi_id !== undefined ? upi_id : null,
+        social_links !== undefined ? (typeof social_links === 'string' ? social_links : JSON.stringify(social_links)) : null,
+        working_hours !== undefined ? (typeof working_hours === 'string' ? working_hours : JSON.stringify(working_hours)) : null,
+        seo_title !== undefined ? seo_title : null,
+        seo_description !== undefined ? seo_description : null,
+        favicon_url !== undefined ? favicon_url : null,
+        is_published !== undefined ? (is_published ? 1 : 0) : 0,
+        businessId
+      ]
+    );
+
+    // 2. Update theme settings
+    const currentTheme: any[] = await query("SELECT id FROM `theme_settings` WHERE `business_id` = ?", [businessId]);
+    if (currentTheme.length === 0) {
+      await query(
+        `INSERT INTO \`theme_settings\` (\`business_id\`, \`template_id\`, \`primary_color\`, \`secondary_color\`, \`font_family\`, \`custom_settings_json\`)
+         VALUES (?, 1, ?, ?, ?, ?)`,
+        [
+          businessId,
+          primary_color || "#10B981",
+          secondary_color || "#111827",
+          font_family || "Inter",
+          custom_settings_json ? (typeof custom_settings_json === 'string' ? custom_settings_json : JSON.stringify(custom_settings_json)) : null
+        ]
+      );
+    } else {
+      await query(
+        `UPDATE \`theme_settings\`
+         SET \`primary_color\` = COALESCE(?, \`primary_color\`),
+             \`secondary_color\` = COALESCE(?, \`secondary_color\`),
+             \`font_family\` = COALESCE(?, \`font_family\`),
+             \`custom_settings_json\` = COALESCE(?, \`custom_settings_json\`)
+         WHERE \`business_id\` = ?`,
+        [
+          primary_color !== undefined ? primary_color : null,
+          secondary_color !== undefined ? secondary_color : null,
+          font_family !== undefined ? font_family : null,
+          custom_settings_json !== undefined ? (typeof custom_settings_json === 'string' ? custom_settings_json : JSON.stringify(custom_settings_json)) : null,
+          businessId
+        ]
+      );
+    }
+
+    res.json({
+      status: "success",
+      message: "Business settings saved successfully."
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Take a business website offline / unpublish.
+ */
+export async function unpublishBusiness(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const businessId = req.user?.businessId;
+  const userId = req.user?.userId;
+
+  if (!businessId) {
+    res.status(401).json({ status: "error", message: "User session lacks business tenant context." });
+    return;
+  }
+
+  try {
+    await query("UPDATE `businesses` SET `is_published` = FALSE WHERE `id` = ?", [businessId]);
+    
+    // Log activity
+    await query(
+      "INSERT INTO `activity_logs` (`business_id`, `user_id`, `action`, `details`) VALUES (?, ?, 'website_unpublished', ?)",
+      [businessId, userId || null, "Website successfully unpublished / taken offline."]
+    );
+
+    res.json({
+      status: "success",
+      message: "Website unpublished successfully."
     });
   } catch (error) {
     next(error);

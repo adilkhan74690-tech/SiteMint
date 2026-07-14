@@ -20,45 +20,24 @@ export function isValidSubdomain(subdomain: string): boolean {
  * Middleware validator for multi-tenant business and owner registration.
  */
 export function validateRegister(req: Request, res: Response, next: NextFunction): void {
-  const { name, subdomain, contact_email, contact_phone, full_name, password } = req.body;
+  const { contact_email, full_name, password } = req.body;
   const errors: Record<string, string> = {};
 
-  // 1. Validate Business Name
-  if (!name || typeof name !== "string" || name.trim().length < 2) {
-    errors.name = "Business name must be at least 2 characters long.";
-  } else if (name.trim().length > 100) {
-    errors.name = "Business name cannot exceed 100 characters.";
-  }
-
-  // 2. Validate Subdomain
-  if (!subdomain || typeof subdomain !== "string" || subdomain.trim().length < 2) {
-    errors.subdomain = "Subdomain must be at least 2 characters long.";
-  } else if (subdomain.trim().length > 50) {
-    errors.subdomain = "Subdomain cannot exceed 50 characters.";
-  } else if (!isValidSubdomain(subdomain)) {
-    errors.subdomain = "Subdomain can only contain alphanumeric characters and hyphens, and cannot start or end with a hyphen.";
-  }
-
-  // 3. Validate Contact Email
+  // 1. Validate Contact Email
   if (!contact_email || typeof contact_email !== "string" || !isValidEmail(contact_email)) {
     errors.contact_email = "Please provide a valid, active email address.";
   } else if (contact_email.length > 100) {
     errors.contact_email = "Email address cannot exceed 100 characters.";
   }
 
-  // 4. Validate Contact Phone (optional)
-  if (contact_phone && (typeof contact_phone !== "string" || contact_phone.trim().length < 7 || contact_phone.trim().length > 20)) {
-    errors.contact_phone = "Contact phone must be a valid telephone number between 7 and 20 digits.";
-  }
-
-  // 5. Validate Owner Full Name
+  // 2. Validate Owner Full Name
   if (!full_name || typeof full_name !== "string" || full_name.trim().length < 2) {
     errors.full_name = "Owner full name must be at least 2 characters long.";
   } else if (full_name.trim().length > 100) {
     errors.full_name = "Owner name cannot exceed 100 characters.";
   }
 
-  // 6. Validate Password
+  // 3. Validate Password
   if (!password || typeof password !== "string" || password.length < 8) {
     errors.password = "Password must be at least 8 characters long for secure authentication.";
   }

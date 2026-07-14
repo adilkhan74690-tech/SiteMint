@@ -9,6 +9,7 @@ interface ClothingTemplateProps {
   onBackToHub: () => void;
   initialBrandName?: string;
   initialThemeAccent?: string;
+  isStandalone?: boolean;
 }
 
 interface CartItem {
@@ -19,7 +20,7 @@ interface CartItem {
   quantity: number;
 }
 
-export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nordic Loom", initialThemeAccent = "#F59E0B" }: ClothingTemplateProps) {
+export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nordic Loom", initialThemeAccent = "#F59E0B", isStandalone = false }: ClothingTemplateProps) {
   // Brand configurations
   const [brandName, setBrandName] = useState(initialBrandName);
   const [accentColor, setAccentColor] = useState(initialThemeAccent);
@@ -63,7 +64,14 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
     const queryParams = new URLSearchParams(window.location.search);
     const querySubdomain = queryParams.get("subdomain");
     const hostnameSubdomain = window.location.hostname.split(".")[0];
-    const subdomain = querySubdomain || (hostnameSubdomain !== "localhost" && hostnameSubdomain !== "www" && hostnameSubdomain !== "sitemint" ? hostnameSubdomain : null) || "nordic-threads";
+
+    const pathname = window.location.pathname;
+    let pathSubdomain = "";
+    if (pathname.startsWith("/site/")) {
+      pathSubdomain = pathname.split("/")[2];
+    }
+
+    const subdomain = querySubdomain || pathSubdomain || (hostnameSubdomain !== "localhost" && hostnameSubdomain !== "www" && hostnameSubdomain !== "sitemint" ? hostnameSubdomain : null) || "nordic-threads";
 
     fetch(`/api/businesses/settings?subdomain=${subdomain}`)
       .then((r) => r.json())
@@ -189,16 +197,18 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
     >
       {/* Dynamic Header Toolbar */}
       <div className="bg-[#0E1117] border-b border-zinc-900 sticky top-0 z-50 px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-md" id="clothing-toolbar">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onBackToHub}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs font-semibold text-zinc-400 hover:text-white transition-all cursor-pointer"
-            id="btn-back-hub-clothing"
-          >
-            <LucideIcon name="ArrowLeft" className="w-3.5 h-3.5" />
-            Back to SiteMint Hub
-          </button>
-        </div>
+        {!isStandalone && (
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onBackToHub}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs font-semibold text-zinc-400 hover:text-white transition-all cursor-pointer"
+              id="btn-back-hub-clothing"
+            >
+              <LucideIcon name="ArrowLeft" className="w-3.5 h-3.5" />
+              Back to SiteMint Hub
+            </button>
+          </div>
+        )}
 
         <div className="flex items-center gap-3">
           {customerEmail ? (

@@ -237,56 +237,64 @@ export const testimonials: Testimonial[] = [
 export const pricingPlans: PricingPlan[] = [
   {
     id: "starter",
-    name: "Starter Plan",
-    priceMonthly: 24,
-    priceYearly: 19,
-    description: "Perfect for single-location shops looking to establish a professional online home.",
+    name: "Starter",
+    priceMonthly: 0,
+    priceYearly: 0,
+    description: "30-Day Free Trial",
     features: [
-      "1 Fully Custom Website",
-      "SSL-Protected Custom Domain",
-      "Built-in Booking & Schedules",
-      "Standard Payment Integrations",
-      "Excellent SEO & Performance Score",
-      "Standard Chat Support"
+      "1 Website",
+      "SiteMint Subdomain",
+      "Mobile Responsive Website",
+      "Basic Website Builder",
+      "Basic Booking System",
+      "SSL Certificate",
+      "SEO Ready",
+      "Basic Dashboard",
+      "Email Support"
     ],
     isPopular: false,
-    ctaText: "Get Started"
+    ctaText: "Start Free"
   },
   {
     id: "pro",
-    name: "Pro Scale",
-    priceMonthly: 49,
-    priceYearly: 39,
-    description: "Ideal for growing businesses requiring high-end automation, lookbooks, and advanced tools.",
+    name: "Pro",
+    priceMonthly: 499,
+    priceYearly: 499,
+    description: "Upgrade to Pro",
     features: [
-      "Up to 3 Custom Websites",
-      "Unlimited Bookings & Tables",
-      "Multi-stylist / Trainer Portals",
-      "Advanced Custom Forms & CRM",
-      "Priority API Access & Webhooks",
-      "Zero Transaction Fees",
-      "24/7 Dedicated Concierge Support"
+      "Everything in Starter plus",
+      "Custom Domain Support",
+      "Razorpay Payment Integration",
+      "Cloudinary Media Upload",
+      "Unlimited Products / Services",
+      "Customer Reviews",
+      "Appointment Booking",
+      "WhatsApp Notifications",
+      "Analytics Dashboard",
+      "Priority Support"
     ],
     isPopular: true,
-    ctaText: "Scale Now"
+    ctaText: "Upgrade to Pro"
   },
   {
-    id: "enterprise",
-    name: "Enterprise Plan",
-    priceMonthly: 129,
-    priceYearly: 99,
-    description: "Unparalleled scale for multi-franchise operations requiring fully custom workflows.",
+    id: "business",
+    name: "Business",
+    priceMonthly: 999,
+    priceYearly: 999,
+    description: "Get Business",
     features: [
-      "Unlimited Custom Sites",
-      "White-labeled Customer Dashboards",
-      "Custom React Component Uploads",
-      "Dedicated Database & Server Slices",
-      "Franchise Role-based Permissions",
-      "Enterprise Service Level Agreements",
-      "Dedicated Success Engineer"
+      "Everything in Pro plus",
+      "Unlimited Staff",
+      "Multi Branch Support",
+      "Inventory Management",
+      "Customer Management",
+      "Role Based Staff Access",
+      "Advanced Analytics",
+      "API Access",
+      "Premium Support"
     ],
     isPopular: false,
-    ctaText: "Contact Sales"
+    ctaText: "Get Business"
   }
 ];
 

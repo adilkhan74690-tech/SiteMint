@@ -9,9 +9,18 @@ export async function getAdminMetrics(req: Request, res: Response, next: NextFun
     const totalBusinessesRes = await query("SELECT COUNT(*) as count FROM `businesses`");
     const totalUsersRes = await query("SELECT COUNT(*) as count FROM `users`");
     const totalCustomersRes = await query("SELECT COUNT(*) as count FROM `customers`");
-    const totalRevenueRes = await query("SELECT SUM(amount) as sum FROM `payments` WHERE `status` = 'captured' OR `status` = 'completed'");
-    const activeSubRes = await query("SELECT COUNT(*) as count FROM `businesses` WHERE `status` = 'active'");
-    const trialRes = await query("SELECT COUNT(*) as count FROM `businesses` WHERE `status` = 'trial'");
+    const totalRevenueRes = await query("SELECT SUM(amount) as sum FROM `payment_transactions` WHERE `status` = 'success'");
+    const activeSubRes = await query("SELECT COUNT(*) as count FROM `subscriptions` WHERE `status` = 'active'");
+    const trialRes = await query("SELECT COUNT(*) as count FROM `subscriptions` WHERE `status` = 'trial'");
+    const cancelledRes = await query("SELECT COUNT(*) as count FROM `subscriptions` WHERE `status` = 'cancelled'");
+    const expiredRes = await query("SELECT COUNT(*) as count FROM `subscriptions` WHERE `status` = 'expired' OR (`status` = 'trial' AND `renewal_date` < NOW())");
+    const pendingPaymentsRes = await query("SELECT COUNT(*) as count FROM `payment_transactions` WHERE `status` = 'pending'");
+    const monthlyRevRes = await query(`
+      SELECT SUM(amount) as sum FROM \`payment_transactions\` 
+      WHERE \`status\` = 'success' 
+      AND MONTH(\`created_at\`) = MONTH(CURRENT_DATE()) 
+      AND YEAR(\`created_at\`) = YEAR(CURRENT_DATE())
+    `);
     const publishedRes = await query("SELECT COUNT(*) as count FROM `businesses` WHERE `is_published` = 1");
     const pendingRes = await query("SELECT COUNT(*) as count FROM `businesses` WHERE `is_published` = 0 OR `is_published` IS NULL");
 
@@ -24,6 +33,10 @@ export async function getAdminMetrics(req: Request, res: Response, next: NextFun
         totalRevenue: totalRevenueRes[0]?.sum || 0,
         activeSubscriptions: activeSubRes[0]?.count || 0,
         trialAccounts: trialRes[0]?.count || 0,
+        cancelledSubscriptions: cancelledRes[0]?.count || 0,
+        expiredTrials: expiredRes[0]?.count || 0,
+        pendingPayments: pendingPaymentsRes[0]?.count || 0,
+        monthlyRevenue: monthlyRevRes[0]?.sum || 0,
         publishedWebsites: publishedRes[0]?.count || 0,
         pendingWebsites: pendingRes[0]?.count || 0
       }
@@ -40,9 +53,10 @@ export async function getBusinesses(req: Request, res: Response, next: NextFunct
   const searchTerm = req.query.search || "";
   try {
     let sql = `
-      SELECT b.*, u.email as owner_email, u.full_name as owner_name 
+      SELECT b.*, u.email as owner_email, u.full_name as owner_name, s.plan_id as current_plan, s.status as subscription_status, s.renewal_date
       FROM \`businesses\` b 
       LEFT JOIN \`users\` u ON u.business_id = b.id AND u.role = 'owner'
+      LEFT JOIN \`subscriptions\` s ON s.business_id = b.id
     `;
     const params = [];
     if (searchTerm) {

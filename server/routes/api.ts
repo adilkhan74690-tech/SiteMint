@@ -3,7 +3,8 @@ import {
   registerBusiness,
   loginUser,
   refreshSessionToken,
-  logoutUser
+  logoutUser,
+  getProfile
 } from "../controllers/authController.js";
 import {
   getBusinessSettings,
@@ -15,7 +16,9 @@ import {
   listStaff,
   addStaff,
   updateStaff,
-  deleteStaff
+  deleteStaff,
+  updateBusinessSettings,
+  unpublishBusiness
 } from "../controllers/businessController.js";
 import {
   listProducts,
@@ -23,7 +26,9 @@ import {
   updateProduct,
   listServices,
   createService,
-  updateService
+  updateService,
+  deleteProduct,
+  deleteService
 } from "../controllers/catalogController.js";
 import {
   listBookings,
@@ -39,13 +44,20 @@ import {
   approvePayment
 } from "../controllers/checkoutController.js";
 import {
+  getSubscriptionStatus,
+  createSubscriptionOrder,
+  verifySubscriptionPayment,
+  cancelActiveSubscription
+} from "../controllers/subscriptionController.js";
+import {
   uploadMedia,
   getMediaGallery,
   listReviews,
   createReview,
   listActivityLogs,
   listNotifications,
-  markNotificationAsRead
+  markNotificationAsRead,
+  deleteMedia
 } from "../controllers/feedbackController.js";
 import {
   authenticateUser,
@@ -77,6 +89,15 @@ router.post("/auth/register", validateRegister, registerBusiness);
 router.post("/auth/login", validateLogin, loginUser);
 router.post("/auth/refresh", refreshSessionToken);
 router.post("/auth/logout", logoutUser);
+router.get("/auth/me", authenticateUser, getProfile);
+
+// ==========================================
+// 1a. SaaS Subscription Routes
+// ==========================================
+router.get("/subscriptions/status", authenticateUser, getSubscriptionStatus);
+router.post("/subscriptions/razorpay/order", authenticateUser, createSubscriptionOrder);
+router.post("/subscriptions/razorpay/verify", authenticateUser, verifySubscriptionPayment);
+router.post("/subscriptions/cancel", authenticateUser, cancelActiveSubscription);
 
 // ==========================================
 // 1b. Super Admin Control Routes
@@ -95,6 +116,7 @@ router.delete("/admin/announcements/:id", authenticateUser, requireRole(["SUPER_
 router.get("/businesses/settings", getBusinessSettings);
 router.get("/businesses/templates", getTemplates);
 router.put("/businesses/onboard", authenticateUser, onboardBusiness);
+router.put("/businesses/settings", authenticateUser, requireRole(["owner", "manager"]), updateBusinessSettings);
 router.put(
   "/businesses/theme",
   authenticateUser,
@@ -107,6 +129,12 @@ router.put(
   authenticateUser,
   requireRole(["owner", "manager"]),
   publishBusiness
+);
+router.put(
+  "/businesses/unpublish",
+  authenticateUser,
+  requireRole(["owner", "manager"]),
+  unpublishBusiness
 );
 router.get(
   "/customers",
@@ -132,6 +160,12 @@ router.put(
   requireRole(["owner", "manager"]),
   updateProduct
 );
+router.delete(
+  "/catalog/products/:id",
+  authenticateUser,
+  requireRole(["owner", "manager"]),
+  deleteProduct
+);
 
 // Services
 router.get("/catalog/services", listServices);
@@ -146,6 +180,12 @@ router.put(
   authenticateUser,
   requireRole(["owner", "manager", "staff"]),
   updateService
+);
+router.delete(
+  "/catalog/services/:id",
+  authenticateUser,
+  requireRole(["owner", "manager", "staff"]),
+  deleteService
 );
 
 // ==========================================
@@ -200,7 +240,8 @@ router.post(
   upload.single("file"),
   uploadMedia
 );
-router.get("/feedback/media", getMediaGallery);
+router.get("/feedback/media", authenticateUser, getMediaGallery);
+router.delete("/feedback/media/:id", authenticateUser, deleteMedia);
 
 // Testimonials / Reviews
 router.get("/feedback/reviews", listReviews);

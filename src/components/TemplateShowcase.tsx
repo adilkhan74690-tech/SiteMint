@@ -293,84 +293,110 @@ export default function TemplateShowcase({ onOpenCheckout, onNavigateToDemo }: T
 
                 {/* Animated Inner Container */}
                 <div className="flex-grow overflow-y-auto relative min-h-[380px] flex flex-col">
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={selectedTemplate.id}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      transition={{ duration: 0.25, ease: "easeInOut" }}
-                      className="flex-grow p-6 flex flex-col justify-between gap-6"
-                    >
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                        <div className="space-y-4 text-left">
-                          <h4 className="text-xl md:text-2xl font-black text-white font-display tracking-tight leading-tight">
-                            {details.tagline}
-                          </h4>
-                          <p className="text-xs text-zinc-400 leading-relaxed">
-                            {details.description}
-                          </p>
-                        </div>
-
-                        <div className="relative rounded-xl overflow-hidden aspect-video border border-zinc-900 shadow-xl group">
-                          <img
-                            src={selectedTemplate.heroImage}
-                            alt={selectedTemplate.name}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                            referrerPolicy="no-referrer"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent" />
-                        </div>
+                  {!(selectedTemplate.id === "pulse-gym" || selectedTemplate.id === "michelin-bistro" || selectedTemplate.id === "luna-salon" || selectedTemplate.id === "nordic-threads") ? (
+                    <div className="absolute inset-0 bg-zinc-950/75 backdrop-blur-md z-20 flex flex-col items-center justify-center p-6 text-center space-y-4">
+                      <div className="w-12 h-12 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 shadow-xl">
+                        <LucideIcon name="Lock" className="w-5 h-5 text-zinc-400" />
                       </div>
-
-                      {/* Features / Services inside mock site */}
-                      <div className="border-t border-zinc-900/60 pt-4">
-                        <p className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider mb-2 text-left">
-                          Built-in features
+                      <div className="space-y-2">
+                        <span className="bg-zinc-900 border border-zinc-800 text-zinc-500 text-[10px] font-bold px-2.5 py-0.5 rounded-md uppercase tracking-widest font-mono">
+                          Coming Soon
+                        </span>
+                        <h4 className="text-lg font-bold text-white tracking-tight">{selectedTemplate.name}</h4>
+                        <p className="text-xs text-zinc-400 leading-relaxed max-w-[280px] mx-auto">
+                          We're building this template. Available in future updates.
                         </p>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                          {details.features.map((feat, idx) => (
-                            <div
-                              key={idx}
-                              className="bg-zinc-900/40 border border-zinc-800 p-2.5 rounded-lg text-left"
-                            >
-                              <LucideIcon name="Check" className="w-3.5 h-3.5 mb-1" style={{ color: selectedAccentColor }} />
-                              <p className="text-[10px] font-bold text-zinc-200 leading-tight">{feat}</p>
-                            </div>
-                          ))}
-                        </div>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          alert(`We've registered your interest! You'll be notified immediately when the ${selectedTemplate.name} template becomes available.`);
+                        }}
+                        className="bg-zinc-900 border border-zinc-850 hover:bg-zinc-800 text-zinc-300 hover:text-white font-bold px-6 py-2.5 rounded-xl text-xs uppercase tracking-wider transition-all cursor-pointer"
+                      >
+                        Notify Me
+                      </button>
+                    </div>
+                  ) : (
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={selectedTemplate.id}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.25, ease: "easeInOut" }}
+                        className="flex-grow p-6 flex flex-col justify-between gap-6"
+                      >
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                          <div className="space-y-4 text-left">
+                            <h4 className="text-xl md:text-2xl font-black text-white font-display tracking-tight leading-tight">
+                              {details.tagline}
+                            </h4>
+                            <p className="text-xs text-zinc-400 leading-relaxed">
+                              {details.description}
+                            </p>
+                          </div>
 
-                      {/* Interactive Button */}
-                      <div className="flex items-center justify-end border-t border-zinc-900/60 pt-4 mt-2 gap-3">
-                        <div className="flex gap-2 w-full sm:w-auto justify-end">
-                          {onNavigateToDemo && (
-                            <button
-                              onClick={() => {
-                                const cat = selectedTemplate.categoryId;
-                                if (cat === "gym" || cat === "restaurant" || cat === "salon" || cat === "clothing") {
-                                  onNavigateToDemo(`preview-${cat}` as any);
-                                } else {
-                                  onNavigateToDemo(`preview-gym`);
-                                }
-                              }}
-                              className="px-4 py-2.5 rounded-xl text-xs font-bold bg-zinc-900 text-zinc-300 border border-zinc-800 transition-all hover:bg-zinc-850 hover:text-white flex items-center gap-1.5 cursor-pointer"
-                              id="btn-showcase-launch-demo"
-                            >
-                              Preview Website
-                            </button>
-                          )}
-                          <button
-                            onClick={() => onOpenCheckout("pro")}
-                            className="px-5 py-2.5 rounded-xl text-xs font-bold text-black transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-                            style={{ backgroundColor: selectedAccentColor }}
-                          >
-                            Use This Template
-                          </button>
+                          <div className="relative rounded-xl overflow-hidden aspect-video border border-zinc-900 shadow-xl group">
+                            <img
+                              src={selectedTemplate.heroImage}
+                              alt={selectedTemplate.name}
+                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent" />
+                          </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  </AnimatePresence>
+
+                        {/* Features / Services inside mock site */}
+                        <div className="border-t border-zinc-900/60 pt-4">
+                          <p className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider mb-2 text-left">
+                            Built-in features
+                          </p>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {details.features.map((feat, idx) => (
+                              <div
+                                key={idx}
+                                className="bg-zinc-900/40 border border-zinc-800 p-2.5 rounded-lg text-left"
+                              >
+                                <LucideIcon name="Check" className="w-3.5 h-3.5 mb-1" style={{ color: selectedAccentColor }} />
+                                <p className="text-[10px] font-bold text-zinc-200 leading-tight">{feat}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Interactive Button */}
+                        <div className="flex items-center justify-end border-t border-zinc-900/60 pt-4 mt-2 gap-3">
+                          <div className="flex gap-2 w-full sm:w-auto justify-end">
+                            {onNavigateToDemo && (
+                              <button
+                                onClick={() => {
+                                  const cat = selectedTemplate.categoryId;
+                                  if (cat === "gym" || cat === "restaurant" || cat === "salon" || cat === "clothing") {
+                                    onNavigateToDemo(`preview-${cat}` as any);
+                                  } else {
+                                    onNavigateToDemo(`preview-gym`);
+                                  }
+                                }}
+                                className="px-4 py-2.5 rounded-xl text-xs font-bold bg-zinc-900 text-zinc-300 border border-zinc-800 transition-all hover:bg-zinc-850 hover:text-white flex items-center gap-1.5 cursor-pointer"
+                                id="btn-showcase-launch-demo"
+                              >
+                                Preview Website
+                              </button>
+                            )}
+                            <button
+                              onClick={() => onOpenCheckout("pro")}
+                              className="px-5 py-2.5 rounded-xl text-xs font-bold text-black transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                              style={{ backgroundColor: selectedAccentColor }}
+                            >
+                              Use This Template
+                            </button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    </AnimatePresence>
+                  )}
                 </div>
 
               </div>

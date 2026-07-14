@@ -303,9 +303,13 @@ export default function SuperAdminDashboard({ userEmail, onLogout, onNavigate }:
                       { title: "Total Businesses", val: metrics.totalBusinesses, desc: "Registered tenants", icon: "Building2", color: "text-cyan-400", bg: "bg-cyan-500/10" },
                       { title: "Platform Users", val: metrics.totalUsers, desc: "Owners, managers & staff", icon: "Users", color: "text-indigo-400", bg: "bg-indigo-500/10" },
                       { title: "Store Customers", val: metrics.totalCustomers, desc: "Combined buyer directory", icon: "Heart", color: "text-pink-400", bg: "bg-pink-500/10" },
-                      { title: "Platform Earnings", val: `₹${metrics.totalRevenue}`, desc: "UPI & direct settlement logs", icon: "DollarSign", color: "text-emerald-400", bg: "bg-emerald-500/10" },
-                      { title: "Active Subscriptions", val: metrics.activeSubscriptions, desc: "SaaS pro tiers", icon: "Zap", color: "text-amber-400", bg: "bg-amber-500/10" },
-                      { title: "Trial Accounts", val: metrics.trialAccounts, desc: "Unpaid onboarding users", icon: "Clock", color: "text-purple-400", bg: "bg-purple-500/10" },
+                      { title: "Platform Earnings", val: `₹${metrics.totalRevenue}`, desc: "Total platform revenue", icon: "DollarSign", color: "text-emerald-400", bg: "bg-emerald-500/10" },
+                      { title: "Monthly Revenue", val: `₹${metrics.monthlyRevenue}`, desc: "Earnings this month", icon: "Calendar", color: "text-emerald-400", bg: "bg-emerald-500/10" },
+                      { title: "Active Subscriptions", val: metrics.activeSubscriptions, desc: "SaaS premium tiers", icon: "Zap", color: "text-amber-400", bg: "bg-amber-500/10" },
+                      { title: "Cancelled Subscriptions", val: metrics.cancelledSubscriptions, desc: "Inactive premium tiers", icon: "ZapOff", color: "text-red-400", bg: "bg-red-500/10" },
+                      { title: "Trial Accounts", val: metrics.trialAccounts, desc: "Active free trials", icon: "Clock", color: "text-purple-400", bg: "bg-purple-500/10" },
+                      { title: "Expired Trials", val: metrics.expiredTrials, desc: "Trial period ended", icon: "AlertOctagon", color: "text-red-450", bg: "bg-red-500/5" },
+                      { title: "Pending Payments", val: metrics.pendingPayments, desc: "Awaiting gateway capture", icon: "CreditCard", color: "text-amber-500", bg: "bg-amber-500/10" },
                       { title: "Published Sites", val: metrics.publishedWebsites, desc: "Live tenant storefronts", icon: "Globe", color: "text-teal-400", bg: "bg-teal-500/10" },
                       { title: "Pending Websites", val: metrics.pendingWebsites, desc: "Awaiting dns deployment", icon: "FileText", color: "text-zinc-400", bg: "bg-zinc-500/10" },
                     ].map((card, idx) => (
@@ -393,6 +397,8 @@ export default function SuperAdminDashboard({ userEmail, onLogout, onNavigate }:
                             <th className="p-4 font-bold">Category</th>
                             <th className="p-4 font-bold">Subdomain URL</th>
                             <th className="p-4 font-bold">Owner Details</th>
+                            <th className="p-4 font-bold">Current Plan</th>
+                            <th className="p-4 font-bold">Renewal Date</th>
                             <th className="p-4 font-bold">Status</th>
                             <th className="p-4 font-bold">Published</th>
                             <th className="p-4 font-bold text-right">Actions</th>
@@ -415,6 +421,18 @@ export default function SuperAdminDashboard({ userEmail, onLogout, onNavigate }:
                               <td className="p-4">
                                 <p className="font-bold text-zinc-300">{biz.owner_name || "N/A"}</p>
                                 <p className="text-[10px] text-zinc-500 font-mono">{biz.owner_email || "N/A"}</p>
+                              </td>
+                              <td className="p-4">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase ${
+                                  biz.current_plan === "business" ? "bg-purple-500/10 text-purple-400 border border-purple-500/20" :
+                                  biz.current_plan === "pro" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" :
+                                  "bg-zinc-500/10 text-zinc-400 border border-zinc-800"
+                                }`}>
+                                  {biz.current_plan ? `${biz.current_plan} (${biz.subscription_status || 'trial'})` : "Starter (trial)"}
+                                </span>
+                              </td>
+                              <td className="p-4 font-mono text-zinc-400">
+                                {biz.renewal_date ? new Date(biz.renewal_date).toLocaleDateString() : "N/A"}
                               </td>
                               <td className="p-4">
                                 <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-black uppercase tracking-wider border ${

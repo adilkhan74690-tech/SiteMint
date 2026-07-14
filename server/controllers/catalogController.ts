@@ -26,7 +26,7 @@ export async function listProducts(req: Request, res: Response, next: NextFuncti
 
 export async function createProduct(req: Request, res: Response, next: NextFunction): Promise<void> {
   const businessId = req.user?.businessId;
-  const { name, description, price, compare_at_price, sku, inventory_qty, is_active } = req.body;
+  const { name, description, price, compare_at_price, sku, inventory_qty, is_active, image_url } = req.body;
 
   if (!businessId) {
     res.status(401).json({ status: "error", message: "Unauthorized tenant." });
@@ -43,8 +43,8 @@ export async function createProduct(req: Request, res: Response, next: NextFunct
 
   try {
     const [result]: any = await query(
-      `INSERT INTO \`products\` (\`business_id\`, \`name\`, \`slug\`, \`description\`, \`price\`, \`compare_at_price\`, \`sku\`, \`inventory_qty\`, \`is_active\`) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO \`products\` (\`business_id\`, \`name\`, \`slug\`, \`description\`, \`price\`, \`compare_at_price\`, \`sku\`, \`inventory_qty\`, \`is_active\`, \`image_url\`) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         businessId,
         name,
@@ -54,7 +54,8 @@ export async function createProduct(req: Request, res: Response, next: NextFunct
         compare_at_price !== undefined ? Number(compare_at_price) : null,
         sku !== undefined ? sku : null,
         inventory_qty !== undefined ? Number(inventory_qty) : 0,
-        is_active !== false
+        is_active !== false,
+        image_url || null
       ]
     );
 
@@ -71,7 +72,7 @@ export async function createProduct(req: Request, res: Response, next: NextFunct
 export async function updateProduct(req: Request, res: Response, next: NextFunction): Promise<void> {
   const businessId = req.user?.businessId;
   const { id } = req.params;
-  const { name, description, price, compare_at_price, sku, inventory_qty, is_active } = req.body;
+  const { name, description, price, compare_at_price, sku, inventory_qty, is_active, image_url } = req.body;
 
   if (!businessId) {
     res.status(401).json({ status: "error", message: "Unauthorized tenant." });
@@ -87,7 +88,8 @@ export async function updateProduct(req: Request, res: Response, next: NextFunct
            \`compare_at_price\` = COALESCE(?, \`compare_at_price\`),
            \`sku\` = COALESCE(?, \`sku\`),
            \`inventory_qty\` = COALESCE(?, \`inventory_qty\`),
-           \`is_active\` = COALESCE(?, \`is_active\`) 
+           \`is_active\` = COALESCE(?, \`is_active\`),
+           \`image_url\` = COALESCE(?, \`image_url\`)
        WHERE \`id\` = ? AND \`business_id\` = ?`,
       [
         name !== undefined ? name : null,
@@ -97,6 +99,7 @@ export async function updateProduct(req: Request, res: Response, next: NextFunct
         sku !== undefined ? sku : null,
         inventory_qty !== undefined ? Number(inventory_qty) : null,
         is_active !== undefined ? is_active : null,
+        image_url !== undefined ? image_url : null,
         id,
         businessId
       ]
@@ -133,7 +136,7 @@ export async function listServices(req: Request, res: Response, next: NextFuncti
 
 export async function createService(req: Request, res: Response, next: NextFunction): Promise<void> {
   const businessId = req.user?.businessId;
-  const { name, description, duration_minutes, price, capacity, is_active } = req.body;
+  const { name, description, duration_minutes, price, capacity, is_active, image_url } = req.body;
 
   if (!businessId) {
     res.status(401).json({ status: "error", message: "Unauthorized tenant." });
@@ -147,8 +150,8 @@ export async function createService(req: Request, res: Response, next: NextFunct
 
   try {
     const [result]: any = await query(
-      `INSERT INTO \`services\` (\`business_id\`, \`name\`, \`description\`, \`duration_minutes\`, \`price\`, \`capacity\`, \`is_active\`) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO \`services\` (\`business_id\`, \`name\`, \`description\`, \`duration_minutes\`, \`price\`, \`capacity\`, \`is_active\`, \`image_url\`) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         businessId,
         name,
@@ -156,7 +159,8 @@ export async function createService(req: Request, res: Response, next: NextFunct
         Number(duration_minutes),
         Number(price),
         capacity !== undefined ? Number(capacity) : 1,
-        is_active !== false
+        is_active !== false,
+        image_url || null
       ]
     );
 
@@ -173,7 +177,7 @@ export async function createService(req: Request, res: Response, next: NextFunct
 export async function updateService(req: Request, res: Response, next: NextFunction): Promise<void> {
   const businessId = req.user?.businessId;
   const { id } = req.params;
-  const { name, description, duration_minutes, price, capacity, is_active } = req.body;
+  const { name, description, duration_minutes, price, capacity, is_active, image_url } = req.body;
 
   if (!businessId) {
     res.status(401).json({ status: "error", message: "Unauthorized tenant." });
@@ -188,7 +192,8 @@ export async function updateService(req: Request, res: Response, next: NextFunct
            \`duration_minutes\` = COALESCE(?, \`duration_minutes\`),
            \`price\` = COALESCE(?, \`price\`),
            \`capacity\` = COALESCE(?, \`capacity\`),
-           \`is_active\` = COALESCE(?, \`is_active\`) 
+           \`is_active\` = COALESCE(?, \`is_active\`),
+           \`image_url\` = COALESCE(?, \`image_url\`)
        WHERE \`id\` = ? AND \`business_id\` = ?`,
       [
         name !== undefined ? name : null,
@@ -197,12 +202,47 @@ export async function updateService(req: Request, res: Response, next: NextFunct
         price !== undefined ? Number(price) : null,
         capacity !== undefined ? Number(capacity) : null,
         is_active !== undefined ? is_active : null,
+        image_url !== undefined ? image_url : null,
         id,
         businessId
       ]
     );
 
     res.json({ status: "success", message: "Service updated successfully." });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteProduct(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const businessId = req.user?.businessId;
+  const { id } = req.params;
+
+  if (!businessId) {
+    res.status(401).json({ status: "error", message: "Unauthorized tenant." });
+    return;
+  }
+
+  try {
+    await query("DELETE FROM `products` WHERE `id` = ? AND `business_id` = ?", [id, businessId]);
+    res.json({ status: "success", message: "Product deleted successfully." });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteService(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const businessId = req.user?.businessId;
+  const { id } = req.params;
+
+  if (!businessId) {
+    res.status(401).json({ status: "error", message: "Unauthorized tenant." });
+    return;
+  }
+
+  try {
+    await query("DELETE FROM `services` WHERE `id` = ? AND `business_id` = ?", [id, businessId]);
+    res.json({ status: "success", message: "Service deleted successfully." });
   } catch (error) {
     next(error);
   }
