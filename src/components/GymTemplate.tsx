@@ -50,6 +50,21 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
   const [businessId, setBusinessId] = useState(1);
   const [upiId, setUpiId] = useState("vanguard@upi");
 
+  // Dynamic CMS fields
+  const [trainers, setTrainers] = useState<any[]>(TRAINERS);
+  const [servicesList, setServicesList] = useState<any[]>([]);
+  const [currency, setCurrency] = useState("INR");
+
+  const getCurrencySymbol = (code: string) => {
+    switch (code) {
+      case "USD": return "$";
+      case "EUR": return "€";
+      case "GBP": return "£";
+      case "INR": return "₹";
+      default: return "₹";
+    }
+  };
+
   useEffect(() => {
     // Dynamic fetch matching template category code
     const queryParams = new URLSearchParams(window.location.search);
@@ -60,6 +75,14 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
     let pathSubdomain = "";
     if (pathname.startsWith("/site/")) {
       pathSubdomain = pathname.split("/")[2];
+    } else {
+      const cleanPath = pathname.replace(/^\/|\/$/g, "");
+      const segments = cleanPath.split("/");
+      const firstSegment = segments[0]?.toLowerCase();
+      const systemRoutes = ["login", "register", "forgot-password", "reset-password", "onboarding", "dashboard", "super-admin", "api"];
+      if (firstSegment && !systemRoutes.includes(firstSegment)) {
+        pathSubdomain = segments[0];
+      }
     }
 
     const subdomain = querySubdomain || pathSubdomain || (hostnameSubdomain !== "localhost" && hostnameSubdomain !== "www" && hostnameSubdomain !== "sitemint" ? hostnameSubdomain : null) || "vanguard-athletic-lab";
@@ -68,10 +91,12 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
       .then((r) => r.json())
       .then((res) => {
         if (res.status === "success" && res.data.business) {
-          setBusinessId(res.data.business.id);
-          setBrandName(res.data.business.name);
-          setUpiId(res.data.business.upi_id || "vanguard@upi");
-          setLogoUrl(res.data.business.logo_url || "");
+          const biz = res.data.business;
+          setBusinessId(biz.id);
+          setBrandName(biz.name);
+          setUpiId(biz.upi_id || "vanguard@upi");
+          setLogoUrl(biz.logo_url || "");
+          setCurrency(biz.currency || "INR");
           if (res.data.theme_settings) {
             setAccentColor(res.data.theme_settings.primary_color || initialThemeAccent);
             setTypography(res.data.theme_settings.font_family || "Space Grotesk");
@@ -79,6 +104,26 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
         }
       })
       .catch((err) => console.error("Error loading business configurations:", err));
+
+    // Fetch Staff
+    fetch(`/api/staff?subdomain=${subdomain}`)
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.status === "success" && Array.isArray(res.data) && res.data.length > 0) {
+          setTrainers(res.data);
+        }
+      })
+      .catch((err) => console.error("Error loading staff:", err));
+
+    // Fetch Services
+    fetch(`/api/catalog/services?subdomain=${subdomain}`)
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.status === "success" && Array.isArray(res.data) && res.data.length > 0) {
+          setServicesList(res.data);
+        }
+      })
+      .catch((err) => console.error("Error loading services:", err));
   }, []);
 
   // Customer credentials inputs
@@ -373,7 +418,7 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
                   <div>
                     <h4 className="text-lg font-bold text-white font-display">{tier.name}</h4>
                     <div className="flex items-baseline gap-1 mt-1.5">
-                      <span className="text-3xl font-black text-white font-display">${tier.price}</span>
+                      <span className="text-3xl font-black text-white font-display">{getCurrencySymbol(currency)}{tier.price}</span>
                       <span className="text-xs text-zinc-500 font-mono">/{tier.interval}</span>
                     </div>
                   </div>
@@ -733,13 +778,13 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6" id="pricing-matrix">
             {[
-              { title: "Weekly Core Pass", price: "$18", desc: "Single week access to standard gym layout, perfect for athletic travelers." },
-              { title: "Monthly Prime", price: "$49", desc: "Our standard full pass. 24/7 access to physical lockers, biometric scaling desks, and all free weight arrays." },
-              { title: "12-Month Committed", price: "$390", desc: "Unlock optimized long-term physical training. One-time annual fee. Includes 4 personal coaching audits." },
+              { title: "Weekly Core Pass", price: "18", desc: "Single week access to standard gym layout, perfect for athletic travelers." },
+              { title: "Monthly Prime", price: "49", desc: "Our standard full pass. 24/7 access to physical lockers, biometric scaling desks, and all free weight arrays." },
+              { title: "12-Month Committed", price: "390", desc: "Unlock optimized long-term physical training. One-time annual fee. Includes 4 personal coaching audits." },
             ].map((pCard, idx) => (
               <div key={idx} className="p-6 rounded-2xl bg-zinc-950 border border-zinc-900 text-left space-y-4 hover:border-zinc-800 transition-colors">
                 <h4 className="text-base font-bold text-white font-display uppercase">{pCard.title}</h4>
-                <p className="text-3xl font-black text-white font-mono">{pCard.price}</p>
+                <p className="text-3xl font-black text-white font-mono">{getCurrencySymbol(currency)}{pCard.price}</p>
                 <p className="text-xs text-zinc-400 leading-normal">{pCard.desc}</p>
                 <div className="pt-2">
                   <span className="text-[10px] font-mono text-zinc-500 uppercase block">✓ Instantly deployable on SiteMint store shelf</span>
@@ -916,7 +961,7 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
                 <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-900 space-y-1">
                   <p className="text-[10px] font-mono text-zinc-500 uppercase">Selected Plan</p>
                   <p className="text-base font-bold text-white font-display">{selectedTier.name}</p>
-                  <p className="text-lg font-black" style={{ color: accentColor }}>${selectedTier.price} <span className="text-xs text-zinc-500 font-normal">/{selectedTier.interval}</span></p>
+                  <p className="text-lg font-black" style={{ color: accentColor }}>{getCurrencySymbol(currency)}{selectedTier.price} <span className="text-xs text-zinc-500 font-normal">/{selectedTier.interval}</span></p>
                 </div>
 
                 <div className="space-y-1 text-xs text-zinc-400 leading-normal">

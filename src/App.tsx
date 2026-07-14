@@ -96,6 +96,14 @@ export default function App() {
     let pathSubdomain = "";
     if (pathname.startsWith("/site/")) {
       pathSubdomain = pathname.split("/")[2];
+    } else {
+      const cleanPath = pathname.replace(/^\/|\/$/g, "");
+      const segments = cleanPath.split("/");
+      const firstSegment = segments[0]?.toLowerCase();
+      const systemRoutes = ["login", "register", "forgot-password", "reset-password", "onboarding", "dashboard", "super-admin", "api"];
+      if (firstSegment && !systemRoutes.includes(firstSegment)) {
+        pathSubdomain = segments[0];
+      }
     }
 
     const activeSubdomain = querySubdomain || pathSubdomain || detectedSubdomain;

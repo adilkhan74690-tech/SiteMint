@@ -55,6 +55,21 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
   const [businessId, setBusinessId] = useState(1);
   const [upiId, setUpiId] = useState("sveltehair@upi");
 
+  // Dynamic CMS fields
+  const [trainers, setTrainers] = useState<any[]>([]);
+  const [servicesList, setServicesList] = useState<any[]>([]);
+  const [currency, setCurrency] = useState("INR");
+
+  const getCurrencySymbol = (code: string) => {
+    switch (code) {
+      case "USD": return "$";
+      case "EUR": return "€";
+      case "GBP": return "£";
+      case "INR": return "₹";
+      default: return "₹";
+    }
+  };
+
   useEffect(() => {
     // Dynamic fetch matching template category code
     const queryParams = new URLSearchParams(window.location.search);
@@ -65,6 +80,14 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
     let pathSubdomain = "";
     if (pathname.startsWith("/site/")) {
       pathSubdomain = pathname.split("/")[2];
+    } else {
+      const cleanPath = pathname.replace(/^\/|\/$/g, "");
+      const segments = cleanPath.split("/");
+      const firstSegment = segments[0]?.toLowerCase();
+      const systemRoutes = ["login", "register", "forgot-password", "reset-password", "onboarding", "dashboard", "super-admin", "api"];
+      if (firstSegment && !systemRoutes.includes(firstSegment)) {
+        pathSubdomain = segments[0];
+      }
     }
 
     const subdomain = querySubdomain || pathSubdomain || (hostnameSubdomain !== "localhost" && hostnameSubdomain !== "www" && hostnameSubdomain !== "sitemint" ? hostnameSubdomain : null) || "svelte-hair-co";
@@ -73,10 +96,12 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
       .then((r) => r.json())
       .then((res) => {
         if (res.status === "success" && res.data.business) {
-          setBusinessId(res.data.business.id);
-          setBrandName(res.data.business.name);
-          setUpiId(res.data.business.upi_id || "sveltehair@upi");
-          setLogoUrl(res.data.business.logo_url || "");
+          const biz = res.data.business;
+          setBusinessId(biz.id);
+          setBrandName(biz.name);
+          setUpiId(biz.upi_id || "sveltehair@upi");
+          setLogoUrl(biz.logo_url || "");
+          setCurrency(biz.currency || "INR");
           if (res.data.theme_settings) {
             setAccentColor(res.data.theme_settings.primary_color || initialThemeAccent);
             setTypography(res.data.theme_settings.font_family || "Default");
@@ -84,6 +109,26 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
         }
       })
       .catch((err) => console.error("Error loading business configurations:", err));
+
+    // Fetch Staff
+    fetch(`/api/staff?subdomain=${subdomain}`)
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.status === "success" && Array.isArray(res.data)) {
+          setTrainers(res.data);
+        }
+      })
+      .catch((err) => console.error("Error loading staff:", err));
+
+    // Fetch Services
+    fetch(`/api/catalog/services?subdomain=${subdomain}`)
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.status === "success" && Array.isArray(res.data)) {
+          setServicesList(res.data);
+        }
+      })
+      .catch((err) => console.error("Error loading services:", err));
   }, []);
 
   // Customer credentials inputs
@@ -356,7 +401,7 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
                 </div>
 
                 <div className="pt-5 border-t border-zinc-900/60 mt-4 flex items-center justify-between">
-                  <span className="text-base font-mono font-black" style={{ color: accentColor }}>${svc.price}</span>
+                  <span className="text-base font-mono font-black" style={{ color: accentColor }}>{getCurrencySymbol(currency)}{svc.price}</span>
                   
                   <button
                     onClick={() => {
@@ -568,7 +613,7 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
                     </div>
                     <div className="flex justify-between items-center text-xs pt-1 border-t border-zinc-900/60">
                       <span className="text-zinc-500">Total Price:</span>
-                      <span className="font-bold text-emerald-400">${bookingTicket.price}</span>
+                      <span className="font-bold text-emerald-400">{getCurrencySymbol(currency)}{bookingTicket.price}</span>
                     </div>
                   </div>
 

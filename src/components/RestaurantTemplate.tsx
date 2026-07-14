@@ -54,6 +54,21 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
   const [businessId, setBusinessId] = useState(1);
   const [upiId, setUpiId] = useState("bistrodeluxe@upi");
 
+  // Dynamic CMS fields
+  const [trainers, setTrainers] = useState<any[]>([]);
+  const [servicesList, setServicesList] = useState<any[]>([]);
+  const [currency, setCurrency] = useState("INR");
+
+  const getCurrencySymbol = (code: string) => {
+    switch (code) {
+      case "USD": return "$";
+      case "EUR": return "€";
+      case "GBP": return "£";
+      case "INR": return "₹";
+      default: return "₹";
+    }
+  };
+
   useEffect(() => {
     // Dynamic fetch matching template category code
     const queryParams = new URLSearchParams(window.location.search);
@@ -64,6 +79,14 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
     let pathSubdomain = "";
     if (pathname.startsWith("/site/")) {
       pathSubdomain = pathname.split("/")[2];
+    } else {
+      const cleanPath = pathname.replace(/^\/|\/$/g, "");
+      const segments = cleanPath.split("/");
+      const firstSegment = segments[0]?.toLowerCase();
+      const systemRoutes = ["login", "register", "forgot-password", "reset-password", "onboarding", "dashboard", "super-admin", "api"];
+      if (firstSegment && !systemRoutes.includes(firstSegment)) {
+        pathSubdomain = segments[0];
+      }
     }
 
     const subdomain = querySubdomain || pathSubdomain || (hostnameSubdomain !== "localhost" && hostnameSubdomain !== "www" && hostnameSubdomain !== "sitemint" ? hostnameSubdomain : null) || "bistro-deluxe";
@@ -72,10 +95,12 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
       .then((r) => r.json())
       .then((res) => {
         if (res.status === "success" && res.data.business) {
-          setBusinessId(res.data.business.id);
-          setBrandName(res.data.business.name);
-          setUpiId(res.data.business.upi_id || "bistrodeluxe@upi");
-          setLogoUrl(res.data.business.logo_url || "");
+          const biz = res.data.business;
+          setBusinessId(biz.id);
+          setBrandName(biz.name);
+          setUpiId(biz.upi_id || "bistrodeluxe@upi");
+          setLogoUrl(biz.logo_url || "");
+          setCurrency(biz.currency || "INR");
           if (res.data.theme_settings) {
             setAccentColor(res.data.theme_settings.primary_color || initialThemeAccent);
             setTypography(res.data.theme_settings.font_family || "Playfair Display");
@@ -83,6 +108,26 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
         }
       })
       .catch((err) => console.error("Error loading business configurations:", err));
+
+    // Fetch Staff
+    fetch(`/api/staff?subdomain=${subdomain}`)
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.status === "success" && Array.isArray(res.data)) {
+          setTrainers(res.data);
+        }
+      })
+      .catch((err) => console.error("Error loading staff:", err));
+
+    // Fetch Services
+    fetch(`/api/catalog/services?subdomain=${subdomain}`)
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.status === "success" && Array.isArray(res.data)) {
+          setServicesList(res.data);
+        }
+      })
+      .catch((err) => console.error("Error loading services:", err));
   }, []);
 
   // Customer credentials inputs
@@ -440,7 +485,7 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
                   <div>
                     <div className="flex justify-between items-start gap-1">
                       <h4 className="text-sm font-bold text-white font-serif">{dish.name}</h4>
-                      <span className="text-sm font-mono font-bold" style={{ color: accentColor }}>${dish.price}</span>
+                      <span className="text-sm font-mono font-bold" style={{ color: accentColor }}>{getCurrencySymbol(currency)}{dish.price}</span>
                     </div>
                     <p className="text-[11px] text-zinc-400 leading-normal mt-1 min-h-[36px] font-sans">
                       {dish.description}
@@ -794,7 +839,7 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
                   </div>
 
                   <div className="space-y-2">
-                    <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Baskets Tally: ${cartTotal}</h4>
+                    <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Baskets Tally: {getCurrencySymbol(currency)}{cartTotal}</h4>
                     <p className="text-[11px] text-zinc-500">Provide dining check details below.</p>
                   </div>
 
@@ -872,7 +917,7 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
                               <img src={item.image} alt={item.name} className="w-10 h-10 object-cover rounded-lg shrink-0" referrerPolicy="no-referrer" />
                               <div className="min-w-0">
                                 <p className="text-xs font-bold text-white truncate">{item.name}</p>
-                                <p className="text-[10px] text-zinc-400 font-mono">${item.price} each</p>
+                                <p className="text-[10px] text-zinc-400 font-mono">{getCurrencySymbol(currency)}{item.price} each</p>
                               </div>
                             </div>
 
@@ -889,7 +934,7 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
                       <div className="pt-4 border-t border-zinc-900 space-y-2">
                         <div className="flex justify-between items-center text-xs font-mono">
                           <span className="text-zinc-500">Subtotal:</span>
-                          <span className="text-white">${cartTotal}</span>
+                          <span className="text-white">{getCurrencySymbol(currency)}{cartTotal}</span>
                         </div>
                         <div className="flex justify-between items-center text-xs font-mono">
                           <span className="text-zinc-500">Kitchen Taxes & Service:</span>
@@ -897,7 +942,7 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
                         </div>
                         <div className="flex justify-between items-center text-sm font-bold border-t border-zinc-900/60 pt-2 font-serif">
                           <span>Total:</span>
-                          <span style={{ color: accentColor }}>${cartTotal}</span>
+                          <span style={{ color: accentColor }}>{getCurrencySymbol(currency)}{cartTotal}</span>
                         </div>
                       </div>
 

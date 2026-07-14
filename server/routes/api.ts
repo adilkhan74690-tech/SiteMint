@@ -274,7 +274,7 @@ router.patch(
 // ==========================================
 // 7. Staff Management Routes
 // ==========================================
-router.get("/staff", authenticateUser, listStaff);
+router.get("/staff", listStaff);
 router.post("/staff", authenticateUser, requireRole(["owner", "manager"]), addStaff);
 router.put("/staff/:id", authenticateUser, requireRole(["owner", "manager"]), updateStaff);
 router.delete("/staff/:id", authenticateUser, requireRole(["owner", "manager"]), deleteStaff);

@@ -77,6 +77,7 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
 
   // Settings Form States
   const [settingsName, setSettingsName] = useState("");
+  const [settingsCurrency, setSettingsCurrency] = useState("INR");
   const [settingsDescription, setSettingsDescription] = useState("");
   const [settingsCategory, setSettingsCategory] = useState("");
   const [settingsPhone, setSettingsPhone] = useState("");
@@ -121,6 +122,7 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
   useEffect(() => {
     if (businessDetails) {
       setSettingsName(businessDetails.name || "");
+      setSettingsCurrency(businessDetails.currency || "INR");
       setSettingsDescription(businessDetails.description || "");
       setSettingsCategory(businessDetails.business_type || "");
       setSettingsPhone(businessDetails.contact_phone || "");
@@ -388,6 +390,7 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
         seo_title: settingsSeoTitle,
         seo_description: settingsSeoDesc,
         favicon_url: settingsFavicon,
+        currency: settingsCurrency,
         is_published: true, // mark published!
         logo_url: logoPreview,
         banner_url: bannerPreview,
@@ -598,13 +601,13 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
   };
 
   const handleCopyLink = () => {
-    const url = window.location.origin + "/site/" + (businessDetails?.subdomain || "site");
+    const url = window.location.origin + "/" + (businessDetails?.subdomain || "site");
     navigator.clipboard.writeText(url);
     alert("Website link copied to clipboard!");
   };
 
   const handleShare = () => {
-    const url = window.location.origin + "/site/" + (businessDetails?.subdomain || "site");
+    const url = window.location.origin + "/" + (businessDetails?.subdomain || "site");
     if (navigator.share) {
       navigator.share({
         title: brandName,
@@ -700,67 +703,36 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
   };
 
   const getSidebarItems = () => {
-    const type = businessDetails?.business_type?.toLowerCase() || "";
+    const isSuperAdmin = userRole === "SUPER_ADMIN" || (businessDetails && businessDetails.owner_id === 1);
     
     const items = [
+      { name: "Dashboard", label: "Dashboard", icon: "LayoutDashboard", badge: 0 },
       { name: "My Websites", label: "My Websites", icon: "Layers", badge: 0 },
+      { name: "Create Website", label: "Create Website", icon: "PlusCircle", badge: 0 }
     ];
 
     if (businessDetails) {
       items.push(
-        { name: "Dashboard", label: "Dashboard", icon: "LayoutDashboard", badge: 0 },
         { name: "Website Builder", label: "Website Builder", icon: "Globe", badge: 0 },
-        { name: "Theme Customizer", label: "Theme Customizer", icon: "Palette", badge: 0 },
-        { name: "Analytics", label: "Analytics", icon: "LineChart", badge: 0 }
-      );
-
-      if (type.includes("gym") || type.includes("fitness") || type.includes("athletic")) {
-        items.push(
-          { name: "Memberships", label: "Memberships", icon: "CreditCard", badge: 0 },
-          { name: "Classes", label: "Classes & Schedules", icon: "Layers", badge: 0 },
-          { name: "Trainers", label: "Trainers (Staff)", icon: "Users", badge: 0 },
-          { name: "BMI Calculator", label: "BMI Calculations", icon: "Activity", badge: 0 }
-        );
-      } else if (type.includes("restaurant") || type.includes("cafe") || type.includes("dining") || type.includes("bistro")) {
-        items.push(
-          { name: "Menu", label: "Digital Menu", icon: "Utensils", badge: 0 },
-          { name: "Reservations", label: `Reservations (${bookings.length})`, icon: "Calendar", badge: bookings.filter(b => b.status === "Pending" || b.status === "pending").length },
-          { name: "Orders", label: `Orders (${orders.length})`, icon: "ShoppingBag", badge: orders.filter(o => o.status === "processing" || o.status === "pending").length },
-          { name: "Kitchen", label: "Kitchen Queue", icon: "ChefHat", badge: 0 }
-        );
-      } else if (type.includes("salon") || type.includes("spa") || type.includes("beauty") || type.includes("hair")) {
-        items.push(
-          { name: "Appointments", label: `Appointments (${bookings.length})`, icon: "Calendar", badge: bookings.filter(b => b.status === "Pending" || b.status === "pending").length },
-          { name: "Stylists", label: "Stylists (Staff)", icon: "Users", badge: 0 },
-          { name: "Services", label: "Services Catalog", icon: "Scissors", badge: 0 }
-        );
-      } else {
-        items.push(
-          { name: "Products", label: "Products Catalog", icon: "ShoppingBag", badge: 0 },
-          { name: "Inventory", label: "Inventory Stock", icon: "Layers", badge: 0 },
-          { name: "Orders", label: `Orders (${orders.length})`, icon: "ShoppingCart", badge: orders.filter(o => o.status === "processing" || o.status === "pending").length },
-          { name: "Categories", label: "Store Categories", icon: "Grid", badge: 0 }
-        );
-      }
-
-      items.push(
+        { name: "Pages", label: "Pages", icon: "BookOpen", badge: 0 },
+        { name: "Theme", label: "Theme", icon: "Palette", badge: 0 },
+        { name: "Media", label: "Media", icon: "Image", badge: 0 },
+        { name: "Staff", label: "Staff", icon: "Users", badge: 0 },
+        { name: "Services", label: "Services", icon: "Scissors", badge: 0 },
+        { name: "Bookings", label: "Bookings", icon: "Calendar", badge: bookings.filter(b => b.status === "Pending" || b.status === "pending").length },
         { name: "Customers", label: "Customers", icon: "Users", badge: 0 },
-        { name: "Reviews", label: `Reviews (${reviews.length})`, icon: "Star", badge: reviews.filter(r => !r.reply).length },
-        { name: "Payments", label: "Payments Logs", icon: "CreditCard", badge: 0 }
-      );
-    }
-
-    items.push(
-      { name: "Billing", label: "Billing & Subscriptions", icon: "Wallet", badge: 0 }
-    );
-
-    if (businessDetails) {
-      items.push(
-        { name: "Media Library", label: "Media Library", icon: "Image", badge: 0 },
-        { name: "Activity Logs", label: "Activity Logs", icon: "FileText", badge: 0 },
-        { name: "Notifications", label: "Notifications", icon: "Bell", badge: notifications.filter(n => !n.read).length },
+        { name: "Orders", label: "Orders", icon: "ShoppingCart", badge: orders.filter(o => o.status === "processing" || o.status === "pending").length },
+        { name: "Analytics", label: "Analytics", icon: "LineChart", badge: 0 },
+        { name: "Payments", label: "Payments", icon: "CreditCard", badge: 0 },
+        { name: "Billing", label: "Billing", icon: "Wallet", badge: 0 },
         { name: "Settings", label: "Settings", icon: "Settings", badge: 0 }
       );
+    } else {
+      items.push({ name: "Billing", label: "Billing", icon: "Wallet", badge: 0 });
+    }
+
+    if (isSuperAdmin) {
+      items.push({ name: "Super Admin", label: "Super Admin", icon: "Shield", badge: 0 });
     }
 
     return items;
@@ -1445,7 +1417,13 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
               <button
                 key={item.name}
                 onClick={() => {
-                  setActiveTab(item.name);
+                  if (item.name === "Create Website") {
+                    onNavigate("onboarding");
+                  } else if (item.name === "Super Admin") {
+                    onNavigate("super-admin");
+                  } else {
+                    setActiveTab(item.name);
+                  }
                   setIsMobileSidebarOpen(false);
                 }}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left transition-all text-xs font-semibold group relative ${
@@ -1670,7 +1648,7 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                                   <span className="w-2 h-2 rounded-full bg-zinc-600" title="Draft" />
                                 )}
                               </h4>
-                              <p className="text-xs text-zinc-400 truncate font-mono">/site/{biz.subdomain}</p>
+                              <p className="text-xs text-zinc-400 truncate font-mono">/{biz.subdomain}</p>
                               {biz.description && (
                                 <p className="text-[11px] text-zinc-500 line-clamp-2 mt-1 leading-relaxed">{biz.description}</p>
                               )}
@@ -1694,7 +1672,7 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
 
                           <div className="flex items-center gap-2 mt-6 pt-4 border-t border-zinc-900/60">
                             <button
-                              onClick={() => window.open(window.location.origin + "/site/" + biz.subdomain, "_blank")}
+                              onClick={() => window.open(window.location.origin + "/" + biz.subdomain, "_blank")}
                               className="flex-1 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-[10px] font-bold text-zinc-300 hover:text-white flex items-center justify-center gap-1 cursor-pointer"
                             >
                               <LucideIcon name="ExternalLink" className="w-3 h-3" />
@@ -1720,6 +1698,52 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                     })}
                   </div>
                 )}
+              </motion.div>
+            )}
+
+            {/* TAB: PAGES */}
+            {activeTab === "Pages" && (
+              <motion.div
+                key="pages-tab"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="space-y-6 text-left"
+              >
+                <div className="p-6 rounded-2xl bg-zinc-950/40 border border-zinc-900 text-left space-y-6">
+                  <div>
+                    <h3 className="text-lg font-bold text-white font-display">Pages Management</h3>
+                    <p className="text-xs text-zinc-500">Configure page settings, visibility, and search engine optimization (SEO) attributes.</p>
+                  </div>
+
+                  <div className="space-y-4">
+                    {[
+                      { name: "Home Page", path: "/", desc: "Primary storefront welcome layout", badge: "Live" },
+                      { name: "About Us", path: "/about", desc: "Detailed business bio and staff description", badge: "Live" },
+                      { name: "Services", path: "/services", desc: "Interactive service catalog list", badge: "Live" },
+                      { name: "Bookings Portal", path: "/booking", desc: "Real-time client booking and appointments scheduler", badge: "Live" },
+                    ].map((pg) => (
+                      <div key={pg.name} className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-850 flex items-center justify-between">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-white">{pg.name}</span>
+                            <span className="bg-emerald-500/10 text-emerald-400 text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded border border-emerald-500/20">{pg.badge}</span>
+                          </div>
+                          <p className="text-[11px] text-zinc-500">{pg.desc}</p>
+                          <p className="text-[10px] text-zinc-650 font-mono">{pg.path}</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button 
+                            onClick={() => setActiveTab("Settings")}
+                            className="px-3 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-white text-[10px] font-bold transition-all cursor-pointer"
+                          >
+                            Edit SEO & Visibility
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </motion.div>
             )}
 
@@ -1881,7 +1905,7 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                           <div className="space-y-1.5">
                             <h3 className="text-sm font-bold text-white font-display">🎉 Your website is live.</h3>
                             <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-2.5 flex items-center justify-between text-xs text-zinc-300 font-mono">
-                              <span className="truncate pr-2">{window.location.origin}/site/{businessDetails?.subdomain || "site"}</span>
+                              <span className="truncate pr-2">{window.location.origin}/{businessDetails?.subdomain || "site"}</span>
                               <button 
                                 onClick={handleCopyLink}
                                 className="p-1 rounded bg-zinc-950 border border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-white"
@@ -1893,7 +1917,7 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                           </div>
                           <div className="grid grid-cols-3 gap-2">
                             <button
-                              onClick={() => window.open(window.location.origin + "/site/" + (businessDetails?.subdomain || "site"), "_blank")}
+                              onClick={() => window.open(window.location.origin + "/" + (businessDetails?.subdomain || "site"), "_blank")}
                               className="px-2 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-[10px] font-bold text-zinc-300 hover:text-white flex items-center justify-center gap-1 cursor-pointer"
                             >
                               <LucideIcon name="ExternalLink" className="w-3 h-3" />
@@ -2628,7 +2652,7 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                           <p className="text-[11px] text-zinc-500">Simulating visual engine compilation in real-time</p>
                         </div>
                         <button
-                          onClick={() => window.open(window.location.origin + "/site/" + (settingsSlug || businessDetails?.subdomain || "site"), "_blank")}
+                          onClick={() => window.open(window.location.origin + "/" + (settingsSlug || businessDetails?.subdomain || "site"), "_blank")}
                           className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:bg-zinc-850 hover:text-white text-zinc-400 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-lg mr-4"
                         >
                           <LucideIcon name="ExternalLink" className="w-3.5 h-3.5" />
@@ -2674,7 +2698,7 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                           </div>
                           <div className="bg-zinc-950 border border-zinc-850 text-[10px] font-mono text-zinc-500 px-4 py-0.5 rounded-md flex items-center gap-1">
                             <LucideIcon name="Shield" className="w-3 h-3 text-emerald-400" />
-                            localhost:3000/site/{settingsSlug || businessDetails?.subdomain || "site"}
+                            localhost:3000/{settingsSlug || businessDetails?.subdomain || "site"}
                           </div>
                           <div className="w-8" />
                         </div>
@@ -2755,7 +2779,7 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
             )}
 
             {/* TAB: THEME CUSTOMIZER (Special Preset) */}
-            {activeTab === "Theme Customizer" && (
+            {(activeTab === "Theme" || activeTab === "Theme Customizer") && (
               <motion.div
                 key="theme-customizer-tab"
                 initial={{ opacity: 0, y: 10 }}
@@ -4269,7 +4293,7 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
             )}
 
             {/* TAB: MEDIA LIBRARY */}
-            {activeTab === "Media Library" && (
+            {(activeTab === "Media" || activeTab === "Media Library") && (
               <motion.div
                 key="media-library-tab"
                 initial={{ opacity: 0, y: 10 }}
@@ -4494,6 +4518,19 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
                           <option value="restaurant">Restaurant / Cafe</option>
                           <option value="clothing">Clothing / Retail</option>
                           <option value="dentist">Dentist / Medical</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">Default Currency Settings</label>
+                        <select 
+                          value={settingsCurrency}
+                          onChange={(e) => setSettingsCurrency(e.target.value)}
+                          className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none"
+                        >
+                          <option value="INR">₹ INR</option>
+                          <option value="USD">$ USD</option>
+                          <option value="EUR">€ EUR</option>
+                          <option value="GBP">£ GBP</option>
                         </select>
                       </div>
                       <div className="space-y-1.5">

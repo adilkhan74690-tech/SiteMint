@@ -447,16 +447,32 @@ export async function listCustomers(req: Request, res: Response, next: NextFunct
  * List all staff members for the business.
  */
 export async function listStaff(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const businessId = req.user?.businessId;
+  let businessId = req.user?.businessId;
+  const { business_id, subdomain } = req.query;
+
+  if (!businessId && business_id) {
+    businessId = Number(business_id);
+  }
+
+  if (!businessId && subdomain) {
+    const biz: any[] = await query("SELECT id FROM `businesses` WHERE `subdomain` = ?", [subdomain]);
+    if (biz.length > 0) {
+      businessId = biz[0].id;
+    }
+  }
 
   if (!businessId) {
-    res.status(401).json({ status: "error", message: "User session lacks business tenant context." });
+    res.status(400).json({ status: "error", message: "business_id or subdomain context is required." });
     return;
   }
 
   try {
     const staff = await query(
-      "SELECT id, email, full_name, role, status, staff_title, staff_photo_url, working_days, working_hours, services_assigned FROM `users` WHERE `business_id` = ? AND `role` != 'owner' ORDER BY id ASC",
+      `SELECT id, email, full_name, role, status, staff_title, staff_photo_url, working_days, working_hours, services_assigned,
+              bio, instagram, facebook, availability, rating, display_order, show_hide
+       FROM \`users\`
+       WHERE \`business_id\` = ? AND \`role\` != 'owner'
+       ORDER BY \`display_order\` ASC, \`id\` ASC`,
       [businessId]
     );
 
@@ -474,7 +490,8 @@ export async function listStaff(req: Request, res: Response, next: NextFunction)
  */
 export async function addStaff(req: Request, res: Response, next: NextFunction): Promise<void> {
   const businessId = req.user?.businessId;
-  const { email, full_name, role, staff_title, staff_photo_url, working_days, working_hours, services_assigned } = req.body;
+  const { email, full_name, role, staff_title, staff_photo_url, working_days, working_hours, services_assigned,
+          bio, instagram, facebook, availability, rating, display_order, show_hide } = req.body;
 
   if (!businessId) {
     res.status(401).json({ status: "error", message: "User session lacks business tenant context." });
@@ -489,7 +506,9 @@ export async function addStaff(req: Request, res: Response, next: NextFunction):
   try {
     const dummyPasswordHash = "$2b$10$dummyhashdummyhashdummyhashdummyhashdummyhashdu"; // bcrypt default format dummy
     await query(
-      "INSERT INTO `users` (`business_id`, `email`, `password_hash`, `full_name`, `role`, `status`, `staff_title`, `staff_photo_url`, `working_days`, `working_hours`, `services_assigned`) VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?)",
+      `INSERT INTO \`users\` (\`business_id\`, \`email\`, \`password_hash\`, \`full_name\`, \`role\`, \`status\`, \`staff_title\`, \`staff_photo_url\`, \`working_days\`, \`working_hours\`, \`services_assigned\`,
+                             \`bio\`, \`instagram\`, \`facebook\`, \`availability\`, \`rating\`, \`display_order\`, \`show_hide\`)
+       VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         businessId,
         email,
@@ -500,7 +519,14 @@ export async function addStaff(req: Request, res: Response, next: NextFunction):
         staff_photo_url || null,
         working_days || null,
         working_hours || null,
-        services_assigned || null
+        services_assigned || null,
+        bio || null,
+        instagram || null,
+        facebook || null,
+        availability || null,
+        rating !== undefined ? Number(rating) : 5.00,
+        display_order !== undefined ? Number(display_order) : 0,
+        show_hide !== undefined ? (show_hide ? 1 : 0) : 1
       ]
     );
 
@@ -519,7 +545,8 @@ export async function addStaff(req: Request, res: Response, next: NextFunction):
 export async function updateStaff(req: Request, res: Response, next: NextFunction): Promise<void> {
   const businessId = req.user?.businessId;
   const { id } = req.params;
-  const { email, full_name, role, staff_title, staff_photo_url, working_days, working_hours, services_assigned } = req.body;
+  const { email, full_name, role, staff_title, staff_photo_url, working_days, working_hours, services_assigned,
+          bio, instagram, facebook, availability, rating, display_order, show_hide } = req.body;
 
   if (!businessId) {
     res.status(401).json({ status: "error", message: "User session lacks business tenant context." });
@@ -528,7 +555,10 @@ export async function updateStaff(req: Request, res: Response, next: NextFunctio
 
   try {
     await query(
-      "UPDATE `users` SET `email` = ?, `full_name` = ?, `role` = ?, `staff_title` = ?, `staff_photo_url` = ?, `working_days` = ?, `working_hours` = ?, `services_assigned` = ? WHERE `id` = ? AND `business_id` = ?",
+      `UPDATE \`users\`
+       SET \`email\` = ?, \`full_name\` = ?, \`role\` = ?, \`staff_title\` = ?, \`staff_photo_url\` = ?, \`working_days\` = ?, \`working_hours\` = ?, \`services_assigned\` = ?,
+           \`bio\` = ?, \`instagram\` = ?, \`facebook\` = ?, \`availability\` = ?, \`rating\` = ?, \`display_order\` = ?, \`show_hide\` = ?
+       WHERE \`id\` = ? AND \`business_id\` = ?`,
       [
         email,
         full_name,
@@ -538,6 +568,13 @@ export async function updateStaff(req: Request, res: Response, next: NextFunctio
         working_days || null,
         working_hours || null,
         services_assigned || null,
+        bio || null,
+        instagram || null,
+        facebook || null,
+        availability || null,
+        rating !== undefined ? Number(rating) : 5.00,
+        display_order !== undefined ? Number(display_order) : 0,
+        show_hide !== undefined ? (show_hide ? 1 : 0) : 1,
         id,
         businessId
       ]
@@ -589,7 +626,7 @@ export async function updateBusinessSettings(req: Request, res: Response, next: 
   const {
     name, logo_url, banner_url, description, contact_phone, contact_email, address,
     google_maps_location, business_type, subdomain, upi_id, social_links, working_hours,
-    seo_title, seo_description, favicon_url, is_published,
+    seo_title, seo_description, favicon_url, is_published, currency,
     primary_color, secondary_color, font_family, custom_settings_json
   } = req.body;
 
@@ -613,7 +650,8 @@ export async function updateBusinessSettings(req: Request, res: Response, next: 
            \`seo_title\` = ?,
            \`seo_description\` = ?,
            \`favicon_url\` = ?,
-           \`is_published\` = ?
+           \`is_published\` = ?,
+           \`currency\` = COALESCE(?, \`currency\`)
        WHERE \`id\` = ?`,
       [
         name !== undefined ? name : null,
@@ -633,6 +671,7 @@ export async function updateBusinessSettings(req: Request, res: Response, next: 
         seo_description !== undefined ? seo_description : null,
         favicon_url !== undefined ? favicon_url : null,
         is_published !== undefined ? (is_published ? 1 : 0) : 0,
+        currency !== undefined ? currency : null,
         businessId
       ]
     );

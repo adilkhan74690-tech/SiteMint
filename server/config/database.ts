@@ -188,6 +188,14 @@ const TABLE_SCHEMAS: TableSchema[] = [
       logo_url: "VARCHAR(500) DEFAULT NULL",
       is_published: "BOOLEAN DEFAULT FALSE",
       custom_domain: "VARCHAR(255) DEFAULT NULL",
+      banner_url: "VARCHAR(512) DEFAULT NULL",
+      google_maps_location: "TEXT DEFAULT NULL",
+      social_links: "TEXT DEFAULT NULL",
+      working_hours: "TEXT DEFAULT NULL",
+      seo_title: "VARCHAR(255) DEFAULT NULL",
+      seo_description: "TEXT DEFAULT NULL",
+      favicon_url: "VARCHAR(512) DEFAULT NULL",
+      currency: "VARCHAR(3) NOT NULL DEFAULT 'INR'",
       created_at: "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
       updated_at: "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
     }
@@ -228,6 +236,13 @@ const TABLE_SCHEMAS: TableSchema[] = [
       working_days: "VARCHAR(255) DEFAULT NULL",
       working_hours: "VARCHAR(255) DEFAULT NULL",
       services_assigned: "VARCHAR(255) DEFAULT NULL",
+      bio: "TEXT DEFAULT NULL",
+      instagram: "VARCHAR(255) DEFAULT NULL",
+      facebook: "VARCHAR(255) DEFAULT NULL",
+      availability: "VARCHAR(255) DEFAULT NULL",
+      rating: "DECIMAL(3,2) DEFAULT 5.00",
+      display_order: "INT DEFAULT 0",
+      show_hide: "BOOLEAN DEFAULT TRUE",
       created_at: "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
       updated_at: "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
     }
@@ -401,6 +416,11 @@ const TABLE_SCHEMAS: TableSchema[] = [
       capacity: "INT NOT NULL DEFAULT 1",
       is_active: "BOOLEAN NOT NULL DEFAULT TRUE",
       image_url: "VARCHAR(500) DEFAULT NULL",
+      offer_price: "DECIMAL(10, 2) DEFAULT NULL",
+      category: "VARCHAR(100) DEFAULT NULL",
+      featured_badge: "VARCHAR(100) DEFAULT NULL",
+      sort_order: "INT DEFAULT 0",
+      availability: "VARCHAR(255) DEFAULT NULL",
       created_at: "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
       updated_at: "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
     }
@@ -617,6 +637,8 @@ const TABLE_SCHEMAS: TableSchema[] = [
       rating: "INT NOT NULL",
       comment: "TEXT DEFAULT NULL",
       is_approved: "BOOLEAN NOT NULL DEFAULT FALSE",
+      customer_photo_url: "VARCHAR(512) DEFAULT NULL",
+      designation: "VARCHAR(100) DEFAULT NULL",
       created_at: "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
     }
   },

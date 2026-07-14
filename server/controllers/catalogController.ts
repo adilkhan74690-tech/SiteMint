@@ -6,10 +6,18 @@ import { query } from "../config/database.js";
  */
 
 export async function listProducts(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const businessId = req.query.business_id || req.user?.businessId;
+  let businessId = req.query.business_id || req.user?.businessId;
+  const { subdomain } = req.query;
+
+  if (!businessId && subdomain) {
+    const biz: any[] = await query("SELECT id FROM `businesses` WHERE `subdomain` = ?", [subdomain]);
+    if (biz.length > 0) {
+      businessId = biz[0].id;
+    }
+  }
 
   if (!businessId) {
-    res.status(400).json({ status: "error", message: "business_id context is required." });
+    res.status(400).json({ status: "error", message: "business_id or subdomain context is required." });
     return;
   }
 
@@ -116,16 +124,24 @@ export async function updateProduct(req: Request, res: Response, next: NextFunct
  */
 
 export async function listServices(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const businessId = req.query.business_id || req.user?.businessId;
+  let businessId = req.query.business_id || req.user?.businessId;
+  const { subdomain } = req.query;
+
+  if (!businessId && subdomain) {
+    const biz: any[] = await query("SELECT id FROM `businesses` WHERE `subdomain` = ?", [subdomain]);
+    if (biz.length > 0) {
+      businessId = biz[0].id;
+    }
+  }
 
   if (!businessId) {
-    res.status(400).json({ status: "error", message: "business_id context is required." });
+    res.status(400).json({ status: "error", message: "business_id or subdomain context is required." });
     return;
   }
 
   try {
     const services = await query(
-      "SELECT * FROM `services` WHERE `business_id` = ? AND `is_active` = TRUE ORDER BY `id` DESC",
+      "SELECT * FROM `services` WHERE `business_id` = ? AND `is_active` = TRUE ORDER BY `sort_order` ASC, `id` DESC",
       [businessId]
     );
     res.json({ status: "success", data: services });
@@ -136,7 +152,8 @@ export async function listServices(req: Request, res: Response, next: NextFuncti
 
 export async function createService(req: Request, res: Response, next: NextFunction): Promise<void> {
   const businessId = req.user?.businessId;
-  const { name, description, duration_minutes, price, capacity, is_active, image_url } = req.body;
+  const { name, description, duration_minutes, price, capacity, is_active, image_url,
+          offer_price, category, featured_badge, sort_order, availability } = req.body;
 
   if (!businessId) {
     res.status(401).json({ status: "error", message: "Unauthorized tenant." });
@@ -150,8 +167,9 @@ export async function createService(req: Request, res: Response, next: NextFunct
 
   try {
     const [result]: any = await query(
-      `INSERT INTO \`services\` (\`business_id\`, \`name\`, \`description\`, \`duration_minutes\`, \`price\`, \`capacity\`, \`is_active\`, \`image_url\`) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO \`services\` (\`business_id\`, \`name\`, \`description\`, \`duration_minutes\`, \`price\`, \`capacity\`, \`is_active\`, \`image_url\`,
+                                 \`offer_price\`, \`category\`, \`featured_badge\`, \`sort_order\`, \`availability\`) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         businessId,
         name,
@@ -160,7 +178,12 @@ export async function createService(req: Request, res: Response, next: NextFunct
         Number(price),
         capacity !== undefined ? Number(capacity) : 1,
         is_active !== false,
-        image_url || null
+        image_url || null,
+        offer_price !== undefined ? Number(offer_price) : null,
+        category || null,
+        featured_badge || null,
+        sort_order !== undefined ? Number(sort_order) : 0,
+        availability || null
       ]
     );
 
@@ -177,7 +200,8 @@ export async function createService(req: Request, res: Response, next: NextFunct
 export async function updateService(req: Request, res: Response, next: NextFunction): Promise<void> {
   const businessId = req.user?.businessId;
   const { id } = req.params;
-  const { name, description, duration_minutes, price, capacity, is_active, image_url } = req.body;
+  const { name, description, duration_minutes, price, capacity, is_active, image_url,
+          offer_price, category, featured_badge, sort_order, availability } = req.body;
 
   if (!businessId) {
     res.status(401).json({ status: "error", message: "Unauthorized tenant." });
@@ -193,7 +217,12 @@ export async function updateService(req: Request, res: Response, next: NextFunct
            \`price\` = COALESCE(?, \`price\`),
            \`capacity\` = COALESCE(?, \`capacity\`),
            \`is_active\` = COALESCE(?, \`is_active\`),
-           \`image_url\` = COALESCE(?, \`image_url\`)
+           \`image_url\` = COALESCE(?, \`image_url\`),
+           \`offer_price\` = COALESCE(?, \`offer_price\`),
+           \`category\` = COALESCE(?, \`category\`),
+           \`featured_badge\` = COALESCE(?, \`featured_badge\`),
+           \`sort_order\` = COALESCE(?, \`sort_order\`),
+           \`availability\` = COALESCE(?, \`availability\`)
        WHERE \`id\` = ? AND \`business_id\` = ?`,
       [
         name !== undefined ? name : null,
@@ -203,6 +232,11 @@ export async function updateService(req: Request, res: Response, next: NextFunct
         capacity !== undefined ? Number(capacity) : null,
         is_active !== undefined ? is_active : null,
         image_url !== undefined ? image_url : null,
+        offer_price !== undefined ? Number(offer_price) : null,
+        category !== undefined ? category : null,
+        featured_badge !== undefined ? featured_badge : null,
+        sort_order !== undefined ? Number(sort_order) : null,
+        availability !== undefined ? availability : null,
         id,
         businessId
       ]

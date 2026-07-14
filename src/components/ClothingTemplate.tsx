@@ -58,6 +58,17 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
 
   // Reviews list
   const [reviews, setReviews] = useState<any[]>([]);
+  const [currency, setCurrency] = useState("INR");
+
+  const getCurrencySymbol = (code: string) => {
+    switch (code) {
+      case "USD": return "$";
+      case "EUR": return "€";
+      case "GBP": return "£";
+      case "INR": return "₹";
+      default: return "₹";
+    }
+  };
 
   useEffect(() => {
     // Determine subdomain settings
@@ -69,6 +80,14 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
     let pathSubdomain = "";
     if (pathname.startsWith("/site/")) {
       pathSubdomain = pathname.split("/")[2];
+    } else {
+      const cleanPath = pathname.replace(/^\/|\/$/g, "");
+      const segments = cleanPath.split("/");
+      const firstSegment = segments[0]?.toLowerCase();
+      const systemRoutes = ["login", "register", "forgot-password", "reset-password", "onboarding", "dashboard", "super-admin", "api"];
+      if (firstSegment && !systemRoutes.includes(firstSegment)) {
+        pathSubdomain = segments[0];
+      }
     }
 
     const subdomain = querySubdomain || pathSubdomain || (hostnameSubdomain !== "localhost" && hostnameSubdomain !== "www" && hostnameSubdomain !== "sitemint" ? hostnameSubdomain : null) || "nordic-threads";
@@ -82,6 +101,7 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
           setBrandName(biz.name);
           setUpiId(biz.upi_id || "nordicloom@upi");
           setLogoUrl(biz.logo_url || "");
+          setCurrency(biz.currency || "INR");
 
           if (res.data.theme_settings) {
             setAccentColor(res.data.theme_settings.primary_color || initialThemeAccent);
@@ -371,7 +391,7 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
                       </div>
 
                       <div className="flex items-center justify-between pt-2 border-t border-zinc-900">
-                        <span className="text-sm font-black text-white">₹{prod.price}</span>
+                        <span className="text-sm font-black text-white">{getCurrencySymbol(currency)}{prod.price}</span>
                         <button
                           disabled={isOutOfStock}
                           onClick={() => addToCart(prod)}
@@ -485,7 +505,7 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
                         <img src={item.image} alt={item.name} className="w-14 h-14 object-cover rounded-lg shrink-0 bg-zinc-900" />
                         <div className="flex-grow space-y-1">
                           <p className="text-xs font-bold text-white leading-normal truncate max-w-[180px]">{item.name}</p>
-                          <p className="text-xs font-mono text-zinc-450 font-bold">₹{item.price}</p>
+                          <p className="text-xs font-mono text-zinc-450 font-bold">{getCurrencySymbol(currency)}{item.price}</p>
                           <div className="flex items-center gap-2 pt-1">
                             <button
                               onClick={() => updateQuantity(item.id, -1)}
@@ -513,7 +533,7 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
                 <div className="border-t border-zinc-900 pt-6 space-y-4">
                   <div className="flex justify-between items-center text-sm font-black text-white">
                     <span>Total Amount:</span>
-                    <span>₹{totalCartCost}</span>
+                    <span>{getCurrencySymbol(currency)}{totalCartCost}</span>
                   </div>
 
                   <form onSubmit={handleCheckout} className="space-y-3">
@@ -603,14 +623,14 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
                   {orderTicket.items.map((item: any, idx: number) => (
                     <div key={idx} className="flex justify-between items-center text-xs">
                       <span className="text-zinc-400">{item.name} x {item.quantity}</span>
-                      <span className="text-white font-mono">₹{item.price * item.quantity}</span>
+                      <span className="text-white font-mono">{getCurrencySymbol(currency)}{item.price * item.quantity}</span>
                     </div>
                   ))}
                 </div>
 
                 <div className="border-t border-zinc-900 pt-2 flex justify-between items-center text-xs font-black text-white">
                   <span>Grand Total:</span>
-                  <span>₹{orderTicket.total}</span>
+                  <span>{getCurrencySymbol(currency)}{orderTicket.total}</span>
                 </div>
 
                 <div className="text-[10px] text-zinc-450 leading-relaxed pt-2 border-t border-zinc-900">

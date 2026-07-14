@@ -70,11 +70,18 @@ export async function getMediaGallery(req: Request, res: Response, next: NextFun
  */
 
 export async function listReviews(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const businessId = req.query.business_id || req.user?.businessId;
-  const { approved_only } = req.query;
+  let businessId = req.query.business_id || req.user?.businessId;
+  const { subdomain, approved_only } = req.query;
+
+  if (!businessId && subdomain) {
+    const biz: any[] = await query("SELECT id FROM `businesses` WHERE `subdomain` = ?", [subdomain]);
+    if (biz.length > 0) {
+      businessId = biz[0].id;
+    }
+  }
 
   if (!businessId) {
-    res.status(400).json({ status: "error", message: "business_id context is required." });
+    res.status(400).json({ status: "error", message: "business_id or subdomain context is required." });
     return;
   }
 
