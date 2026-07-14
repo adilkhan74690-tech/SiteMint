@@ -36,6 +36,7 @@ export default function App() {
     "landing" | "login" | "register" | "forgot-password" | "reset-password" | "onboarding" | "dashboard" | "super-admin" | "preview-gym" | "preview-restaurant" | "preview-salon" | "preview-clothing" | "preview-404" | "preview-403" | "preview-500"
   >("landing");
   const [userEmail, setUserEmail] = useState("");
+  const [userRole, setUserRole] = useState("");
   const [isStandalone, setIsStandalone] = useState(false);
 
   // Theme support: default to dark
@@ -187,6 +188,7 @@ export default function App() {
           if (res.ok && result.status === "success" && result.data?.user) {
             const user = result.data.user;
             setUserEmail(user.email);
+            setUserRole(user.role || "");
             if (user.role === "SUPER_ADMIN") {
               setCurrentView("super-admin");
             } else {
@@ -205,6 +207,7 @@ export default function App() {
             const payload = JSON.parse(atob(token.split(".")[1]));
             if (payload && payload.email) {
               setUserEmail(payload.email);
+              setUserRole(payload.role || "");
               if (payload.role === "SUPER_ADMIN") {
                 setCurrentView("super-admin");
               } else {
@@ -248,6 +251,7 @@ export default function App() {
 
   const handleLoginSuccess = (email: string, role?: string) => {
     setUserEmail(email);
+    setUserRole(role || "");
     if (role === "SUPER_ADMIN") {
       setCurrentView("super-admin");
     } else {
@@ -258,6 +262,7 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem("sitemint_token");
     setUserEmail("");
+    setUserRole("");
     setCurrentView("landing");
   };
 
@@ -419,6 +424,7 @@ export default function App() {
               >
                 <OwnerDashboard
                   userEmail={userEmail || "founder@vanguard.co"}
+                  userRole={userRole}
                   onLogout={handleLogout}
                   onNavigate={handleNavigate}
                 />

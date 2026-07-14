@@ -20,8 +20,9 @@ import Logo from "./Logo";
 
 interface OwnerDashboardProps {
   userEmail: string;
+  userRole?: string;
   onLogout: () => void;
-  onNavigate: (view: "landing" | "login" | "register" | "forgot-password" | "reset-password" | "onboarding" | "dashboard") => void;
+  onNavigate: (view: any) => void;
 }
 
 // Mock initial databases
@@ -37,7 +38,7 @@ const INITIAL_NOTIFICATIONS: any[] = [];
 const ANALYTICS_REVENUE_DATA: any[] = [];
 const PIE_TRAFFIC_DATA: any[] = [];
 
-export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: OwnerDashboardProps) {
+export default function OwnerDashboard({ userEmail, userRole, onLogout, onNavigate }: OwnerDashboardProps) {
   // Sidebar active tab
   const [activeTab, setActiveTab] = useState<string>("My Websites");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -796,6 +797,111 @@ export default function OwnerDashboard({ userEmail, onLogout, onNavigate }: Owne
     { id: "med-3", name: "salon_interior.png", size: "2.4 MB", type: "Image", url: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=400&q=80", date: "2026-07-09" },
   ]);
   const [dragActive, setDragActive] = useState(false);
+
+  const applyPresetTheme = (primary: string, secondary: string, bg: string) => {
+    setThemeAccent(primary);
+    setThemeSecondary(secondary);
+    setThemeBg(bg);
+    setSettingsPrimaryColor(primary);
+    setSettingsSecondaryColor(secondary);
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const uploadMediaFiles = async (files: File[]) => {
+    const token = localStorage.getItem("sitemint_token");
+    if (!token) return;
+
+    for (const file of files) {
+      const validTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"];
+      if (!validTypes.includes(file.type)) {
+        alert(`Invalid format for ${file.name}. Please upload PNG, JPG, WebP, or GIF.`);
+        continue;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        logSystemActivity("Uploading Media Asset", `Uploading ${file.name} to Cloudinary...`, "system");
+        const uploadRes = await fetch("/api/feedback/media", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${token}`
+          },
+          body: formData
+        });
+        const uploadResult = await uploadRes.json();
+        if (!uploadRes.ok) throw new Error(uploadResult.message || "Upload failed.");
+
+        const m = uploadResult.data;
+        setMediaLibrary((prev) => [
+          {
+            id: m.id,
+            name: m.file_name || file.name,
+            size: m.file_size ? `${(m.file_size / (1024 * 1024)).toFixed(1)} MB` : "N/A",
+            type: m.mime_type?.split("/")[0].toUpperCase() || "IMAGE",
+            url: m.url,
+            date: new Date(m.created_at || m.uploaded_at || Date.now()).toISOString().split("T")[0]
+          },
+          ...prev
+        ]);
+        logSystemActivity("Media Upload Completed", `${file.name} successfully uploaded to Cloudinary.`, "system");
+      } catch (err: any) {
+        alert(`Media upload failed for ${file.name}: ` + err.message);
+      }
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const files = Array.from(e.dataTransfer.files) as File[];
+      await uploadMediaFiles(files);
+    }
+  };
+
+  const handleManualMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const files = Array.from(e.target.files) as File[];
+      await uploadMediaFiles(files);
+    }
+  };
+
+  const handleDeleteMedia = async (mediaId: number | string) => {
+    const token = localStorage.getItem("sitemint_token");
+    if (!token) return;
+
+    if (!confirm("Are you sure you want to delete this media asset?")) return;
+
+    try {
+      logSystemActivity("Deleting Media Asset", `Removing media ID ${mediaId} from storage...`, "system");
+      const res = await fetch(`/api/feedback/media/${mediaId}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "Failed to delete media.");
+
+      setMediaLibrary((prev) => prev.filter((item) => item.id !== mediaId));
+      logSystemActivity("Media Asset Deleted", `Successfully removed media asset from storage.`, "system");
+    } catch (err: any) {
+      alert("Failed to delete media asset: " + err.message);
+    }
+  };
 
   // Activity logger trigger helper
   const loadRazorpayScript = () => {

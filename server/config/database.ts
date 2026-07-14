@@ -58,7 +58,7 @@ try {
   });
 
   // Listen for database pool error events (e.g. connection loss)
-  pool.on("error", (err: any) => {
+  (pool as any).on("error", (err: any) => {
     console.error("❌ Database Pool Error:", err);
   });
 
