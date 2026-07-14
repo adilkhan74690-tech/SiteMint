@@ -69,12 +69,22 @@ export default function App() {
     const parts = hostname.split(".");
     let detectedSubdomain = "";
     
-    if (parts.length > 2) {
-      if (parts[0] !== "www") {
+    // Bypass subdomain detection if running on the primary hub domain (Render or local)
+    const isMainHub = 
+      hostname === "sitemint-t6b7.onrender.com" || 
+      hostname === "www.sitemint.app" || 
+      hostname === "sitemint.app" || 
+      hostname === "localhost" || 
+      hostname === "127.0.0.1";
+
+    if (!isMainHub) {
+      if (parts.length > 2) {
+        if (parts[0] !== "www") {
+          detectedSubdomain = parts[0];
+        }
+      } else if (parts.length === 2 && parts[1] === "localhost") {
         detectedSubdomain = parts[0];
       }
-    } else if (parts.length === 2 && parts[1] === "localhost") {
-      detectedSubdomain = parts[0];
     }
     
     // Also support sandbox test urls e.g. localhost:3000/?subdomain=xxx
