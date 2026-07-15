@@ -333,6 +333,59 @@ export async function onboardBusiness(req: Request, res: Response, next: NextFun
       );
     }
 
+    // Seeder: insert 3 default Indian reviews based on business_type if none exist
+    const [reviewCheck]: any = await connection.execute(
+      "SELECT id FROM `reviews` WHERE `business_id` = ?",
+      [activeBusinessId]
+    );
+    if (reviewCheck.length === 0) {
+      let reviewsToInsert: any[] = [];
+      if (business_type === "restaurant") {
+        reviewsToInsert = [
+          { name: "Rahul Kumar", comment: "Yaar samosa aur kachori dono mast the. Family ke saath aaya tha, sabko taste bahut pasand aaya.", rating: 5, email: "rahul@sitemint-network.app" },
+          { name: "Priya Singh", comment: "Rasgulla aur Gulab Jamun fresh the. Service bhi kaafi fast thi. Definitely recommend.", rating: 5, email: "priya@sitemint-network.app" },
+          { name: "Aman Verma", comment: "Pocket friendly prices aur authentic taste. Weekend pe fir se aayenge.", rating: 5, email: "aman@sitemint-network.app" }
+        ];
+      } else if (business_type === "gym") {
+        reviewsToInsert = [
+          { name: "Amit Sharma", comment: "Best gym in this budget. Equipments saare functional hain aur crowd bhi sahi hai.", rating: 5, email: "amit@sitemint-network.app" },
+          { name: "Neha Patel", comment: "Personal training sessions kaafi detail oriented hain. Custom diet chart ne weight loss me help kiya.", rating: 5, email: "neha@sitemint-network.app" },
+          { name: "Vikram Singh", comment: "Spacious area aur accha environment. Locker room aur shower hygienic hain.", rating: 5, email: "vikram@sitemint-network.app" }
+        ];
+      } else if (business_type === "salon") {
+        reviewsToInsert = [
+          { name: "Pooja Verma", comment: "Priya did a haircut for me. She did it exactly how I wanted. Service bahut gentle aur professional hai.", rating: 5, email: "pooja@sitemint-network.app" },
+          { name: "Rohan Malhotra", comment: "Best salon in the locality. Clean hygiene, and highly experienced staff for skin treatment.", rating: 5, email: "rohan@sitemint-network.app" },
+          { name: "Sneha Reddy", comment: "Facial and hair color services are top-notch. Quality of products used is premium.", rating: 5, email: "sneha@sitemint-network.app" }
+        ];
+      } else if (business_type === "clothing") {
+        reviewsToInsert = [
+          { name: "Deepika Iyer", comment: "Fabric qualities are really premium. Cotton shirts look stylish and fit perfectly.", rating: 5, email: "deepika@sitemint-network.app" },
+          { name: "Rajat Gupta", comment: "Delivery was prompt and packaging was neat. True value for money clothes.", rating: 5, email: "rajat@sitemint-network.app" },
+          { name: "Anjali Sharma", comment: "Elegant colors and minimalist vibes. Fabric was skin friendly. Recommended.", rating: 5, email: "anjali@sitemint-network.app" }
+        ];
+      }
+
+      for (const rev of reviewsToInsert) {
+        const parts = rev.name.split(" ");
+        const first = parts[0] || "Customer";
+        const last = parts.slice(1).join(" ") || "";
+        
+        // Insert customer
+        const [custInsert]: any = await connection.execute(
+          "INSERT INTO `customers` (`business_id`, `first_name`, `last_name`, `email`) VALUES (?, ?, ?, ?)",
+          [activeBusinessId, first, last, rev.email]
+        );
+        const customerId = custInsert.insertId;
+
+        // Insert review
+        await connection.execute(
+          "INSERT INTO `reviews` (`business_id`, `customer_id`, `rating`, `comment`, `is_approved`) VALUES (?, ?, ?, ?, TRUE)",
+          [activeBusinessId, customerId, rev.rating, rev.comment]
+        );
+      }
+    }
+
     // 5. Append system operational logs
     await connection.execute(
       `INSERT INTO \`activity_logs\` (\`business_id\`, \`action\`, \`details\`) 

@@ -881,8 +881,16 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
   const [newProdPrice, setNewProdPrice] = useState("");
   const [newProdStock, setNewProdStock] = useState("");
   const [newProdImage, setNewProdImage] = useState("");
+  const [newProdCategory, setNewProdCategory] = useState("");
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  
+  // Reviews CRUD state variables
+  const [isAddingReview, setIsAddingReview] = useState(false);
+  const [editingReview, setEditingReview] = useState<any>(null);
+  const [newReviewAuthor, setNewReviewAuthor] = useState("");
+  const [newReviewRating, setNewReviewRating] = useState(5);
+  const [newReviewComment, setNewReviewComment] = useState("");
 
   // Review reply state
   const [activeReviewReplyId, setActiveReviewReplyId] = useState<string | null>(null);
@@ -1270,7 +1278,8 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
           price: Number(newProdPrice),
           inventory_qty: Number(newProdStock) || 0,
           image_url: newProdImage || null,
-          description: newProdDesc || ""
+          description: newProdDesc || "",
+          category: newProdCategory || null
         })
       });
 
@@ -1286,6 +1295,7 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
       setNewProdStock("");
       setNewProdImage("");
       setNewProdDesc("");
+      setNewProdCategory("");
       setIsAddingProduct(false);
     } catch (err: any) {
       alert("Error adding product: " + err.message);
@@ -1332,7 +1342,8 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
           price: Number(editingProduct.price),
           inventory_qty: Number(editingProduct.inventory_qty),
           image_url: editingProduct.image_url,
-          description: editingProduct.description
+          description: editingProduct.description,
+          category: editingProduct.category || null
         })
       });
 
@@ -1473,11 +1484,77 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
         },
         body: JSON.stringify({ is_approved: !currentApproved })
       });
-      if (!res.ok) throw new Error("Failed to update review status.");
-      logSystemActivity("Review Status Toggled", `Toggled approval status on review ID ${id}.`, "review");
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "Failed to approve review.");
+      logSystemActivity("Review Approval Toggled", "Successfully updated review approval status in MySQL.", "review");
       fetchDashboardData();
     } catch (err: any) {
-      alert("Error approving/unapproving review: " + err.message);
+      alert("Error approving review: " + err.message);
+    }
+  };
+
+  const handleAddReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newReviewAuthor || !newReviewComment) return;
+
+    const token = localStorage.getItem("sitemint_token");
+    try {
+      const res = await fetch("/api/feedback/reviews", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          customer_name: newReviewAuthor,
+          rating: Number(newReviewRating),
+          comment: newReviewComment,
+          is_approved: true
+        })
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "Failed to add review.");
+
+      logSystemActivity("Review Created", `Review from "${newReviewAuthor}" added successfully.`, "review");
+      setNewReviewAuthor("");
+      setNewReviewRating(5);
+      setNewReviewComment("");
+      setIsAddingReview(false);
+      fetchDashboardData();
+    } catch (err: any) {
+      alert("Error adding review: " + err.message);
+    }
+  };
+
+  const handleEditReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingReview) return;
+
+    const token = localStorage.getItem("sitemint_token");
+    try {
+      const name = editingReview.customer_name || `${editingReview.first_name} ${editingReview.last_name || ""}`.trim();
+      const res = await fetch(`/api/feedback/reviews/${editingReview.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          customer_name: name,
+          rating: Number(editingReview.rating),
+          comment: editingReview.comment
+        })
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "Failed to update review.");
+
+      logSystemActivity("Review Updated", `Review from "${name}" updated successfully.`, "review");
+      setEditingReview(null);
+      fetchDashboardData();
+    } catch (err: any) {
+      alert("Error updating review: " + err.message);
     }
   };
 
@@ -3801,6 +3878,17 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                             />
                           </div>
 
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Category</label>
+                            <input 
+                              type="text" 
+                              value={newProdCategory}
+                              onChange={(e) => setNewProdCategory(e.target.value)}
+                              placeholder="e.g. Mains, Starters, Outerwear, Tees"
+                              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
+                            />
+                          </div>
+
                           <button
                             type="submit"
                             className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-bold py-3 rounded-xl text-xs hover:opacity-95"
@@ -3895,6 +3983,17 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                               value={editingProduct.image_url || ""}
                               onChange={(e) => setEditingProduct({ ...editingProduct, image_url: e.target.value })}
                               placeholder="https://images.unsplash.com/photo-..."
+                              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Category</label>
+                            <input 
+                              type="text" 
+                              value={editingProduct.category || ""}
+                              onChange={(e) => setEditingProduct({ ...editingProduct, category: e.target.value })}
+                              placeholder="e.g. Mains, Starters, Outerwear, Tees"
                               className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
                             />
                           </div>
@@ -4206,7 +4305,7 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
 
                           <button
                             type="submit"
-                            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-bold py-3 rounded-xl text-xs hover:opacity-95 cursor-pointer"
+                            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-bold py-3 rounded-xl text-xs hover:opacity-95 transition-all cursor-pointer"
                           >
                             Save Changes
                           </button>
@@ -4339,6 +4438,17 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                   </div>
                 </div>
 
+                <div className="flex justify-between items-center pt-2 pb-2">
+                  <h3 className="text-xs font-bold text-white uppercase tracking-wider">Testimonials Log</h3>
+                  <button
+                    onClick={() => setIsAddingReview(true)}
+                    className="bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 hover:opacity-95 cursor-pointer"
+                  >
+                    <LucideIcon name="Plus" className="w-4 h-4 stroke-[3]" />
+                    Add Review
+                  </button>
+                </div>
+
                 <div className="space-y-4">
                   {reviews.length === 0 ? (
                     <div className="p-12 text-center rounded-2xl border border-dashed border-zinc-800/80 bg-zinc-950/20 space-y-4">
@@ -4396,8 +4506,17 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                               {rev.is_approved ? "Unapprove" : "Approve"}
                             </button>
                             <button
+                              onClick={() => setEditingReview({
+                                ...rev,
+                                customer_name: `${rev.first_name} ${rev.last_name || ""}`.trim()
+                              })}
+                              className="px-2.5 py-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/20 cursor-pointer"
+                            >
+                              Edit
+                            </button>
+                            <button
                               onClick={() => handleDeleteReview(rev.id)}
-                              className="px-2.5 py-1 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[10px] font-bold border border-red-500/20"
+                              className="px-2.5 py-1 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[10px] font-bold border border-red-500/20 cursor-pointer"
                             >
                               Delete
                             </button>
@@ -4456,6 +4575,158 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                     ))
                   )}
                 </div>
+
+                {/* Add Review drawer overlay */}
+                <AnimatePresence>
+                  {isAddingReview && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+                      id="add-review-drawer-overlay"
+                    >
+                      <motion.div
+                        initial={{ scale: 0.95 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0.95 }}
+                        className="w-full max-w-md bg-zinc-950 border border-zinc-850 rounded-2xl p-6 relative"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setIsAddingReview(false)}
+                          className="absolute top-4 right-4 text-zinc-500 hover:text-white"
+                        >
+                          <LucideIcon name="X" className="w-5 h-5" />
+                        </button>
+
+                        <form onSubmit={handleAddReviewSubmit} className="space-y-4 text-left">
+                          <h3 className="text-base font-bold text-white font-display border-b border-zinc-900 pb-2">Add New Review</h3>
+
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Customer Name</label>
+                            <input 
+                              type="text" 
+                              required
+                              value={newReviewAuthor}
+                              onChange={(e) => setNewReviewAuthor(e.target.value)}
+                              placeholder="e.g. Rahul Kumar"
+                              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Rating (1-5)</label>
+                            <select
+                              value={newReviewRating}
+                              onChange={(e) => setNewReviewRating(Number(e.target.value))}
+                              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
+                            >
+                              {[5, 4, 3, 2, 1].map((r) => (
+                                <option key={r} value={r}>{r} Stars</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Review Text</label>
+                            <textarea 
+                              required
+                              value={newReviewComment}
+                              onChange={(e) => setNewReviewComment(e.target.value)}
+                              placeholder="Write review description..."
+                              rows={4}
+                              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400 resize-none"
+                            />
+                          </div>
+
+                          <button
+                            type="submit"
+                            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-bold py-3 rounded-xl text-xs hover:opacity-95 transition-all cursor-pointer"
+                          >
+                            Create Review
+                          </button>
+                        </form>
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Edit Review drawer overlay */}
+                <AnimatePresence>
+                  {editingReview && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+                      id="edit-review-drawer-overlay"
+                    >
+                      <motion.div
+                        initial={{ scale: 0.95 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0.95 }}
+                        className="w-full max-w-md bg-zinc-950 border border-zinc-850 rounded-2xl p-6 relative"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setEditingReview(null)}
+                          className="absolute top-4 right-4 text-zinc-500 hover:text-white"
+                        >
+                          <LucideIcon name="X" className="w-5 h-5" />
+                        </button>
+
+                        <form onSubmit={handleEditReviewSubmit} className="space-y-4 text-left">
+                          <h3 className="text-base font-bold text-white font-display border-b border-zinc-900 pb-2">Edit Review</h3>
+
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Customer Name</label>
+                            <input 
+                              type="text" 
+                              required
+                              value={editingReview.customer_name || ""}
+                              onChange={(e) => setEditingReview({ ...editingReview, customer_name: e.target.value })}
+                              placeholder="e.g. Rahul Kumar"
+                              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Rating (1-5)</label>
+                            <select
+                              value={editingReview.rating || 5}
+                              onChange={(e) => setEditingReview({ ...editingReview, rating: Number(e.target.value) })}
+                              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
+                            >
+                              {[5, 4, 3, 2, 1].map((r) => (
+                                <option key={r} value={r}>{r} Stars</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Review Text</label>
+                            <textarea 
+                              required
+                              value={editingReview.comment || ""}
+                              onChange={(e) => setEditingReview({ ...editingReview, comment: e.target.value })}
+                              placeholder="Write review description..."
+                              rows={4}
+                              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400 resize-none"
+                            />
+                          </div>
+
+                          <button
+                            type="submit"
+                            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-bold py-3 rounded-xl text-xs hover:opacity-95 transition-all cursor-pointer"
+                          >
+                            Save Changes
+                          </button>
+                        </form>
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             )}
 

@@ -34,7 +34,7 @@ export async function listProducts(req: Request, res: Response, next: NextFuncti
 
 export async function createProduct(req: Request, res: Response, next: NextFunction): Promise<void> {
   const businessId = req.user?.businessId;
-  const { name, description, price, compare_at_price, sku, inventory_qty, is_active, image_url } = req.body;
+  const { name, description, price, compare_at_price, sku, inventory_qty, is_active, image_url, category } = req.body;
 
   if (!businessId) {
     res.status(401).json({ status: "error", message: "Unauthorized tenant." });
@@ -51,8 +51,8 @@ export async function createProduct(req: Request, res: Response, next: NextFunct
 
   try {
     const result: any = await query(
-      `INSERT INTO \`products\` (\`business_id\`, \`name\`, \`slug\`, \`description\`, \`price\`, \`compare_at_price\`, \`sku\`, \`inventory_qty\`, \`is_active\`, \`image_url\`) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO \`products\` (\`business_id\`, \`name\`, \`slug\`, \`description\`, \`price\`, \`compare_at_price\`, \`sku\`, \`inventory_qty\`, \`is_active\`, \`image_url\`, \`category\`) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         businessId,
         name,
@@ -63,7 +63,8 @@ export async function createProduct(req: Request, res: Response, next: NextFunct
         sku !== undefined ? sku : null,
         inventory_qty !== undefined ? Number(inventory_qty) : 0,
         is_active !== false,
-        image_url || null
+        image_url || null,
+        category !== undefined ? category : null
       ]
     );
 
@@ -80,7 +81,7 @@ export async function createProduct(req: Request, res: Response, next: NextFunct
 export async function updateProduct(req: Request, res: Response, next: NextFunction): Promise<void> {
   const businessId = req.user?.businessId;
   const { id } = req.params;
-  const { name, description, price, compare_at_price, sku, inventory_qty, is_active, image_url } = req.body;
+  const { name, description, price, compare_at_price, sku, inventory_qty, is_active, image_url, category } = req.body;
 
   if (!businessId) {
     res.status(401).json({ status: "error", message: "Unauthorized tenant." });
@@ -97,7 +98,8 @@ export async function updateProduct(req: Request, res: Response, next: NextFunct
            \`sku\` = COALESCE(?, \`sku\`),
            \`inventory_qty\` = COALESCE(?, \`inventory_qty\`),
            \`is_active\` = COALESCE(?, \`is_active\`),
-           \`image_url\` = COALESCE(?, \`image_url\`)
+           \`image_url\` = COALESCE(?, \`image_url\`),
+           \`category\` = COALESCE(?, \`category\`)
        WHERE \`id\` = ? AND \`business_id\` = ?`,
       [
         name !== undefined ? name : null,
@@ -108,6 +110,7 @@ export async function updateProduct(req: Request, res: Response, next: NextFunct
         inventory_qty !== undefined ? Number(inventory_qty) : null,
         is_active !== undefined ? is_active : null,
         image_url !== undefined ? image_url : null,
+        category !== undefined ? category : null,
         id,
         businessId
       ]

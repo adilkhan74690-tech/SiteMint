@@ -111,30 +111,52 @@ export async function listReviews(req: Request, res: Response, next: NextFunctio
 
 export async function createReview(req: Request, res: Response, next: NextFunction): Promise<void> {
   const businessId = req.body.business_id || req.user?.businessId;
-  const { customer_id, product_id, service_id, rating, comment } = req.body;
+  let { customer_id, product_id, service_id, rating, comment, customer_name, is_approved } = req.body;
 
-  if (!businessId || !customer_id || !rating) {
-    res.status(400).json({ status: "error", message: "Required parameters missing: business_id, customer_id, and rating (1-5)." });
+  if (!businessId || !rating) {
+    res.status(400).json({ status: "error", message: "Required parameters missing: business_id and rating (1-5)." });
     return;
   }
 
   try {
+    // Auto-create customer if customer_name is provided and customer_id is missing
+    if (!customer_id && customer_name) {
+      const parts = customer_name.trim().split(/\s+/);
+      const firstName = parts[0] || "Customer";
+      const lastName = parts.slice(1).join(" ") || "";
+      const email = `${firstName.toLowerCase()}_${Date.now()}@placeholder.com`;
+
+      const custResult: any = await query(
+        "INSERT INTO `customers` (`business_id`, `first_name`, `last_name`, `email`) VALUES (?, ?, ?, ?)",
+        [businessId, firstName, lastName, email]
+      );
+      customer_id = custResult.insertId;
+    }
+
+    if (!customer_id) {
+      res.status(400).json({ status: "error", message: "customer_id or customer_name is required." });
+      return;
+    }
+
+    const approvedVal = is_approved === undefined ? false : (is_approved === true || is_approved === "true" || is_approved === 1);
+
     const result: any = await query(
       `INSERT INTO \`reviews\` (\`business_id\`, \`customer_id\`, \`product_id\`, \`service_id\`, \`rating\`, \`comment\`, \`is_approved\`) 
-       VALUES (?, ?, ?, ?, ?, ?, FALSE)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         businessId,
         customer_id,
         product_id ? Number(product_id) : null,
         service_id ? Number(service_id) : null,
         Number(rating),
-        comment || null
+        comment || null,
+        approvedVal
       ]
     );
 
     res.status(201).json({
       status: "success",
-      message: "Feedback submitted successfully. It will display publicly upon moderator approval.",
+      message: "Feedback submitted successfully.",
       data: { id: result.insertId }
     });
   } catch (error) {
@@ -300,6 +322,61 @@ export async function deleteReview(req: Request, res: Response, next: NextFuncti
       [id, businessId]
     );
     res.json({ status: "success", message: "Review deleted successfully." });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateReview(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const businessId = req.user?.businessId;
+  const { id } = req.params;
+  const { rating, comment, customer_name } = req.body;
+
+  if (!businessId) {
+    res.status(401).json({ status: "error", message: "Unauthorized tenant." });
+    return;
+  }
+
+  try {
+    // 1. Fetch review to get customer_id
+    const reviewData: any[] = await query(
+      "SELECT customer_id FROM `reviews` WHERE `id` = ? AND `business_id` = ?",
+      [id, businessId]
+    );
+
+    if (reviewData.length === 0) {
+      res.status(404).json({ status: "error", message: "Review not found." });
+      return;
+    }
+
+    const customerId = reviewData[0].customer_id;
+
+    // 2. If customer_name is provided, update customer first_name & last_name
+    if (customer_name) {
+      const parts = customer_name.trim().split(/\s+/);
+      const firstName = parts[0] || "Customer";
+      const lastName = parts.slice(1).join(" ") || "";
+      await query(
+        "UPDATE `customers` SET `first_name` = ?, `last_name` = ? WHERE `id` = ? AND `business_id` = ?",
+        [firstName, lastName, customerId, businessId]
+      );
+    }
+
+    // 3. Update rating and comment in reviews table
+    await query(
+      `UPDATE \`reviews\`
+       SET \`rating\` = COALESCE(?, \`rating\`),
+           \`comment\` = COALESCE(?, \`comment\`)
+       WHERE \`id\` = ? AND \`business_id\` = ?`,
+      [
+        rating !== undefined ? Number(rating) : null,
+        comment !== undefined ? comment : null,
+        id,
+        businessId
+      ]
+    );
+
+    res.json({ status: "success", message: "Review updated successfully." });
   } catch (error) {
     next(error);
   }

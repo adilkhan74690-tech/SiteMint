@@ -64,7 +64,8 @@ import {
   deleteMedia,
   updateReviewStatus,
   updateReviewReply,
-  deleteReview
+  deleteReview,
+  updateReview
 } from "../controllers/feedbackController.js";
 import {
   authenticateUser,
@@ -264,6 +265,7 @@ router.post("/feedback/reviews", createReview); // Public submission
 router.patch("/feedback/reviews/:id/approve", authenticateUser, requireRole(["owner", "manager"]), updateReviewStatus);
 router.patch("/feedback/reviews/:id/reply", authenticateUser, requireRole(["owner", "manager"]), updateReviewReply);
 router.delete("/feedback/reviews/:id", authenticateUser, requireRole(["owner", "manager"]), deleteReview);
+router.put("/feedback/reviews/:id", authenticateUser, requireRole(["owner", "manager"]), updateReview);
 
 // Security Logs
 router.get(
