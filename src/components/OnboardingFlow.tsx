@@ -147,7 +147,63 @@ const CATEGORIES = [
 ];
 
 export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: OnboardingFlowProps) {
+  const [hasActiveWebsite, setHasActiveWebsite] = useState(false);
+  const [checkingWebsite, setCheckingWebsite] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem("sitemint_token");
+    if (!token) {
+      setCheckingWebsite(false);
+      return;
+    }
+    fetch("/api/businesses", {
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
+    })
+      .then(r => r.json())
+      .then(res => {
+        if (res.status === "success" && Array.isArray(res.data) && res.data.length > 0) {
+          setHasActiveWebsite(true);
+        }
+        setCheckingWebsite(false);
+      })
+      .catch(() => setCheckingWebsite(false));
+  }, []);
+
   const [currentStep, setCurrentStep] = useState(1);
+
+  if (checkingWebsite) {
+    return (
+      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">
+        <p className="text-sm font-mono animate-pulse">Checking website status...</p>
+      </div>
+    );
+  }
+
+  if (hasActiveWebsite) {
+    return (
+      <div className="min-h-screen bg-[#09090B] text-zinc-100 flex items-center justify-center p-6" id="onboarding-blocked">
+        <div className="max-w-md w-full bg-zinc-950 border border-zinc-900 rounded-3xl p-8 text-center space-y-6">
+          <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto text-amber-400">
+            <LucideIcon name="AlertTriangle" className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-xl font-bold text-white font-display">Active Website Detected</h3>
+            <p className="text-sm text-zinc-400 leading-normal">
+              You already have an active website. Delete the current website before creating a new one.
+            </p>
+          </div>
+          <button
+            onClick={() => onNavigate("landing")}
+            className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-bold rounded-xl text-xs hover:opacity-95 transition-all cursor-pointer"
+          >
+            Return to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Step 1: Business Information state
   const [businessName, setBusinessName] = useState("");

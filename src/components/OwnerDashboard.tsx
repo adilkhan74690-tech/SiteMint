@@ -562,12 +562,15 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
       const result = await res.json();
       if (!res.ok) throw new Error(result.message || "Failed to delete business website.");
 
-      alert("Website deleted successfully!");
-      if (Number(id) === Number(businessId)) {
-        setBusinessDetails(null);
-        setBusinessId(null);
-        setActiveTab("My Websites");
+      if (result.data?.token) {
+        localStorage.setItem("sitemint_token", result.data.token);
       }
+
+      alert("Website deleted successfully!");
+      setBusinessDetails(null);
+      setBusinessId(null);
+      setBusinessesList([]);
+      setActiveTab("My Websites");
       fetchDashboardData();
     } catch (err: any) {
       alert("Error deleting website: " + err.message);
@@ -740,9 +743,12 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
     
     const items = [
       { name: "Dashboard", label: "Dashboard", icon: "LayoutDashboard", badge: 0 },
-      { name: "My Websites", label: "My Websites", icon: "Layers", badge: 0 },
-      { name: "Create Website", label: "Create Website", icon: "PlusCircle", badge: 0 }
+      { name: "My Websites", label: "My Websites", icon: "Layers", badge: 0 }
     ];
+
+    if (businessesList.length === 0) {
+      items.push({ name: "Create Website", label: "Create Website", icon: "PlusCircle", badge: 0 });
+    }
 
     if (businessDetails) {
       // Core items always visible
@@ -1979,13 +1985,19 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                     <h3 className="text-lg font-bold text-white font-display">My Websites</h3>
                     <p className="text-xs text-zinc-500 font-mono">Select, edit, duplicate, or delete your websites and storefront templates.</p>
                   </div>
-                  <button
-                    onClick={() => onNavigate("onboarding")}
-                    className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all hover:scale-[1.02] cursor-pointer"
-                  >
-                    <LucideIcon name="Plus" className="w-4 h-4" />
-                    Create New Website
-                  </button>
+                  {businessesList.length > 0 ? (
+                    <div className="bg-amber-500/10 border border-amber-500/20 px-4 py-2.5 rounded-xl text-[11px] font-semibold text-amber-400 max-w-sm text-right">
+                      You already have an active website. Delete the current website before creating a new one.
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => onNavigate("onboarding")}
+                      className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all hover:scale-[1.02] cursor-pointer"
+                    >
+                      <LucideIcon name="Plus" className="w-4 h-4" />
+                      Create New Website
+                    </button>
+                  )}
                 </div>
 
                 {businessesList.length === 0 ? (
@@ -2075,9 +2087,9 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                               Open
                             </button>
                             <button
-                              onClick={() => handleDuplicateBusiness(biz.id)}
-                              className="py-1.5 px-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-[10px] font-bold text-zinc-350 hover:text-white flex items-center justify-center gap-1 cursor-pointer"
-                              title="Duplicate website template"
+                              disabled={true}
+                              className="py-1.5 px-2.5 rounded-lg bg-zinc-900/40 border border-zinc-900/50 text-[10px] font-bold text-zinc-650 flex items-center justify-center gap-1 cursor-not-allowed"
+                              title="Duplication disabled: One active website limit"
                             >
                               <LucideIcon name="Copy" className="w-3 h-3" />
                             </button>

@@ -211,6 +211,17 @@ export async function onboardBusiness(req: Request, res: Response, next: NextFun
     let activeBusinessId = businessId;
 
     if (!activeBusinessId) {
+      // Verify that this owner does not already have an active business
+      const [existingBizCheck]: any = await connection.execute(
+        "SELECT id FROM `businesses` WHERE `owner_id` = ?",
+        [req.user?.userId]
+      );
+      if (existingBizCheck.length > 0) {
+        res.status(400).json({ status: "error", message: "You already have an active website. Delete the current website before creating a new one." });
+        await connection.rollback();
+        return;
+      }
+
       // 1. Verify subdomain uniqueness during onboarding
       const [subdomainCheck]: any = await connection.execute(
         "SELECT id FROM `businesses` WHERE `subdomain` = ?",
@@ -1009,22 +1020,36 @@ export async function deleteBusinessByOwner(req: Request, res: Response, next: N
   }
 
   try {
+    // 1. Temporarily clear user business link to prevent cascade delete of owner account
+    await query("UPDATE `users` SET `business_id` = NULL WHERE `id` = ?", [userId]);
+
+    // 2. Perform the cascading deletion of the business and related assets
     const result: any = await query("DELETE FROM `businesses` WHERE `id` = ? AND `owner_id` = ?", [id, userId]);
     if (result.affectedRows === 0) {
+      // Re-establish link if delete fails
+      await query("UPDATE `users` SET `business_id` = ? WHERE `id` = ?", [id, userId]);
       res.status(404).json({ status: "error", message: "Business not found or unauthorized." });
       return;
     }
 
-    const users: any = await query("SELECT business_id FROM `users` WHERE `id` = ?", [userId]);
-    if (users.length > 0 && Number(users[0].business_id) === Number(id)) {
-      const nextBiz: any = await query("SELECT id FROM `businesses` WHERE `owner_id` = ? LIMIT 1", [userId]);
-      const nextBizId = nextBiz.length > 0 ? nextBiz[0].id : null;
-      await query("UPDATE `users` SET `business_id` = ? WHERE `id` = ?", [nextBizId, userId]);
-    }
+    // 3. Generate updated credentials tokens with businessId set to null
+    const tokenPayload = {
+      userId: req.user?.userId || 0,
+      businessId: null,
+      email: req.user?.email || "",
+      role: req.user?.role || "owner"
+    };
+
+    const accessToken = generateAccessToken(tokenPayload);
+    const refreshToken = generateRefreshToken(tokenPayload);
 
     res.json({
       status: "success",
-      message: "Business deleted successfully."
+      message: "Business deleted successfully.",
+      data: {
+        token: accessToken,
+        refreshToken: refreshToken
+      }
     });
   } catch (error) {
     next(error);
