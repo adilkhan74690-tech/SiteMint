@@ -25,6 +25,9 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
   const [brandName, setBrandName] = useState(initialBrandName);
   const [accentColor, setAccentColor] = useState(initialThemeAccent);
   const [typography, setTypography] = useState("Default");
+  const [bannerUrl, setBannerUrl] = useState<string>("");
+  const [slogan, setSlogan] = useState<string>("Curated Nordic Weaves & Silhouette Artistry");
+  const [galleryPhotos, setGalleryPhotos] = useState<string[]>([]);
 
   // Client Session Auth
   const [customerEmail, setCustomerEmail] = useState<string>("");
@@ -96,10 +99,21 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
           setUpiId(biz.upi_id || "nordicloom@upi");
           setLogoUrl(biz.logo_url || "");
           setCurrency(biz.currency || "INR");
+          if (biz.banner_url) setBannerUrl(biz.banner_url);
+          if (biz.description) setSlogan(biz.description);
 
           if (res.data.theme_settings) {
             setAccentColor(res.data.theme_settings.primary_color || initialThemeAccent);
             setTypography(res.data.theme_settings.font_family || "Default");
+
+            let customJson: any = {};
+            try {
+              const rawJson = res.data.theme_settings.custom_settings_json;
+              customJson = typeof rawJson === "string" ? JSON.parse(rawJson) : (rawJson || {});
+            } catch (e) {
+              customJson = {};
+            }
+            if (customJson.gallery && customJson.gallery.length > 0) setGalleryPhotos(customJson.gallery);
           }
 
           // Fetch products for this tenant
@@ -107,7 +121,13 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
             .then((pr) => pr.json())
             .then((pres) => {
               if (pres.status === "success") {
-                setProducts(pres.data || []);
+                const MOCK_CLOTHING_PRODUCTS = [
+                  { id: 1, name: "Organic Cotton Tee", price: 1200, category: "Tees", description: "100% organic long-staple cotton tee, tailored fit.", image_url: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=500&q=80", inventory_qty: 10 },
+                  { id: 2, name: "Knit Wool Sweater", price: 3400, category: "Outerwear", description: "Chunky knit sweater crafted from ethically sourced Shetland wool.", image_url: "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=500&q=80", inventory_qty: 8 },
+                  { id: 3, name: "Minimalist Trench Coat", price: 6500, category: "Outerwear", description: "Water-resistant double-breasted cotton-gabardine trench coat.", image_url: "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=500&q=80", inventory_qty: 4 },
+                  { id: 4, name: "Linen Lounge Pants", price: 2200, category: "Pants", description: "Relaxed fit trousers in soft washed flax linen.", image_url: "https://images.unsplash.com/photo-1509551388413-e18d0ac5d495?auto=format&fit=crop&w=500&q=80", inventory_qty: 12 }
+                ];
+                setProducts(pres.data && pres.data.length > 0 ? pres.data : MOCK_CLOTHING_PRODUCTS);
               }
             });
 
@@ -148,7 +168,7 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
         id: String(product.id),
         name: product.name,
         price: Number(product.price),
-        image: product.image || "https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?auto=format&fit=crop&w=300&q=80",
+        image: product.image_url || "https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?auto=format&fit=crop&w=300&q=80",
         quantity: 1
       }];
     });
@@ -266,7 +286,7 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
         {/* Brand Banner / Hero */}
         <section className="relative rounded-3xl overflow-hidden aspect-[21/9] border border-zinc-900 bg-zinc-950 flex flex-col justify-end p-8 sm:p-12 text-left">
           <div className="absolute inset-0 bg-gradient-to-t from-[#090A0F] via-zinc-950/65 to-transparent z-10" />
-          <div className="absolute inset-0 bg-cover bg-center opacity-30" style={{ backgroundImage: `url('https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1200&auto=format&fit=crop')` }} />
+          <div className="absolute inset-0 bg-cover bg-center opacity-30" style={{ backgroundImage: `url('${bannerUrl || "https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1200&auto=format&fit=crop"}')` }} />
           
           <div className="relative z-20 max-w-xl space-y-4">
             <div className="flex items-center gap-2">
@@ -278,10 +298,10 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
               <h2 className="text-xl font-bold tracking-tight text-white">{brandName}</h2>
             </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
-              Curated Nordic Weaves & Silhouette Artistry
+              {slogan}
             </h1>
             <p className="text-sm text-zinc-400 leading-relaxed">
-              Explore our premium organic fibers tailored with architectural precision. Direct billing, real-time inventory management, and fast secure payments.
+              Explore our premium organic fibers tailored with architectural precision at {brandName}. Direct billing, real-time inventory management, and fast secure payments.
             </p>
           </div>
         </section>
@@ -351,7 +371,7 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
                     {/* Visual Area */}
                     <div className="relative aspect-[4/5] bg-zinc-900/50 overflow-hidden">
                       <img
-                        src={prod.image || "https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?auto=format&fit=crop&w=300&q=80"}
+                        src={prod.image_url || "https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?auto=format&fit=crop&w=300&q=80"}
                         alt={prod.name}
                         className="w-full h-full object-cover transition-transform duration-505 group-hover:scale-103"
                         referrerPolicy="no-referrer"
@@ -406,6 +426,23 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
             </div>
           )}
         </section>
+
+        {/* Lookbook Gallery Section */}
+        {galleryPhotos.length > 0 && (
+          <section className="space-y-6 pt-8 border-t border-zinc-900" id="lookbook-gallery">
+            <div className="text-left space-y-1">
+              <h3 className="text-xl font-extrabold text-white">Season Lookbook</h3>
+              <p className="text-xs text-zinc-500 font-mono">Visual curation of {brandName} silhouette loops</p>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {galleryPhotos.map((photo, idx) => (
+                <div key={idx} className="aspect-square rounded-2xl overflow-hidden border border-zinc-900 hover:border-zinc-800 transition-all">
+                  <img src={photo} alt={`Lookbook ${idx + 1}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Customer Reviews Section */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-8 border-t border-zinc-900" id="reviews-section">

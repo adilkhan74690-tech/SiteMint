@@ -41,6 +41,7 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
   const [accentColor, setAccentColor] = useState(initialThemeAccent);
   const [typography, setTypography] = useState("Space Grotesk");
   const [logoUrl, setLogoUrl] = useState<string>("");
+  const [bannerUrl, setBannerUrl] = useState<string>("");
 
   // Client Session Auth
   const [customerEmail, setCustomerEmail] = useState<string>("");
@@ -98,6 +99,7 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
           setBrandName(biz.name);
           setUpiId(biz.upi_id || "vanguard@upi");
           setLogoUrl(biz.logo_url || "");
+          if (biz.banner_url) setBannerUrl(biz.banner_url);
           setCurrency("INR");
           if (biz.description) setSlogan(biz.description);
           if (biz.contact_phone) setContactPhone(biz.contact_phone);
@@ -156,16 +158,16 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
       .catch((err) => console.error("Error loading services:", err));
   }, []);
 
-  const displayTiers = servicesList.map((s, idx) => ({
+  const displayTiers = servicesList.length > 0 ? servicesList.map((s, idx) => ({
     id: String(s.id),
     name: s.name,
     price: Number(s.price),
     interval: "mo",
     features: s.description ? s.description.split(/[,\n.]+/).map((f: string) => f.trim()).filter(Boolean) : ["Full gym access", "Professional coaching advice", "Locker access"],
     popular: idx === 1
-  }));
+  })) : MEMBERSHIP_TIERS;
 
-  const displayTrainers = trainers.map(t => ({
+  const displayTrainers = trainers.length > 0 ? trainers.map(t => ({
     id: String(t.id),
     name: t.full_name,
     role: t.staff_title || t.role || "Performance Coach",
@@ -173,17 +175,20 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
     image: t.staff_photo_url || "https://images.unsplash.com/photo-1567013127542-490d757e51fc?auto=format&fit=crop&w=300&q=80",
     rating: t.rating || 5,
     specialty: t.staff_title || "Strength & Power"
-  }));
+  })) : TRAINERS;
 
   const displayGallery = galleryPhotos;
 
-  const displayReviews = reviewsList.map(r => ({
+  const displayReviews = reviewsList.length > 0 ? reviewsList.map(r => ({
     name: `${r.first_name} ${r.last_name || ""}`.trim(),
     role: "Athlete Member",
     comment: r.comment,
     rating: r.rating,
     date: new Date(r.created_at).toLocaleDateString()
-  }));
+  })) : [
+    { name: "Marcus V.", role: "Strength Athlete", comment: "The biometric tracking integrated directly into my membership pass is game-changing. The coaches know exactly where my kinetic thresholds are.", rating: 5, date: "2 days ago" },
+    { name: "Sophia K.", role: "Bootcamp regular", comment: "Sleek schedules, no manual follow-ups, and the trainers are world-class. Best fitness decision I have made this year.", rating: 5, date: "1 week ago" }
+  ];
 
   // Customer credentials inputs
   const [custName, setCustName] = useState("");
@@ -389,7 +394,7 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
       <section className="relative min-h-[85vh] flex items-center justify-center text-center overflow-hidden py-16 px-4" id="gym-hero">
         <div className="absolute inset-0 z-0">
           <img 
-            src="https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?auto=format&fit=crop&w=1600&q=80" 
+            src={bannerUrl || "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?auto=format&fit=crop&w=1600&q=80"} 
             alt="Gym Hero Background" 
             className="w-full h-full object-cover scale-105 brightness-[0.2]"
             referrerPolicy="no-referrer"
@@ -418,7 +423,7 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
           </h1>
 
           <p className="text-zinc-400 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
-            Welcome to the future of high-performance physique training. Pulse Athletics couples biomechanical auditing with instant digital booking interfaces.
+            {slogan || `Welcome to ${brandName}, where high-performance physique training meets state-of-the-art coaching.`}
           </p>
 
           <div className="flex items-center justify-center gap-4 flex-wrap pt-4">

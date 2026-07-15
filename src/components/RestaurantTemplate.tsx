@@ -42,6 +42,7 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
   const [accentColor, setAccentColor] = useState(initialThemeAccent);
   const [typography, setTypography] = useState("Playfair Display");
   const [logoUrl, setLogoUrl] = useState<string>("");
+  const [bannerUrl, setBannerUrl] = useState<string>("");
 
   // Client Session Auth
   const [customerEmail, setCustomerEmail] = useState<string>("");
@@ -103,6 +104,7 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
           setBrandName(biz.name);
           setUpiId(biz.upi_id || "bistrodeluxe@upi");
           setLogoUrl(biz.logo_url || "");
+          if (biz.banner_url) setBannerUrl(biz.banner_url);
           setCurrency("INR");
           if (biz.description) setSlogan(biz.description);
           if (biz.contact_phone) setContactPhone(biz.contact_phone);
@@ -176,7 +178,7 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
   // UPI payment modal control
   const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
 
-  const displayMenu = productsList.map(p => ({
+  const displayMenu = productsList.length > 0 ? productsList.map(p => ({
     id: String(p.id),
     name: p.name,
     price: Number(p.price),
@@ -184,16 +186,19 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
     description: p.description || "Freshly curated bistro specialty.",
     image: p.image_url || "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=400&q=80",
     tags: p.compare_at_price ? ["Promo"] : []
-  }));
+  })) : MENU_ITEMS;
 
   const displayGallery = galleryPhotos;
 
-  const displayReviews = reviewsList.map(r => ({
+  const displayReviews = reviewsList.length > 0 ? reviewsList.map(r => ({
     name: `${r.first_name} ${r.last_name || ""}`.trim(),
     rating: r.rating,
     comment: r.comment,
     date: new Date(r.created_at).toLocaleDateString()
-  }));
+  })) : [
+    { name: "Seraphina G.", date: "July 2026", rating: 5, comment: "The kitchen is absolutely incredible. Every dish looked like an artwork and tasted divine!" },
+    { name: "Victoria K.", date: "June 2026", rating: 5, comment: "The digital menu makes order customization seamless, and table reservation is incredibly smooth." }
+  ];
 
   // Table reservation state
   const [guests, setGuests] = useState("4 Guests");
@@ -433,7 +438,7 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
       <section className="relative min-h-[80vh] flex items-center justify-center text-center py-16 px-4" id="rest-hero">
         <div className="absolute inset-0 z-0">
           <img 
-            src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1600&q=80" 
+            src={bannerUrl || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1600&q=80"} 
             alt="Restaurant Background" 
             className="w-full h-full object-cover scale-105 brightness-[0.2]"
             referrerPolicy="no-referrer"
@@ -455,7 +460,7 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
           </h1>
 
           <p className="text-zinc-400 text-sm sm:text-base max-w-lg mx-auto font-sans leading-relaxed">
-            Welcome to L'Aura Bistro, where ancient Parisian culinary handshakes meet modern digital ordering & reservation interfaces.
+            {slogan || `Welcome to ${brandName}, where ancient Parisian culinary handshakes meet modern digital ordering.`}
           </p>
 
           <div className="flex justify-center gap-4 pt-2">

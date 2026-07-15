@@ -110,6 +110,7 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
   const [newProdDesc, setNewProdDesc] = useState("");
   const [newProdSku, setNewProdSku] = useState("");
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
 
   // Service addition/edit states
   const [services, setServices] = useState<any[]>([]);
@@ -1311,6 +1312,38 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
       fetchDashboardData();
     } catch (err: any) {
       alert("Error deleting product: " + err.message);
+    }
+  };
+
+  const handleEditProductSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+
+    const token = localStorage.getItem("sitemint_token");
+    try {
+      const res = await fetch(`/api/catalog/products/${editingProduct.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: editingProduct.name,
+          price: Number(editingProduct.price),
+          inventory_qty: Number(editingProduct.inventory_qty),
+          image_url: editingProduct.image_url,
+          description: editingProduct.description
+        })
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "Failed to update product.");
+
+      logSystemActivity("Product Updated", `Product "${editingProduct.name}" updated successfully.`, "product");
+      setEditingProduct(null);
+      fetchDashboardData();
+    } catch (err: any) {
+      alert("Error updating product: " + err.message);
     }
   };
 
@@ -3676,6 +3709,13 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                             <div className="pt-2 border-t border-zinc-900 flex justify-end gap-2">
                               <button
                                 type="button"
+                                onClick={() => setEditingProduct(p)}
+                                className="px-2 py-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/20 cursor-pointer"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
                                 onClick={() => handleDeleteProduct(p.id)}
                                 className="px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[10px] font-bold border border-red-500/20 cursor-pointer"
                               >
@@ -3766,6 +3806,104 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                             className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-bold py-3 rounded-xl text-xs hover:opacity-95"
                           >
                             Add Product
+                          </button>
+                        </form>
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Edit product drawer overlay */}
+                <AnimatePresence>
+                  {editingProduct && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+                      id="edit-product-drawer-overlay"
+                    >
+                      <motion.div
+                        initial={{ scale: 0.95 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0.95 }}
+                        className="w-full max-w-md bg-zinc-950 border border-zinc-850 rounded-2xl p-6 relative"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setEditingProduct(null)}
+                          className="absolute top-4 right-4 text-zinc-500 hover:text-white"
+                        >
+                          <LucideIcon name="X" className="w-5 h-5" />
+                        </button>
+
+                        <form onSubmit={handleEditProductSubmit} className="space-y-4 text-left">
+                          <h3 className="text-base font-bold text-white font-display border-b border-zinc-900 pb-2">Edit Product</h3>
+
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Product Name</label>
+                            <input 
+                              type="text" 
+                              required
+                              value={editingProduct.name || ""}
+                              onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
+                              placeholder="e.g. Organic Volumizing Serum"
+                              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Price (₹)</label>
+                              <input 
+                                type="number" 
+                                required
+                                value={editingProduct.price || ""}
+                                onChange={(e) => setEditingProduct({ ...editingProduct, price: e.target.value })}
+                                placeholder="1200"
+                                className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Stock Inventory</label>
+                              <input 
+                                type="number" 
+                                required
+                                value={editingProduct.inventory_qty || 0}
+                                onChange={(e) => setEditingProduct({ ...editingProduct, inventory_qty: e.target.value })}
+                                placeholder="15"
+                                className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Description</label>
+                            <textarea 
+                              value={editingProduct.description || ""}
+                              onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
+                              placeholder="Describe the product details..."
+                              rows={3}
+                              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400 resize-none"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Image Address Link (Optional)</label>
+                            <input 
+                              type="url" 
+                              value={editingProduct.image_url || ""}
+                              onChange={(e) => setEditingProduct({ ...editingProduct, image_url: e.target.value })}
+                              placeholder="https://images.unsplash.com/photo-..."
+                              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
+                            />
+                          </div>
+
+                          <button
+                            type="submit"
+                            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-bold py-3 rounded-xl text-xs hover:opacity-95"
+                          >
+                            Save Changes
                           </button>
                         </form>
                       </motion.div>

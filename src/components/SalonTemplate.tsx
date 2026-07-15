@@ -46,6 +46,7 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
   const [accentColor, setAccentColor] = useState(initialThemeAccent);
   const [typography, setTypography] = useState("Default");
   const [logoUrl, setLogoUrl] = useState<string>("");
+  const [bannerUrl, setBannerUrl] = useState<string>("");
 
   // Client Session Auth
   const [customerEmail, setCustomerEmail] = useState<string>("");
@@ -103,6 +104,7 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
           setBrandName(biz.name);
           setUpiId(biz.upi_id || "sveltehair@upi");
           setLogoUrl(biz.logo_url || "");
+          if (biz.banner_url) setBannerUrl(biz.banner_url);
           setCurrency("INR");
           if (biz.description) {
             setSlogan(biz.description);
@@ -204,32 +206,32 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
     setIsUpiModalOpen(true);
   };
 
-  const displayServices = servicesList.map(s => ({
+  const displayServices = servicesList.length > 0 ? servicesList.map(s => ({
     id: String(s.id),
     name: s.name,
     price: Number(s.price),
     duration: `${s.duration_minutes} mins`,
     category: s.category || "General",
     description: s.description || ""
-  }));
+  })) : SALON_SERVICES;
 
-  const displayStylists = trainers.map(t => ({
+  const displayStylists = trainers.length > 0 ? trainers.map(t => ({
     id: String(t.id),
     name: t.full_name,
     role: t.staff_title || t.role || "Stylist",
     image: t.staff_photo_url || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80",
     rating: t.rating || 5,
     bio: t.bio || "Professional beauty expert"
-  }));
+  })) : STYLISTS;
 
   const displayLookbook = galleryPhotos;
 
-  const displayReviews = reviewsList.map(r => ({
+  const displayReviews = reviewsList.length > 0 ? reviewsList.map(r => ({
     name: `${r.first_name} ${r.last_name || ""}`.trim(),
     rating: r.rating,
     comment: r.comment,
     date: new Date(r.created_at).toLocaleDateString()
-  }));
+  })) : REVIEWS;
 
   const handlePaymentSuccess = (bookingId: string | number) => {
     const compiledItems = displayServices.filter((s) => selectedServices.includes(s.id));
@@ -384,7 +386,7 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
       <section className="relative min-h-[80vh] flex items-center justify-center text-center py-16 px-4" id="salon-hero">
         <div className="absolute inset-0 z-0">
           <img 
-            src="https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1600&q=80" 
+            src={bannerUrl || "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1600&q=80"} 
             alt="Salon Background" 
             className="w-full h-full object-cover scale-105 brightness-[0.2]"
             referrerPolicy="no-referrer"
@@ -406,7 +408,7 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
           </h1>
 
           <p className="text-zinc-400 text-sm sm:text-base max-w-lg mx-auto font-sans leading-relaxed">
-            Welcome to Luna Studio. We unite elite color alchemists and hair sculptors with flawless Stripe-backed digital appointments scheduling.
+            {slogan || `Welcome to ${brandName}. We unite elite color alchemists and hair sculptors with flawless Stripe-backed digital appointments scheduling.`}
           </p>
 
           <div className="flex justify-center gap-4 pt-2">
