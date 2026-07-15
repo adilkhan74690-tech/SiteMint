@@ -446,7 +446,7 @@ export async function approvePayment(req: Request, res: Response, next: NextFunc
       }
       if (payment.order_id) {
         await connection.execute(
-          "UPDATE `orders` SET `status` = 'approved' WHERE `id` = ?",
+          "UPDATE `orders` SET `status` = 'processing' WHERE `id` = ?",
           [payment.order_id]
         );
       }
@@ -460,7 +460,7 @@ export async function approvePayment(req: Request, res: Response, next: NextFunc
       }
       if (payment.order_id) {
         await connection.execute(
-          "UPDATE `orders` SET `status` = 'rejected' WHERE `id` = ?",
+          "UPDATE `orders` SET `status` = 'cancelled' WHERE `id` = ?",
           [payment.order_id]
         );
       }
@@ -495,11 +495,18 @@ export async function approvePayment(req: Request, res: Response, next: NextFunc
 
     res.status(200).json({
       success: true,
-      message: status === "captured" ? "Payment approved successfully." : "Payment rejected successfully."
+      message: status === "captured" ? "Payment approved successfully" : "Payment rejected successfully"
     });
-  } catch (error) {
+  } catch (error: any) {
     if (connection) await connection.rollback();
-    next(error);
+    console.error("🔥 Error in approvePayment controller exception:", error);
+    if (error && error.stack) {
+      console.error(error.stack);
+    }
+    res.status(500).json({
+      success: false,
+      error: error.message || "An unexpected error occurred"
+    });
   } finally {
     if (connection) connection.release();
   }
@@ -534,9 +541,16 @@ export async function updateOrderStatus(req: Request, res: Response, next: NextF
     }
     const customerId = orders[0].customer_id;
 
+    let mappedStatus = status.toLowerCase();
+    if (mappedStatus === "approved" || mappedStatus === "confirmed" || mappedStatus === "processed") {
+      mappedStatus = "processing";
+    } else if (mappedStatus === "rejected" || mappedStatus === "failed") {
+      mappedStatus = "cancelled";
+    }
+
     const result: any = await query(
       "UPDATE `orders` SET `status` = ? WHERE `id` = ? AND `business_id` = ?",
-      [status.toLowerCase(), id, businessId]
+      [mappedStatus, id, businessId]
     );
 
     if (result.affectedRows === 0) {
