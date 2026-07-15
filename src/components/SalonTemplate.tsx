@@ -194,6 +194,10 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
 
   const handleBookAppointment = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!customerEmail) {
+      setAuthOpen(true);
+      return;
+    }
     if (selectedServices.length === 0) {
       alert("Please check at least one salon treatment service.");
       return;
@@ -400,7 +404,7 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
 
         <div className="max-w-4xl mx-auto relative z-10 space-y-6">
           <span className="text-[10px] font-mono uppercase tracking-widest bg-zinc-950/80 px-3 py-1 border border-zinc-850 rounded-full text-zinc-400">
-            HIGH-FASHION AESTHETICS • SANDBOX INTERACTIVE MODEL
+            {isStandalone ? "HIGH-FASHION AESTHETICS" : "HIGH-FASHION AESTHETICS • SANDBOX INTERACTIVE MODEL"}
           </span>
 
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white leading-none">
@@ -651,7 +655,7 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
                   <div className="space-y-1.5">
                     <h4 className="text-lg font-bold font-serif text-white">APPOINTMENT SECURED</h4>
                     <p className="text-xs text-zinc-400">
-                      Your luxurious therapy is successfully booked inside Sandbox memory state.
+                      {isStandalone ? "Your luxurious therapy is successfully booked." : "Your luxurious therapy is successfully booked inside Sandbox memory state."}
                     </p>
                   </div>
 
@@ -863,7 +867,7 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
           </div>
 
           <p className="text-[11px] font-mono">
-            © 2026 {brandName} Sandbox. Engineered on SiteMint SaaS framework.
+            {isStandalone ? `© 2026 ${brandName}. All rights reserved.` : `© 2026 ${brandName} Sandbox. Engineered on SiteMint SaaS framework.`}
           </p>
         </div>
       </footer>

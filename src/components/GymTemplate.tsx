@@ -408,13 +408,15 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
         </div>
 
         <div className="max-w-4xl mx-auto relative z-10 space-y-6">
-          <div 
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-bold uppercase tracking-widest font-mono"
-            style={{ color: accentColor, borderColor: `${accentColor}30`, backgroundColor: `${accentColor}08` }}
-          >
-            <LucideIcon name="ShieldAlert" className="w-3.5 h-3.5" />
-            SiteMint Live Sandbox Instance
-          </div>
+          {!isStandalone && (
+            <div 
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-bold uppercase tracking-widest font-mono"
+              style={{ color: accentColor, borderColor: `${accentColor}30`, backgroundColor: `${accentColor}08` }}
+            >
+              <LucideIcon name="ShieldAlert" className="w-3.5 h-3.5" />
+              SiteMint Live Sandbox Instance
+            </div>
+          )}
 
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white font-display uppercase leading-none">
             SMASH YOUR <span style={{ color: accentColor }}>LIMITS.</span>
@@ -652,7 +654,7 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
                   <div className="space-y-1.5">
                     <h4 className="text-xl font-bold font-display text-white">RESERVATION APPROVED!</h4>
                     <p className="text-xs text-zinc-400">
-                      Your diagnostic workout appointment is logged inside our Sandbox memory.
+                      {isStandalone ? "Your diagnostic workout appointment is successfully booked." : "Your diagnostic workout appointment is logged inside our Sandbox memory."}
                     </p>
                   </div>
 
@@ -927,7 +929,9 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-white">MESSAGE FLIGHT VERIFIED</h4>
-                    <p className="text-xs text-zinc-400 mt-1">We've stored your contact memo within Sandbox memory.</p>
+                    <p className="text-xs text-zinc-400 mt-1">
+                      {isStandalone ? "We have received your message. Thank you." : "We've stored your contact memo within Sandbox memory."}
+                    </p>
                   </div>
                 </motion.div>
               ) : null}
@@ -993,8 +997,8 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
             <span className="font-bold text-white font-display text-sm uppercase">{brandName}</span>
           </div>
 
-          <p className="text-[11px] font-mono">
-            © 2026 {brandName} Sandbox. Engineered on SiteMint SaaS framework.
+          <p className="text-[11px] font-mono text-zinc-500">
+            {isStandalone ? `© 2026 ${brandName}. All rights reserved.` : `© 2026 ${brandName} Sandbox. Engineered on SiteMint SaaS framework.`}
           </p>
         </div>
       </footer>

@@ -247,6 +247,10 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
 
   const handleBookTable = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!customerEmail) {
+      setAuthOpen(true);
+      return;
+    }
     if (!custName || !custEmail || !custPhone) {
       alert("Please enter your name, email, and phone number first.");
       return;
@@ -269,22 +273,56 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
 
   const cartTotal = cart.reduce((acc, current) => acc + (current.item.price * current.qty), 0);
 
-  const handleCheckoutSubmit = (e: React.FormEvent) => {
+  const handleCheckoutSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!customerEmail) {
+      setAuthOpen(true);
+      return;
+    }
     if (!billingName || !billingPhone) {
       alert("Please provide name and phone to finalize ordering.");
       return;
     }
-    setCheckoutStep("success");
-    // Clear cart in a few seconds after success view
-    setTimeout(() => {
-      setCart([]);
-      setCheckoutStep("cart");
-      setCartOpen(false);
-      setBillingName("");
-      setBillingPhone("");
-      setDeliveryNote("");
-    }, 4500);
+
+    try {
+      const res = await fetch("/api/checkout/order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          business_id: businessId,
+          customer: {
+            email: customerEmail,
+            phone: billingPhone,
+            first_name: billingName,
+            last_name: ""
+          },
+          items: cart.map(item => ({
+            id: Number(item.item.id),
+            name: item.item.name,
+            price: Number(item.item.price),
+            quantity: Number(item.qty)
+          }))
+        })
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "Failed to place order.");
+
+      setCheckoutStep("success");
+      // Clear cart in a few seconds after success view
+      setTimeout(() => {
+        setCart([]);
+        setCheckoutStep("cart");
+        setCartOpen(false);
+        setBillingName("");
+        setBillingPhone("");
+        setDeliveryNote("");
+      }, 4500);
+    } catch (err: any) {
+      alert("Error placing order: " + err.message);
+    }
   };
 
   return (
@@ -452,7 +490,7 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
 
         <div className="max-w-4xl mx-auto relative z-10 space-y-6">
           <span className="text-[10px] font-mono tracking-widest uppercase py-1 px-3 border border-zinc-800 rounded-full bg-zinc-950/60 text-zinc-400">
-            EXPERIENCE MICHELIN EXCELLENCE IN THE SANDBOX
+            {isStandalone ? "EXPERIENCE MICHELIN EXCELLENCE" : "EXPERIENCE MICHELIN EXCELLENCE IN THE SANDBOX"}
           </span>
 
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white leading-none">
@@ -604,7 +642,9 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
                   </div>
                   <div>
                     <h4 className="text-lg font-bold text-white">RESERVATION LOGGED</h4>
-                    <p className="text-xs text-zinc-400 mt-1">We have locked in your dining table in our Sandbox state.</p>
+                    <p className="text-xs text-zinc-400 mt-1">
+                      {isStandalone ? "We have locked in your dining table reservation." : "We have locked in your dining table in our Sandbox state."}
+                    </p>
                   </div>
 
                   <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-900 text-left space-y-2.5 max-w-md mx-auto">
@@ -1023,7 +1063,7 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
 
               {/* Drawer Footer info */}
               <div className="text-center text-[10px] text-zinc-500 font-mono border-t border-zinc-900 pt-3">
-                SiteMint Sandbox Checkout Gate • Secure SSL
+                {isStandalone ? "Secure SSL Checkout" : "SiteMint Sandbox Checkout Gate • Secure SSL"}
               </div>
 
             </motion.div>

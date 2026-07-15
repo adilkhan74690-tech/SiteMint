@@ -197,6 +197,10 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
 
   const handleCheckout = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!customerEmail) {
+      setAuthOpen(true);
+      return;
+    }
     if (cart.length === 0) {
       alert("Your cart is empty.");
       return;

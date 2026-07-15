@@ -141,6 +141,7 @@ export default function App() {
   // Handle Cmd+K / Ctrl+K keyboard shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (isStandalone) return;
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setCommandPaletteOpen((prev) => !prev);
@@ -148,7 +149,7 @@ export default function App() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [isStandalone]);
 
   const handleToggleTheme = () => {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
@@ -588,7 +589,8 @@ export default function App() {
 
           {/* Mobile Bottom Navigation Bar (Visible on mobile screens) */}
           {currentView !== "landing" && 
-           !["login", "register", "forgot-password", "reset-password"].includes(currentView) && (
+           !["login", "register", "forgot-password", "reset-password"].includes(currentView) && 
+           !isStandalone && (
             <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#09090B]/90 backdrop-blur-lg border-t border-white/[0.08] px-6 py-2.5 flex items-center justify-between shadow-[0_-4px_24px_rgba(0,0,0,0.4)]">
               <button
                 onClick={() => handleNavigate("landing")}
@@ -645,7 +647,8 @@ export default function App() {
 
           {/* Mobile Floating Action Button (FAB) Speed Dial */}
           {currentView !== "landing" && 
-           !["login", "register", "forgot-password", "reset-password"].includes(currentView) && (
+           !["login", "register", "forgot-password", "reset-password"].includes(currentView) && 
+           !isStandalone && (
             <div className="md:hidden fixed bottom-18 left-1/2 -translate-x-1/2 z-55 flex flex-col items-center gap-3">
               <AnimatePresence>
                 {fabExpanded && (
