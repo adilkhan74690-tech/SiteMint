@@ -247,7 +247,7 @@ export default function TemplateShowcase({ onOpenCheckout, onNavigateToDemo }: T
                 <span className="w-2 h-2 rounded-full bg-yellow-500" />
                 <span className="w-2 h-2 rounded-full bg-green-500" />
                 <span className="text-xs text-zinc-400 font-mono ml-3 font-bold truncate max-w-[150px] sm:max-w-none">
-                  {selectedTemplate.name.toLowerCase().replace(/\s+/g, "-")}.sitemint.app
+                  {window.location.host}/site/{selectedTemplate.name.toLowerCase().replace(/\s+/g, "-")}
                 </span>
               </div>
 

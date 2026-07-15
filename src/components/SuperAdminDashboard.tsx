@@ -431,11 +431,11 @@ export default function SuperAdminDashboard({ userEmail, onLogout, onNavigate }:
                               <td className="p-4 capitalize text-zinc-400">{biz.business_type}</td>
                               <td className="p-4 font-mono text-zinc-500">
                                 <a 
-                                  href={`https://${biz.subdomain}.sitemint.app`} 
+                                  href={`${window.location.origin}/site/${biz.subdomain}`} 
                                   target="_blank" 
                                   className="text-cyan-400 hover:underline"
                                 >
-                                  {biz.subdomain}.sitemint.app
+                                  {window.location.host}/site/{biz.subdomain}
                                 </a>
                               </td>
                               <td className="p-4">

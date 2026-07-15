@@ -217,7 +217,7 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
         "Parsing metadata blocks for: " + businessName,
         "Selected theme layout matched: " + (selectedTheme?.name || "Default Theme"),
         "Validating secure subdomain mapping rules...",
-        "Subdomain successfully bound: " + subdomain + ".sitemint.app",
+        "Subdomain successfully bound: " + window.location.host + "/site/" + subdomain,
         "Bundling React SPA package with esbuild compiler...",
         "Injecting custom styling tokens and root variables...",
         "Injecting interactive booking system module...",
@@ -577,9 +577,12 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
                           id="onboarding-input-subdomain"
                         />
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-zinc-500 font-mono">
-                          .sitemint.app
+                          (slug)
                         </span>
                       </div>
+                      <p className="text-[10px] text-zinc-500 mt-1 font-mono">
+                        Live Preview URL: <span className="text-mint">{window.location.origin}/site/{subdomain || "your-slug"}</span>
+                      </p>
                     </div>
 
                     <div className="space-y-1.5">
@@ -1023,9 +1026,9 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
                           <span className="w-3 h-3 rounded-full bg-green-500/60" />
                         </div>
                         <div className="flex-grow max-w-md mx-6">
-                          <div className="bg-zinc-950 border border-zinc-850 rounded-lg py-1 text-[11px] font-mono text-zinc-500 flex items-center justify-center gap-1.5">
+                          <div className="bg-zinc-950 border border-zinc-850 rounded-lg py-1 text-[11px] font-mono text-zinc-500 flex items-center justify-center gap-1.5 px-3">
                             <LucideIcon name="Shield" className="w-3.5 h-3.5 text-emerald-500" />
-                            {businessName.toLowerCase().replace(/[^a-z0-9]/g, "") || "custom"}.sitemint.app
+                            {window.location.host}/site/{subdomain || businessName.toLowerCase().replace(/[^a-z0-9]/g, "") || "custom"}
                           </div>
                         </div>
                         <div className="w-16" /> {/* Spacer */}
@@ -1235,17 +1238,17 @@ export default function OnboardingFlow({ userEmail, onComplete, onNavigate }: On
                         <div className="text-left space-y-1">
                           <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">LIVE PRODUCTION LINK</p>
                           <a 
-                            href={`https://${businessName.toLowerCase().replace(/[^a-z0-9]/g, "") || "yourbrand"}.sitemint.app`}
+                            href={`${window.location.origin}/site/${subdomain}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-base font-bold text-mint hover:underline font-mono"
                           >
-                            {businessName.toLowerCase().replace(/[^a-z0-9]/g, "") || "yourbrand"}.sitemint.app
+                            {window.location.host}/site/{subdomain}
                           </a>
                         </div>
                         <button 
                           onClick={() => {
-                            navigator.clipboard.writeText(`${businessName.toLowerCase().replace(/[^a-z0-9]/g, "") || "yourbrand"}.sitemint.app`);
+                            navigator.clipboard.writeText(`${window.location.origin}/site/${subdomain}`);
                             alert("Copied custom domain path to clipboard!");
                           }}
                           className="bg-zinc-950 border border-zinc-800 text-zinc-300 hover:text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"

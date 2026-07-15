@@ -41,9 +41,9 @@ export default function CheckoutModal({ isOpen, onClose, selectedPlanId }: Check
   useEffect(() => {
     if (businessName) {
       const sanitized = businessName.toLowerCase().replace(/[^a-z0-9]/g, "");
-      setDomainName(`${sanitized}.sitemint.app`);
+      setDomainName(`${window.location.host}/site/${sanitized}`);
     } else {
-      setDomainName("yourbrand.sitemint.app");
+      setDomainName(`${window.location.host}/site/yourbrand`);
     }
   }, [businessName]);
 

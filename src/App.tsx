@@ -73,8 +73,6 @@ export default function App() {
     // Bypass subdomain detection if running on the primary hub domain (Render or local)
     const isMainHub = 
       hostname === "sitemint-t6b7.onrender.com" || 
-      hostname === "www.sitemint.app" || 
-      hostname === "sitemint.app" || 
       hostname === "localhost" || 
       hostname === "127.0.0.1";
 

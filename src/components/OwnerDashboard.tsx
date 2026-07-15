@@ -1101,7 +1101,7 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
 
             <div class="footer">
               This document is a digitally compiled tax invoice issued by SiteMint Tech India Pvt Ltd.<br/>
-              Support Inquiries: support@sitemint.app
+              Support Inquiries: support@sitemint-network.app
             </div>
           </div>
           <script>window.print();</script>
@@ -5355,9 +5355,12 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                             className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs font-mono" 
                           />
                           <span className="bg-zinc-950 border border-zinc-850 px-3 py-2 text-xs font-mono text-zinc-500 rounded-xl flex items-center">
-                            .sitemint.app
+                            (slug)
                           </span>
                         </div>
+                        <p className="text-[10px] text-zinc-500 mt-1 font-mono">
+                          Live Website URL: <span className="text-emerald-400">{window.location.origin}/site/{settingsSlug || "slug"}</span>
+                        </p>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -320,7 +320,7 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
                     <div className="flex-grow max-w-md mx-6">
                       <div className="bg-zinc-950 rounded-lg px-4 py-1 text-[11px] text-zinc-500 text-center select-none font-mono flex items-center justify-center gap-1.5 border border-zinc-900">
                         <LucideIcon name="Shield" className="w-3 h-3 text-emerald-500" />
-                        {businessName.toLowerCase().replace(/[^a-z0-9]/g, "") || "yourbrand"}.sitemint.app
+                        {window.location.host}/site/{businessName.toLowerCase().replace(/[^a-z0-9]/g, "") || "yourbrand"}
                       </div>
                     </div>
                     {/* Viewport Toggles */}
@@ -438,7 +438,7 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
                             <LucideIcon name="Check" className="w-8 h-8" />
                           </div>
                           <h3 className="text-xl font-bold text-white font-display mb-1">Website Created Successfully!</h3>
-                          <p className="text-sm text-zinc-400 mb-6">Your website is ready and hosted under sitemint.app</p>
+                          <p className="text-sm text-zinc-400 mb-6">Your website is ready and hosted under the site directory path</p>
                           <button
                             onClick={() => onOpenCheckout("pro")}
                             className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-500 text-sm font-bold text-black shadow-lg hover:shadow-[0_4px_20px_rgba(16,185,129,0.4)] active:scale-95 transition-all cursor-pointer"
