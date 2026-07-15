@@ -116,8 +116,17 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
   const [newServDuration, setNewServDuration] = useState("");
   const [newServDesc, setNewServDesc] = useState("");
   const [newServImage, setNewServImage] = useState("");
+  const [newServCategory, setNewServCategory] = useState("");
   const [isAddingService, setIsAddingService] = useState(false);
-  const [editingServiceId, setEditingServiceId] = useState<number | null>(null);
+  const [editingService, setEditingService] = useState<any>(null);
+
+  // FAQ and Gallery States
+  const [faqsList, setFaqsList] = useState<any[]>([]);
+  const [galleryList, setGalleryList] = useState<string[]>([]);
+  const [newFaqQuestion, setNewFaqQuestion] = useState("");
+  const [newFaqAnswer, setNewFaqAnswer] = useState("");
+  const [newGalleryUrl, setNewGalleryUrl] = useState("");
+
 
   // Load settings inputs when businessDetails loads
   useEffect(() => {
@@ -221,6 +230,16 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
           setThemeAccent(settingsResult.data.theme_settings.primary_color);
           setThemeSecondary(settingsResult.data.theme_settings.secondary_color);
           setTypography(settingsResult.data.theme_settings.font_family);
+          
+          let customJson: any = {};
+          try {
+            const rawJson = settingsResult.data.theme_settings.custom_settings_json;
+            customJson = typeof rawJson === "string" ? JSON.parse(rawJson) : (rawJson || {});
+          } catch (e) {
+            customJson = {};
+          }
+          setFaqsList(customJson.faqs || []);
+          setGalleryList(customJson.gallery || []);
         }
       } else {
         setBusinessDetails(null);
@@ -577,7 +596,12 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
       working_hours: workingHoursObj,
       primary_color: settingsPrimaryColor,
       secondary_color: settingsSecondaryColor,
-      font_family: settingsFontFamily
+      font_family: settingsFontFamily,
+      currency: "INR",
+      custom_settings_json: {
+        faqs: faqsList,
+        gallery: galleryList
+      }
     };
 
     try {
@@ -1226,7 +1250,8 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
           price: Number(newServPrice),
           duration_minutes: Number(newServDuration),
           description: newServDesc || "",
-          image_url: newServImage || null
+          image_url: newServImage || null,
+          category: newServCategory || null
         })
       });
 
@@ -1242,9 +1267,39 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
       setNewServDuration("");
       setNewServDesc("");
       setNewServImage("");
+      setNewServCategory("");
       setIsAddingService(false);
     } catch (err: any) {
       alert("Error adding service: " + err.message);
+    }
+  };
+
+  const handleEditServiceSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingService) return;
+    const token = localStorage.getItem("sitemint_token");
+    try {
+      const res = await fetch(`/api/catalog/services/${editingService.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: editingService.name,
+          price: Number(editingService.price),
+          duration_minutes: Number(editingService.duration_minutes),
+          description: editingService.description,
+          image_url: editingService.image_url,
+          category: editingService.category || null
+        })
+      });
+      if (!res.ok) throw new Error("Failed to update service.");
+      logSystemActivity("Service Updated", `Service "${editingService.name}" updated successfully.`, "catalog");
+      setEditingService(null);
+      fetchDashboardData();
+    } catch (err: any) {
+      alert("Error editing service: " + err.message);
     }
   };
 
@@ -1271,19 +1326,63 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
     }
   };
 
-  const handleAddReviewReply = (id: string) => {
+  const handleAddReviewReply = async (id: number | string) => {
     if (!tempReplyText) return;
-    setReviews((prev) =>
-      prev.map((r) => {
-        if (r.id === id) {
-          logSystemActivity(`Review Response Published`, `Replied to buyer feedback from ${r.author}.`, "review");
-          return { ...r, reply: tempReplyText };
+    const token = localStorage.getItem("sitemint_token");
+    try {
+      const res = await fetch(`/api/feedback/reviews/${id}/reply`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ reply: tempReplyText })
+      });
+      if (!res.ok) throw new Error("Failed to submit reply.");
+      logSystemActivity("Review Response Published", "Successfully posted review response reply to MySQL database.", "review");
+      setTempReplyText("");
+      setActiveReviewReplyId(null);
+      fetchDashboardData();
+    } catch (err: any) {
+      alert("Error replying to review: " + err.message);
+    }
+  };
+
+  const handleToggleReviewApprove = async (id: number | string, currentApproved: boolean) => {
+    const token = localStorage.getItem("sitemint_token");
+    try {
+      const res = await fetch(`/api/feedback/reviews/${id}/approve`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ is_approved: !currentApproved })
+      });
+      if (!res.ok) throw new Error("Failed to update review status.");
+      logSystemActivity("Review Status Toggled", `Toggled approval status on review ID ${id}.`, "review");
+      fetchDashboardData();
+    } catch (err: any) {
+      alert("Error approving/unapproving review: " + err.message);
+    }
+  };
+
+  const handleDeleteReview = async (id: number | string) => {
+    if (!window.confirm("Are you sure you want to delete this review?")) return;
+    const token = localStorage.getItem("sitemint_token");
+    try {
+      const res = await fetch(`/api/feedback/reviews/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`
         }
-        return r;
-      })
-    );
-    setTempReplyText("");
-    setActiveReviewReplyId(null);
+      });
+      if (!res.ok) throw new Error("Failed to delete review.");
+      logSystemActivity("Review Deleted", `Deleted review ID ${id} from MySQL database.`, "review");
+      fetchDashboardData();
+    } catch (err: any) {
+      alert("Error deleting review: " + err.message);
+    }
   };
 
   // Upload simulation logic
@@ -3663,8 +3762,15 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                           <div className="pt-2 border-t border-zinc-900 flex justify-end gap-2">
                             <button
                               type="button"
+                              onClick={() => setEditingService(s)}
+                              className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-bold border border-zinc-700 cursor-pointer"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => handleDeleteService(s.id)}
-                              className="px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[10px] font-bold border border-red-500/20 cursor-pointer"
+                              className="px-2.5 py-1 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[10px] font-bold border border-red-500/20 cursor-pointer"
                             >
                               Delete
                             </button>
@@ -3749,7 +3855,7 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                             />
                           </div>
 
-                          <div className="space-y-1.5">
+                           <div className="space-y-1.5">
                             <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Description</label>
                             <textarea 
                               value={newServDesc}
@@ -3760,11 +3866,130 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                             />
                           </div>
 
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Category</label>
+                            <input 
+                              type="text" 
+                              value={newServCategory}
+                              onChange={(e) => setNewServCategory(e.target.value)}
+                              placeholder="e.g. Cut & Style, Starters, Mains, Cardio"
+                              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
+                            />
+                          </div>
+
                           <button
                             type="submit"
                             className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-bold py-3 rounded-xl text-xs hover:opacity-95 cursor-pointer"
                           >
                             Add Service
+                          </button>
+                        </form>
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Edit Service Modal */}
+                <AnimatePresence>
+                  {editingService && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+                    >
+                      <motion.div
+                        initial={{ scale: 0.95 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0.95 }}
+                        className="w-full max-w-md bg-zinc-950 border border-zinc-850 rounded-2xl p-6 relative"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setEditingService(null)}
+                          className="absolute top-4 right-4 text-zinc-500 hover:text-white"
+                        >
+                          <LucideIcon name="X" className="w-5 h-5" />
+                        </button>
+
+                        <form onSubmit={handleEditServiceSubmit} className="space-y-4 text-left">
+                          <h3 className="text-base font-bold text-white font-display border-b border-zinc-900 pb-2">Edit Service</h3>
+
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Service Name</label>
+                            <input 
+                              type="text" 
+                              required
+                              value={editingService.name || ""}
+                              onChange={(e) => setEditingService({ ...editingService, name: e.target.value })}
+                              placeholder="e.g. Therapeutic Sports Massage"
+                              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Price (₹)</label>
+                              <input 
+                                type="number" 
+                                required
+                                value={editingService.price || ""}
+                                onChange={(e) => setEditingService({ ...editingService, price: e.target.value })}
+                                placeholder="1200"
+                                className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Duration (Minutes)</label>
+                              <input 
+                                type="number" 
+                                required
+                                value={editingService.duration_minutes || ""}
+                                onChange={(e) => setEditingService({ ...editingService, duration_minutes: e.target.value })}
+                                placeholder="60"
+                                className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Image URL (Optional)</label>
+                            <input 
+                              type="url" 
+                              value={editingService.image_url || ""}
+                              onChange={(e) => setEditingService({ ...editingService, image_url: e.target.value })}
+                              placeholder="https://images.unsplash.com/photo-..."
+                              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Description</label>
+                            <textarea 
+                              value={editingService.description || ""}
+                              onChange={(e) => setEditingService({ ...editingService, description: e.target.value })}
+                              placeholder="Describe the treatment or class..."
+                              rows={3}
+                              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400 resize-none"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Category</label>
+                            <input 
+                              type="text" 
+                              value={editingService.category || ""}
+                              onChange={(e) => setEditingService({ ...editingService, category: e.target.value })}
+                              placeholder="e.g. Cut & Style, Starters, Mains, Cardio"
+                              className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
+                            />
+                          </div>
+
+                          <button
+                            type="submit"
+                            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-bold py-3 rounded-xl text-xs hover:opacity-95 cursor-pointer"
+                          >
+                            Save Changes
                           </button>
                         </form>
                       </motion.div>
@@ -3913,7 +4138,7 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                       <div key={rev.id} className="p-5 rounded-2xl bg-zinc-950/40 border border-zinc-900 space-y-4">
                         <div className="flex items-start justify-between">
                           <div className="space-y-1">
-                            <h4 className="text-sm font-bold text-white">{rev.author}</h4>
+                            <h4 className="text-sm font-bold text-white">{rev.first_name} {rev.last_name || ""}</h4>
                             <div className="flex items-center gap-2">
                               <div className="flex gap-0.5 text-amber-400">
                                 {[...Array(5)].map((_, idx) => (
@@ -3922,66 +4147,92 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                                   </span>
                                 ))}
                               </div>
-                              <span className="text-[10px] text-zinc-500">• {rev.date}</span>
+                              <span className="text-[10px] text-zinc-500">• {new Date(rev.created_at).toLocaleDateString()}</span>
                             </div>
                           </div>
-                          <span className="text-[10px] font-mono uppercase bg-zinc-900 text-zinc-400 px-2 py-0.5 rounded">
-                            {rev.service}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-mono uppercase bg-zinc-900 text-zinc-400 px-2 py-0.5 rounded">
+                              {rev.service_name || "General"}
+                            </span>
+                            <span className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded font-bold ${rev.is_approved ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"}`}>
+                              {rev.is_approved ? "Approved" : "Pending Approval"}
+                            </span>
+                          </div>
                         </div>
 
                         <p className="text-xs text-zinc-300 leading-normal italic">
                           "{rev.comment}"
                         </p>
 
-                        {/* Display Reply if existing */}
-                        {rev.reply ? (
-                          <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-850 pl-4 border-l-2 border-l-emerald-400">
-                            <p className="text-[10px] font-mono text-zinc-500 uppercase font-black">Your Reply</p>
-                            <p className="text-xs text-zinc-300 mt-1 leading-normal">
-                              {rev.reply}
-                            </p>
+                        <div className="flex items-center justify-between pt-2 border-t border-zinc-900/60">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleToggleReviewApprove(rev.id, !!rev.is_approved)}
+                              className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-all ${
+                                rev.is_approved
+                                  ? "bg-zinc-900 border-zinc-800 text-amber-400 hover:text-amber-300"
+                                  : "bg-emerald-500 text-black hover:opacity-90"
+                              }`}
+                            >
+                              {rev.is_approved ? "Unapprove" : "Approve"}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteReview(rev.id)}
+                              className="px-2.5 py-1 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[10px] font-bold border border-red-500/20"
+                            >
+                              Delete
+                            </button>
                           </div>
-                        ) : (
-                          <div>
-                            {activeReviewReplyId === rev.id ? (
-                              <div className="space-y-2">
-                                <textarea
-                                  value={tempReplyText}
-                                  onChange={(e) => setTempReplyText(e.target.value)}
-                                  rows={2}
-                                  placeholder="Type custom client response..."
-                                  className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
-                                />
-                                <div className="flex justify-end gap-2">
-                                  <button
-                                    onClick={() => setActiveReviewReplyId(null)}
-                                    className="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white text-[10px]"
-                                  >
-                                    Cancel
-                                  </button>
-                                  <button
-                                    onClick={() => handleAddReviewReply(rev.id)}
-                                    className="px-3 py-1 bg-emerald-500 text-black font-bold rounded text-[10px]"
-                                  >
-                                    Submit Reply
-                                  </button>
+
+                          {/* Display Reply if existing */}
+                          {rev.reply ? (
+                            <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-850 pl-4 border-l-2 border-l-emerald-400 flex-grow ml-4 max-w-md">
+                              <p className="text-[10px] font-mono text-zinc-500 uppercase font-black">Your Reply</p>
+                              <p className="text-xs text-zinc-300 mt-1 leading-normal">
+                                {rev.reply}
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="flex-grow ml-4 max-w-md text-right">
+                              {activeReviewReplyId === rev.id ? (
+                                <div className="space-y-2 text-left">
+                                  <textarea
+                                    value={tempReplyText}
+                                    onChange={(e) => setTempReplyText(e.target.value)}
+                                    rows={2}
+                                    placeholder="Type custom client response..."
+                                    className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
+                                  />
+                                  <div className="flex justify-end gap-2">
+                                    <button
+                                      onClick={() => setActiveReviewReplyId(null)}
+                                      className="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white text-[10px]"
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      onClick={() => handleAddReviewReply(rev.id)}
+                                      className="px-3 py-1 bg-emerald-500 text-black font-bold rounded text-[10px]"
+                                    >
+                                      Submit Reply
+                                    </button>
+                                  </div>
                                 </div>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => {
-                                  setActiveReviewReplyId(rev.id);
-                                  setTempReplyText("");
-                                }}
-                                className="text-xs font-bold text-emerald-400 hover:underline flex items-center gap-1"
-                              >
-                                <LucideIcon name="MessageSquare" className="w-3.5 h-3.5" />
-                                Respond to feedback
-                              </button>
-                            )}
-                          </div>
-                        )}
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    setActiveReviewReplyId(rev.id);
+                                    setTempReplyText("");
+                                  }}
+                                  className="text-xs font-bold text-emerald-400 hover:underline inline-flex items-center gap-1"
+                                >
+                                  <LucideIcon name="MessageSquare" className="w-3.5 h-3.5" />
+                                  Respond to feedback
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))
                   )}
@@ -4483,6 +4734,136 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                       </div>
                     </div>
                   ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* TAB: PAYMENTS */}
+            {activeTab === "Payments" && (
+              <motion.div
+                key="payments-tab"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="space-y-6 text-left"
+              >
+                <div className="p-6 bg-zinc-950/40 border border-zinc-900 rounded-2xl space-y-4">
+                  <div className="border-b border-zinc-900 pb-3 flex justify-between items-center">
+                    <div>
+                      <h3 className="text-base font-bold text-white font-display">Settlement Transactions</h3>
+                      <p className="text-xs text-zinc-500">Approve or reject customer direct UPI/card payments.</p>
+                    </div>
+                  </div>
+
+                  {paymentsList.length === 0 ? (
+                    <div className="p-12 text-center rounded-2xl border border-dashed border-zinc-800/80 bg-zinc-950/20 space-y-4">
+                      <div className="w-12 h-12 rounded-full bg-zinc-900/60 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-500">
+                        <LucideIcon name="CreditCard" className="w-6 h-6" />
+                      </div>
+                      <div className="space-y-1 max-w-sm mx-auto">
+                        <h4 className="text-sm font-bold text-white">No Payments Yet</h4>
+                        <p className="text-xs text-zinc-500 leading-normal">
+                          When customers submit payments, they will show up here for validation.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="border-b border-zinc-900 text-zinc-500 font-mono uppercase text-[10px]">
+                            <th className="pb-3 pr-2">Payment ID</th>
+                            <th className="pb-3 pr-2">Customer</th>
+                            <th className="pb-3 pr-2">Amount</th>
+                            <th className="pb-3 pr-2">Reference ID</th>
+                            <th className="pb-3 pr-2">Type</th>
+                            <th className="pb-3 pr-2">Status</th>
+                            <th className="pb-3 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-900/60 font-medium">
+                          {paymentsList.map((pay) => (
+                            <tr key={pay.id} className="text-zinc-300">
+                              <td className="py-3.5 pr-2 font-mono text-[10px]">{pay.id}</td>
+                              <td className="py-3.5 pr-2">
+                                <p className="font-bold text-white">{pay.first_name} {pay.last_name || ""}</p>
+                                <p className="text-[10px] text-zinc-500 font-mono">{pay.email}</p>
+                              </td>
+                              <td className="py-3.5 pr-2 font-mono text-emerald-400">₹{pay.amount}</td>
+                              <td className="py-3.5 pr-2 font-mono text-[10px] select-all">{pay.gateway_payment_id || "N/A"}</td>
+                              <td className="py-3.5 pr-2">
+                                {pay.booking_id ? (
+                                  <span className="text-[10px] bg-purple-500/10 text-purple-400 border border-purple-500/20 px-2 py-0.5 rounded">Booking #{pay.booking_id}</span>
+                                ) : (
+                                  <span className="text-[10px] bg-pink-500/10 text-pink-400 border border-pink-500/20 px-2 py-0.5 rounded">Order #{pay.order_id}</span>
+                                )}
+                              </td>
+                              <td className="py-3.5 pr-2">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${
+                                  pay.status === "captured" || pay.status === "completed" ? "bg-emerald-500/10 text-emerald-400" :
+                                  pay.status === "pending" ? "bg-amber-500/10 text-amber-400" : "bg-red-500/10 text-red-400"
+                                }`}>
+                                  {pay.status}
+                                </span>
+                              </td>
+                              <td className="py-3.5 text-right space-x-2 whitespace-nowrap">
+                                {pay.status === "pending" && (
+                                  <>
+                                    <button
+                                      onClick={async () => {
+                                        const token = localStorage.getItem("sitemint_token");
+                                        try {
+                                          const res = await fetch(`/api/checkout/payments/${pay.id}/approve`, {
+                                            method: "PATCH",
+                                            headers: {
+                                              "Content-Type": "application/json",
+                                              "Authorization": `Bearer ${token}`
+                                            },
+                                            body: JSON.stringify({ status: "captured" })
+                                          });
+                                          if (!res.ok) throw new Error("Failed to approve payment.");
+                                          alert("Payment approved and booking/order confirmed!");
+                                          fetchDashboardData();
+                                        } catch (err: any) {
+                                          alert(err.message);
+                                        }
+                                      }}
+                                      className="px-2.5 py-1 rounded bg-emerald-500 text-black hover:opacity-90 font-bold text-[10px] cursor-pointer"
+                                    >
+                                      Approve
+                                    </button>
+                                    <button
+                                      onClick={async () => {
+                                        const token = localStorage.getItem("sitemint_token");
+                                        try {
+                                          const res = await fetch(`/api/checkout/payments/${pay.id}/approve`, {
+                                            method: "PATCH",
+                                            headers: {
+                                              "Content-Type": "application/json",
+                                              "Authorization": `Bearer ${token}`
+                                            },
+                                            body: JSON.stringify({ status: "failed" })
+                                          });
+                                          if (!res.ok) throw new Error("Failed to reject payment.");
+                                          alert("Payment rejected and booking/order cancelled.");
+                                          fetchDashboardData();
+                                        } catch (err: any) {
+                                          alert(err.message);
+                                        }
+                                      }}
+                                      className="px-2.5 py-1 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold border border-red-500/20 text-[10px] cursor-pointer"
+                                    >
+                                      Reject
+                                    </button>
+                                  </>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -5025,6 +5406,123 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                               Deploy Storefront Live
                             </button>
                           )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* FAQs Manager */}
+                  <div className="p-6 bg-zinc-950/40 border border-zinc-900 rounded-2xl space-y-4">
+                    <div className="border-b border-zinc-900 pb-3">
+                      <h3 className="text-base font-bold text-white font-display">Frequently Asked Questions (FAQs)</h3>
+                      <p className="text-xs text-zinc-500">Add, edit, and delete questions and answers that will appear on the public website.</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      {faqsList.length === 0 ? (
+                        <p className="text-xs text-zinc-500 italic">No FAQs added yet. Use the fields below to add your first FAQ.</p>
+                      ) : (
+                        <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                          {faqsList.map((faq, idx) => (
+                            <div key={idx} className="p-3 bg-zinc-900/50 border border-zinc-800 rounded-xl flex items-start justify-between gap-3 text-xs">
+                              <div className="space-y-1">
+                                <p className="font-bold text-white">Q: {faq.question}</p>
+                                <p className="text-zinc-400">A: {faq.answer}</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setFaqsList(faqsList.filter((_, i) => i !== idx))}
+                                className="text-red-400 hover:text-red-300 font-bold"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="p-4 bg-zinc-900/20 border border-zinc-850 rounded-xl space-y-3">
+                        <span className="text-xs font-bold text-zinc-300 block">Add New FAQ</span>
+                        <div className="space-y-2">
+                          <input
+                            type="text"
+                            placeholder="FAQ Question"
+                            value={newFaqQuestion}
+                            onChange={(e) => setNewFaqQuestion(e.target.value)}
+                            className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs"
+                          />
+                          <textarea
+                            placeholder="FAQ Answer"
+                            value={newFaqAnswer}
+                            onChange={(e) => setNewFaqAnswer(e.target.value)}
+                            rows={2}
+                            className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs resize-none"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!newFaqQuestion || !newFaqAnswer) return;
+                            setFaqsList([...faqsList, { question: newFaqQuestion, answer: newFaqAnswer }]);
+                            setNewFaqQuestion("");
+                            setNewFaqAnswer("");
+                          }}
+                          className="bg-zinc-800 hover:bg-zinc-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs"
+                        >
+                          Add FAQ Item
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Gallery Manager */}
+                  <div className="p-6 bg-zinc-950/40 border border-zinc-900 rounded-2xl space-y-4">
+                    <div className="border-b border-zinc-900 pb-3">
+                      <h3 className="text-base font-bold text-white font-display">Image Gallery Showcase</h3>
+                      <p className="text-xs text-zinc-500">Provide image links to display in the showcase portfolio/gallery section of the website.</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      {galleryList.length === 0 ? (
+                        <p className="text-xs text-zinc-500 italic">No gallery images added yet. Submit URL links below to display photos.</p>
+                      ) : (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-h-60 overflow-y-auto pr-2">
+                          {galleryList.map((url, idx) => (
+                            <div key={idx} className="aspect-square rounded-xl overflow-hidden border border-zinc-850 relative group bg-zinc-900">
+                              <img src={url} alt={`Gallery photo ${idx}`} className="w-full h-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => setGalleryList(galleryList.filter((_, i) => i !== idx))}
+                                className="absolute inset-0 bg-black/75 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-xs font-bold text-red-400 hover:text-red-300"
+                              >
+                                Remove Image
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="p-4 bg-zinc-900/20 border border-zinc-850 rounded-xl space-y-3">
+                        <span className="text-xs font-bold text-zinc-300 block">Add Gallery Image</span>
+                        <div className="flex gap-2">
+                          <input
+                            type="url"
+                            placeholder="Paste direct Image URL (e.g. https://images.unsplash.com/...)"
+                            value={newGalleryUrl}
+                            onChange={(e) => setNewGalleryUrl(e.target.value)}
+                            className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs font-mono"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!newGalleryUrl) return;
+                              setGalleryList([...galleryList, newGalleryUrl]);
+                              setNewGalleryUrl("");
+                            }}
+                            className="bg-zinc-800 hover:bg-zinc-700 text-white font-bold px-4 py-2 rounded-xl text-xs shrink-0"
+                          >
+                            Add URL
+                          </button>
                         </div>
                       </div>
                     </div>

@@ -59,15 +59,17 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
   const [trainers, setTrainers] = useState<any[]>([]);
   const [servicesList, setServicesList] = useState<any[]>([]);
   const [currency, setCurrency] = useState("INR");
+  const [reviewsList, setReviewsList] = useState<any[]>([]);
+  const [galleryPhotos, setGalleryPhotos] = useState<string[]>(LOOKBOOK_PHOTOS);
+  const [faqsList, setFaqsList] = useState<any[]>([]);
+  const [slogan, setSlogan] = useState("LUXURY HAIR & BOTANICAL THERAPY SALON");
+  const [contactPhone, setContactPhone] = useState("+91 98765 43210");
+  const [contactEmail, setContactEmail] = useState("luna@sitemint-network.app");
+  const [address, setAddress] = useState("84 Mint Avenue, Suite 100, San Francisco, CA");
+  const [googleMaps, setGoogleMaps] = useState("");
 
   const getCurrencySymbol = (code: string) => {
-    switch (code) {
-      case "USD": return "$";
-      case "EUR": return "€";
-      case "GBP": return "£";
-      case "INR": return "₹";
-      default: return "₹";
-    }
+    return "₹";
   };
 
   useEffect(() => {
@@ -101,11 +103,38 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
           setBrandName(biz.name);
           setUpiId(biz.upi_id || "sveltehair@upi");
           setLogoUrl(biz.logo_url || "");
-          setCurrency(biz.currency || "INR");
+          setCurrency("INR");
+          if (biz.description) {
+            setSlogan(biz.description);
+          }
+          if (biz.contact_phone) setContactPhone(biz.contact_phone);
+          if (biz.contact_email) setContactEmail(biz.contact_email);
+          if (biz.address) setAddress(biz.address);
+          if (biz.google_maps_location) setGoogleMaps(biz.google_maps_location);
+
           if (res.data.theme_settings) {
             setAccentColor(res.data.theme_settings.primary_color || initialThemeAccent);
             setTypography(res.data.theme_settings.font_family || "Default");
+            
+            let customJson: any = {};
+            try {
+              const rawJson = res.data.theme_settings.custom_settings_json;
+              customJson = typeof rawJson === "string" ? JSON.parse(rawJson) : (rawJson || {});
+            } catch (e) {
+              customJson = {};
+            }
+            if (customJson.faqs && customJson.faqs.length > 0) setFaqsList(customJson.faqs);
+            if (customJson.gallery && customJson.gallery.length > 0) setGalleryPhotos(customJson.gallery);
           }
+
+          // Fetch reviews
+          fetch(`/api/feedback/reviews?business_id=${biz.id}&approved_only=true`)
+            .then(r => r.json())
+            .then(revRes => {
+              if (revRes.status === "success" && Array.isArray(revRes.data) && revRes.data.length > 0) {
+                setReviewsList(revRes.data);
+              }
+            });
         }
       })
       .catch((err) => console.error("Error loading business configurations:", err));
@@ -172,8 +201,35 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
     setIsUpiModalOpen(true);
   };
 
+  const displayServices = servicesList.length > 0 ? servicesList.map(s => ({
+    id: String(s.id),
+    name: s.name,
+    price: Number(s.price),
+    duration: `${s.duration_minutes} mins`,
+    category: s.category || "General",
+    description: s.description || ""
+  })) : SALON_SERVICES;
+
+  const displayStylists = trainers.length > 0 ? trainers.map(t => ({
+    id: String(t.id),
+    name: t.full_name,
+    role: t.staff_title || t.role || "Stylist",
+    image: t.staff_photo_url || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80",
+    rating: t.rating || 5,
+    bio: t.bio || "Professional beauty expert"
+  })) : STYLISTS;
+
+  const displayLookbook = galleryPhotos;
+
+  const displayReviews = reviewsList.length > 0 ? reviewsList.map(r => ({
+    name: `${r.first_name} ${r.last_name || ""}`.trim(),
+    rating: r.rating,
+    comment: r.comment,
+    date: new Date(r.created_at).toLocaleDateString()
+  })) : REVIEWS;
+
   const handlePaymentSuccess = (bookingId: string | number) => {
-    const compiledItems = SALON_SERVICES.filter((s) => selectedServices.includes(s.id));
+    const compiledItems = displayServices.filter((s) => selectedServices.includes(s.id));
     const totalPrice = compiledItems.reduce((acc, current) => acc + current.price, 0);
 
     setBookingTicket({
@@ -188,7 +244,7 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
     setBookingConfirmed(true);
   };
 
-  const totalCalculated = SALON_SERVICES
+  const totalCalculated = displayServices
     .filter((s) => selectedServices.includes(s.id))
     .reduce((acc, current) => acc + current.price, 0);
 
@@ -384,7 +440,7 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="services-grid">
-            {SALON_SERVICES.map((svc) => (
+            {displayServices.map((svc) => (
               <div 
                 key={svc.id} 
                 className="p-5 rounded-2xl bg-zinc-950/60 border border-zinc-900 hover:border-zinc-850 transition-colors flex flex-col justify-between text-left relative"
@@ -438,7 +494,7 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6" id="stylists-grid">
-            {STYLISTS.map((sty) => (
+            {displayStylists.map((sty) => (
               <div 
                 key={sty.id} 
                 className="group rounded-2xl overflow-hidden border border-zinc-900 bg-zinc-950/60 text-left hover:border-zinc-850 transition-all flex flex-col justify-between"
@@ -505,7 +561,7 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4" id="lookbook-grid">
-            {LOOKBOOK_PHOTOS.map((url, idx) => (
+            {displayLookbook.map((url, idx) => (
               <div key={idx} className="aspect-square rounded-2xl overflow-hidden border border-zinc-900 relative group">
                 <img 
                   src={url} 
@@ -535,7 +591,7 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6" id="reviews-grid">
-            {REVIEWS.map((rev, idx) => (
+            {displayReviews.map((rev, idx) => (
               <div key={idx} className="p-6 rounded-2xl bg-[#090B0F] border border-zinc-900 space-y-4 text-left">
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-bold text-white font-serif">{rev.name}</span>
@@ -678,7 +734,7 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
                         onChange={(e) => setSelectedStylist(e.target.value)}
                         className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-zinc-700 cursor-pointer"
                       >
-                        {STYLISTS.map((sty) => (
+                        {displayStylists.map((sty) => (
                           <option key={sty.id} value={sty.name}>{sty.name} ({sty.role.split(" ")[0]})</option>
                         ))}
                       </select>
@@ -701,7 +757,7 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
                   <div className="space-y-2">
                     <label className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block">Luna Treatment Services</label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {SALON_SERVICES.map((s) => {
+                      {displayServices.map((s) => {
                         const checked = selectedServices.includes(s.id);
                         return (
                           <div
@@ -782,10 +838,10 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
                 last_name: custName.split(" ").slice(1).join(" ") || ""
               }}
               bookingDetails={{
-                service_id: 2, // Seeded Salon service template ID
+                service_id: Number(selectedServices[0]), 
                 staff_id: null,
                 start_time: `${selectedDate}T${selectedTime.split(" ")[0] === "09:00" ? "09:00:00" : selectedTime.split(" ")[0] === "10:00" ? "10:00:00" : selectedTime.split(" ")[0] === "11:30" ? "11:30:00" : selectedTime.split(" ")[0] === "01:00" ? "13:00:00" : selectedTime.split(" ")[0] === "02:30" ? "14:30:00" : selectedTime.split(" ")[0] === "04:00" ? "16:00:00" : selectedTime.split(" ")[0] === "05:30" ? "17:30:00" : "19:00:00"}`,
-                notes: `Treatments: ${SALON_SERVICES.filter((s) => selectedServices.includes(s.id)).map(s => s.name).join(", ")} | Stylist: ${selectedStylist}`
+                notes: `Treatments: ${displayServices.filter((s) => selectedServices.includes(s.id)).map(s => s.name).join(", ")} | Stylist: ${selectedStylist}`
               }}
               onSuccess={handlePaymentSuccess}
             />

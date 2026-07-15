@@ -51,18 +51,20 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
   const [upiId, setUpiId] = useState("vanguard@upi");
 
   // Dynamic CMS fields
-  const [trainers, setTrainers] = useState<any[]>(TRAINERS);
+  const [trainers, setTrainers] = useState<any[]>([]);
   const [servicesList, setServicesList] = useState<any[]>([]);
   const [currency, setCurrency] = useState("INR");
+  const [reviewsList, setReviewsList] = useState<any[]>([]);
+  const [galleryPhotos, setGalleryPhotos] = useState<string[]>(GALLERY_PHOTOS);
+  const [faqsList, setFaqsList] = useState<any[]>([]);
+  const [slogan, setSlogan] = useState("BUILD HYPERTROPHY, SPEED & BIO-MECHANICS UNDER SCIENTIFIC OVERLOAD");
+  const [contactPhone, setContactPhone] = useState("+91 98765 43210");
+  const [contactEmail, setContactEmail] = useState("vanguard@sitemint-network.app");
+  const [address, setAddress] = useState("102 Silicon Avenue, Tech City");
+  const [googleMaps, setGoogleMaps] = useState("");
 
   const getCurrencySymbol = (code: string) => {
-    switch (code) {
-      case "USD": return "$";
-      case "EUR": return "€";
-      case "GBP": return "£";
-      case "INR": return "₹";
-      default: return "₹";
-    }
+    return "₹";
   };
 
   useEffect(() => {
@@ -96,11 +98,36 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
           setBrandName(biz.name);
           setUpiId(biz.upi_id || "vanguard@upi");
           setLogoUrl(biz.logo_url || "");
-          setCurrency(biz.currency || "INR");
+          setCurrency("INR");
+          if (biz.description) setSlogan(biz.description);
+          if (biz.contact_phone) setContactPhone(biz.contact_phone);
+          if (biz.contact_email) setContactEmail(biz.contact_email);
+          if (biz.address) setAddress(biz.address);
+          if (biz.google_maps_location) setGoogleMaps(biz.google_maps_location);
+
           if (res.data.theme_settings) {
             setAccentColor(res.data.theme_settings.primary_color || initialThemeAccent);
             setTypography(res.data.theme_settings.font_family || "Space Grotesk");
+            
+            let customJson: any = {};
+            try {
+              const rawJson = res.data.theme_settings.custom_settings_json;
+              customJson = typeof rawJson === "string" ? JSON.parse(rawJson) : (rawJson || {});
+            } catch (e) {
+              customJson = {};
+            }
+            if (customJson.faqs && customJson.faqs.length > 0) setFaqsList(customJson.faqs);
+            if (customJson.gallery && customJson.gallery.length > 0) setGalleryPhotos(customJson.gallery);
           }
+
+          // Fetch reviews
+          fetch(`/api/feedback/reviews?business_id=${biz.id}&approved_only=true`)
+            .then(r => r.json())
+            .then(revRes => {
+              if (revRes.status === "success" && Array.isArray(revRes.data) && revRes.data.length > 0) {
+                setReviewsList(revRes.data);
+              }
+            });
         }
       })
       .catch((err) => console.error("Error loading business configurations:", err));
@@ -109,7 +136,7 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
     fetch(`/api/staff?subdomain=${subdomain}`)
       .then((r) => r.json())
       .then((res) => {
-        if (res.status === "success" && Array.isArray(res.data) && res.data.length > 0) {
+        if (res.status === "success" && Array.isArray(res.data)) {
           setTrainers(res.data);
         }
       })
@@ -119,12 +146,44 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
     fetch(`/api/catalog/services?subdomain=${subdomain}`)
       .then((r) => r.json())
       .then((res) => {
-        if (res.status === "success" && Array.isArray(res.data) && res.data.length > 0) {
+        if (res.status === "success" && Array.isArray(res.data)) {
           setServicesList(res.data);
         }
       })
       .catch((err) => console.error("Error loading services:", err));
   }, []);
+
+  const displayTiers = servicesList.length > 0 ? servicesList.map((s, idx) => ({
+    id: String(s.id),
+    name: s.name,
+    price: Number(s.price),
+    interval: "mo",
+    features: s.description ? s.description.split(/[,\n.]+/).map((f: string) => f.trim()).filter(Boolean) : ["Full gym access", "Professional coaching advice", "Locker access"],
+    popular: idx === 1
+  })) : MEMBERSHIP_TIERS;
+
+  const displayTrainers = trainers.length > 0 ? trainers.map(t => ({
+    id: String(t.id),
+    name: t.full_name,
+    role: t.staff_title || t.role || "Performance Coach",
+    bio: t.bio || "Certified athletics specialist.",
+    image: t.staff_photo_url || "https://images.unsplash.com/photo-1567013127542-490d757e51fc?auto=format&fit=crop&w=300&q=80",
+    rating: t.rating || 5,
+    specialty: t.staff_title || "Strength & Power"
+  })) : TRAINERS;
+
+  const displayGallery = galleryPhotos;
+
+  const displayReviews = reviewsList.length > 0 ? reviewsList.map(r => ({
+    name: `${r.first_name} ${r.last_name || ""}`.trim(),
+    role: "Athlete Member",
+    comment: r.comment,
+    rating: r.rating,
+    date: new Date(r.created_at).toLocaleDateString()
+  })) : [
+    { name: "Damian Thorne", role: "Vanguard Level 2 Athlete", comment: "The biometric mapping and custom power plates are incredible. Scaled my deadlift by 40kg.", rating: 5, date: "3 weeks ago" },
+    { name: "Elena Rostova", role: "Olympic Weightlifting Member", comment: "Clean platforms, certified competitive bars, and coaches who understand velocity based training.", rating: 5, date: "1 month ago" }
+  ];
 
   // Customer credentials inputs
   const [custName, setCustName] = useState("");
@@ -142,9 +201,9 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
   const [bookingDetails, setBookingDetails] = useState<any>(null);
 
   // Contact Form
-  const [contactName, setContactName] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
-  const [contactMsg, setContactMsg] = useState("");
+  const [contactFormName, setContactFormName] = useState("");
+  const [contactFormEmail, setContactFormEmail] = useState("");
+  const [contactFormMsg, setContactFormMsg] = useState("");
   const [contactSuccess, setContactSuccess] = useState(false);
 
   // Selected membership modal
@@ -182,9 +241,9 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
     setContactSuccess(true);
     setTimeout(() => {
       setContactSuccess(false);
-      setContactName("");
-      setContactEmail("");
-      setContactMsg("");
+      setContactFormName("");
+      setContactFormEmail("");
+      setContactFormMsg("");
     }, 4000);
   };
 
@@ -396,7 +455,7 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch" id="membership-grid">
-            {MEMBERSHIP_TIERS.map((tier) => (
+            {displayTiers.map((tier) => (
               <div 
                 key={tier.id}
                 className={`p-6 rounded-2xl border text-left flex flex-col justify-between transition-all relative ${
@@ -470,7 +529,7 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6" id="trainers-grid">
-            {TRAINERS.map((coach) => (
+            {displayTrainers.map((coach) => (
               <div 
                 key={coach.id} 
                 className="group rounded-2xl overflow-hidden border border-zinc-900 bg-[#0c0c0e]/80 text-left hover:border-zinc-800 transition-all flex flex-col justify-between"
@@ -537,7 +596,7 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3" id="gallery-grid">
-            {GALLERY_PHOTOS.map((photo, idx) => (
+            {displayGallery.map((photo, idx) => (
               <div key={idx} className="aspect-square rounded-xl overflow-hidden border border-zinc-900 relative group">
                 <img 
                   src={photo} 
@@ -753,7 +812,7 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
                 last_name: custName.split(" ").slice(1).join(" ") || ""
               }}
               bookingDetails={{
-                service_id: 1, // Seeded Gym template ID
+                service_id: Number(servicesList[0]?.id) || 1, 
                 staff_id: null,
                 start_time: `${selectedDate}T${selectedSlot.split(" ")[0] === "07:00" ? "07:00:00" : selectedSlot.split(" ")[0] === "09:30" ? "09:30:00" : selectedSlot.split(" ")[0] === "11:00" ? "11:00:00" : selectedSlot.split(" ")[0] === "02:00" ? "14:00:00" : selectedSlot.split(" ")[0] === "04:30" ? "16:30:00" : "18:00:00"}`,
                 notes: `Trainer: ${selectedTrainer}`
@@ -877,8 +936,8 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
                     type="text" 
                     placeholder="E.g., Marcus Vance"
                     required
-                    value={contactName}
-                    onChange={(e) => setContactName(e.target.value)}
+                    value={contactFormName}
+                    onChange={(e) => setContactFormName(e.target.value)}
                     className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-3 py-2.5 text-xs text-white placeholder-zinc-650 focus:outline-none focus:border-zinc-700 transition-colors"
                   />
                 </div>
@@ -889,8 +948,8 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
                     type="email" 
                     placeholder="marcus@vanguard.co"
                     required
-                    value={contactEmail}
-                    onChange={(e) => setContactEmail(e.target.value)}
+                    value={contactFormEmail}
+                    onChange={(e) => setContactFormEmail(e.target.value)}
                     className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-3 py-2.5 text-xs text-white placeholder-zinc-650 focus:outline-none focus:border-zinc-700 transition-colors"
                   />
                 </div>
@@ -902,8 +961,8 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
                   placeholder="How can we help optimize your kinetic strength training?"
                   rows={4}
                   required
-                  value={contactMsg}
-                  onChange={(e) => setContactMsg(e.target.value)}
+                  value={contactFormMsg}
+                  onChange={(e) => setContactFormMsg(e.target.value)}
                   className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-3 py-2.5 text-xs text-white placeholder-zinc-650 focus:outline-none focus:border-zinc-700 transition-colors resize-none"
                 />
               </div>

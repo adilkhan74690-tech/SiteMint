@@ -57,16 +57,19 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
   // Dynamic CMS fields
   const [trainers, setTrainers] = useState<any[]>([]);
   const [servicesList, setServicesList] = useState<any[]>([]);
+  const [productsList, setProductsList] = useState<any[]>([]);
   const [currency, setCurrency] = useState("INR");
+  const [reviewsList, setReviewsList] = useState<any[]>([]);
+  const [galleryPhotos, setGalleryPhotos] = useState<string[]>(FOOD_GALLERY);
+  const [faqsList, setFaqsList] = useState<any[]>([]);
+  const [slogan, setSlogan] = useState("HIGH-GASTRONOMY CUISINE & COCKTAILS");
+  const [contactPhone, setContactPhone] = useState("+91 98765 43210");
+  const [contactEmail, setContactEmail] = useState("bistro@sitemint-network.app");
+  const [address, setAddress] = useState("45 Gourmet Blvd, Culinary Suite 9");
+  const [googleMaps, setGoogleMaps] = useState("");
 
   const getCurrencySymbol = (code: string) => {
-    switch (code) {
-      case "USD": return "$";
-      case "EUR": return "€";
-      case "GBP": return "£";
-      case "INR": return "₹";
-      default: return "₹";
-    }
+    return "₹";
   };
 
   useEffect(() => {
@@ -100,11 +103,36 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
           setBrandName(biz.name);
           setUpiId(biz.upi_id || "bistrodeluxe@upi");
           setLogoUrl(biz.logo_url || "");
-          setCurrency(biz.currency || "INR");
+          setCurrency("INR");
+          if (biz.description) setSlogan(biz.description);
+          if (biz.contact_phone) setContactPhone(biz.contact_phone);
+          if (biz.contact_email) setContactEmail(biz.contact_email);
+          if (biz.address) setAddress(biz.address);
+          if (biz.google_maps_location) setGoogleMaps(biz.google_maps_location);
+
           if (res.data.theme_settings) {
             setAccentColor(res.data.theme_settings.primary_color || initialThemeAccent);
             setTypography(res.data.theme_settings.font_family || "Playfair Display");
+            
+            let customJson: any = {};
+            try {
+              const rawJson = res.data.theme_settings.custom_settings_json;
+              customJson = typeof rawJson === "string" ? JSON.parse(rawJson) : (rawJson || {});
+            } catch (e) {
+              customJson = {};
+            }
+            if (customJson.faqs && customJson.faqs.length > 0) setFaqsList(customJson.faqs);
+            if (customJson.gallery && customJson.gallery.length > 0) setGalleryPhotos(customJson.gallery);
           }
+
+          // Fetch reviews
+          fetch(`/api/feedback/reviews?business_id=${biz.id}&approved_only=true`)
+            .then(r => r.json())
+            .then(revRes => {
+              if (revRes.status === "success" && Array.isArray(revRes.data) && revRes.data.length > 0) {
+                setReviewsList(revRes.data);
+              }
+            });
         }
       })
       .catch((err) => console.error("Error loading business configurations:", err));
@@ -128,6 +156,16 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
         }
       })
       .catch((err) => console.error("Error loading services:", err));
+
+    // Fetch Products (Menu items)
+    fetch(`/api/catalog/products?subdomain=${subdomain}`)
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.status === "success" && Array.isArray(res.data)) {
+          setProductsList(res.data);
+        }
+      })
+      .catch((err) => console.error("Error loading products:", err));
   }, []);
 
   // Customer credentials inputs
@@ -138,6 +176,25 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
   // UPI payment modal control
   const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
 
+  const displayMenu = productsList.length > 0 ? productsList.map(p => ({
+    id: String(p.id),
+    name: p.name,
+    price: Number(p.price),
+    category: p.category || "Mains",
+    description: p.description || "Freshly curated bistro specialty.",
+    image: p.image_url || "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=400&q=80",
+    tags: p.compare_at_price ? ["Promo"] : []
+  })) : MENU_ITEMS;
+
+  const displayGallery = galleryPhotos;
+
+  const displayReviews = reviewsList.length > 0 ? reviewsList.map(r => ({
+    name: `${r.first_name} ${r.last_name || ""}`.trim(),
+    rating: r.rating,
+    comment: r.comment,
+    date: new Date(r.created_at).toLocaleDateString()
+  })) : REVIEWS;
+
   // Table reservation state
   const [guests, setGuests] = useState("4 Guests");
   const [reservationDate, setReservationDate] = useState("2026-07-13");
@@ -147,7 +204,7 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
   const [reserveTicket, setReserveTicket] = useState<any>(null);
 
   // Cart/Checkout state
-  const [cart, setCart] = useState<{ item: typeof MENU_ITEMS[0]; qty: number }[]>([]);
+  const [cart, setCart] = useState<{ item: any; qty: number }[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<"cart" | "billing" | "success">("cart");
   const [billingName, setBillingName] = useState("");
@@ -158,10 +215,10 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
   const reservationTimes = ["05:30 PM - Sunset Seat", "07:00 PM - Candlelight Prime", "08:00 PM - Prime Dining", "09:30 PM - Late Jazz Hour", "10:30 PM - Chef Nightcap"];
   const seatOptions = ["Indoor Velvet Booth", "Outdoor Heated Terrace", "Chef Counter Stool", "Private Fireplace Alcove"];
 
-  const filteredItems = MENU_ITEMS.filter((item) => item.category === activeCategory);
+  const filteredItems = displayMenu.filter((item) => item.category === activeCategory);
 
   // Add Item to Cart
-  const handleAddToCart = (item: typeof MENU_ITEMS[0]) => {
+  const handleAddToCart = (item: any) => {
     const existing = cart.find((i) => i.item.id === item.id);
     if (existing) {
       setCart(cart.map((i) => i.item.id === item.id ? { ...i, qty: i.qty + 1 } : i));
@@ -706,7 +763,7 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
                 last_name: custName.split(" ").slice(1).join(" ") || ""
               }}
               bookingDetails={{
-                service_id: 3, // Seeded Restaurant template ID
+                service_id: Number(servicesList[0]?.id) || 3, 
                 staff_id: null,
                 start_time: `${reservationDate}T${reservationTime.split(" ")[0] === "05:30" ? "17:30:00" : reservationTime.split(" ")[0] === "07:00" ? "19:00:00" : reservationTime.split(" ")[0] === "08:00" ? "20:00:00" : reservationTime.split(" ")[0] === "09:30" ? "21:30:00" : "22:30:00"}`,
                 notes: `Guests: ${guests} | Seating: ${seatingPreference}`
@@ -730,7 +787,7 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4" id="food-gallery-grid">
-            {FOOD_GALLERY.map((imgUrl, index) => (
+            {displayGallery.map((imgUrl, index) => (
               <div key={index} className="aspect-square rounded-2xl overflow-hidden border border-zinc-900 relative group">
                 <img 
                   src={imgUrl} 
@@ -760,7 +817,7 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6" id="reviews-grid">
-            {REVIEWS.map((rev, idx) => (
+            {displayReviews.map((rev, idx) => (
               <div key={idx} className="p-6 rounded-2xl bg-zinc-950 border border-zinc-900 space-y-4 text-left">
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-bold text-white font-serif">{rev.name}</span>

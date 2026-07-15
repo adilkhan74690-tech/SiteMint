@@ -233,3 +233,75 @@ export async function deleteMedia(req: Request, res: Response, next: NextFunctio
     next(error);
   }
 }
+
+/**
+ * Approve or update review status (owner action).
+ */
+export async function updateReviewStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const businessId = req.user?.businessId;
+  const { id } = req.params;
+  const { is_approved } = req.body;
+
+  if (!businessId) {
+    res.status(401).json({ status: "error", message: "Unauthorized tenant." });
+    return;
+  }
+
+  try {
+    await query(
+      "UPDATE `reviews` SET `is_approved` = ? WHERE `id` = ? AND `business_id` = ?",
+      [is_approved ? 1 : 0, id, businessId]
+    );
+    res.json({ status: "success", message: "Review status updated successfully." });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Reply to a customer review (owner action).
+ */
+export async function updateReviewReply(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const businessId = req.user?.businessId;
+  const { id } = req.params;
+  const { reply } = req.body;
+
+  if (!businessId) {
+    res.status(401).json({ status: "error", message: "Unauthorized tenant." });
+    return;
+  }
+
+  try {
+    await query(
+      "UPDATE `reviews` SET `reply` = ? WHERE `id` = ? AND `business_id` = ?",
+      [reply || null, id, businessId]
+    );
+    res.json({ status: "success", message: "Review reply updated successfully." });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Delete a review (owner action).
+ */
+export async function deleteReview(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const businessId = req.user?.businessId;
+  const { id } = req.params;
+
+  if (!businessId) {
+    res.status(401).json({ status: "error", message: "Unauthorized tenant." });
+    return;
+  }
+
+  try {
+    await query(
+      "DELETE FROM `reviews` WHERE `id` = ? AND `business_id` = ?",
+      [id, businessId]
+    );
+    res.json({ status: "success", message: "Review deleted successfully." });
+  } catch (error) {
+    next(error);
+  }
+}
+

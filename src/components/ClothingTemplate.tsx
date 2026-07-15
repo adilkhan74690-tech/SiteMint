@@ -61,13 +61,7 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
   const [currency, setCurrency] = useState("INR");
 
   const getCurrencySymbol = (code: string) => {
-    switch (code) {
-      case "USD": return "$";
-      case "EUR": return "€";
-      case "GBP": return "£";
-      case "INR": return "₹";
-      default: return "₹";
-    }
+    return "₹";
   };
 
   useEffect(() => {
