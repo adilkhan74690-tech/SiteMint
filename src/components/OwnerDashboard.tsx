@@ -4372,7 +4372,11 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                 </div>
 
                 <div className="p-6 rounded-2xl bg-zinc-950/40 border border-zinc-900 space-y-4">
-                  {orders.filter(o => o.customer.toLowerCase().includes(orderQuery.toLowerCase()) || o.tracking.toLowerCase().includes(orderQuery.toLowerCase())).length === 0 ? (
+                  {orders.filter(o => {
+                    const customer = o.customer || (o.first_name ? `${o.first_name} ${o.last_name || ""}` : "");
+                    const tracking = o.tracking || `TRK-${o.id}`;
+                    return customer.toLowerCase().includes(orderQuery.toLowerCase()) || tracking.toLowerCase().includes(orderQuery.toLowerCase());
+                  }).length === 0 ? (
                     <div className="p-12 text-center rounded-2xl border border-dashed border-zinc-800/80 bg-zinc-950/20 space-y-4">
                       <div className="w-12 h-12 rounded-full bg-zinc-900/60 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-500">
                         <LucideIcon name="ShoppingCart" className="w-6 h-6" />
@@ -4386,48 +4390,59 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                     </div>
                   ) : (
                     orders
-                      .filter(o => o.customer.toLowerCase().includes(orderQuery.toLowerCase()) || o.tracking.toLowerCase().includes(orderQuery.toLowerCase()))
-                      .map((ord) => (
-                        <div key={ord.id} className="p-4 rounded-xl bg-zinc-900/40 border border-zinc-850 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-mono text-zinc-500 font-bold">{ord.id}</span>
-                              <span className={`text-[9px] font-mono px-2 py-0.5 rounded-full ${
-                                ord.status === "Delivered" ? "bg-emerald-500/10 text-emerald-400" :
-                                ord.status === "Shipped" ? "bg-cyan-500/10 text-cyan-400" : "bg-amber-500/10 text-amber-400 animate-pulse"
-                              }`}>
-                                {ord.status}
-                              </span>
+                      .filter(o => {
+                        const customer = o.customer || (o.first_name ? `${o.first_name} ${o.last_name || ""}` : "");
+                        const tracking = o.tracking || `TRK-${o.id}`;
+                        return customer.toLowerCase().includes(orderQuery.toLowerCase()) || tracking.toLowerCase().includes(orderQuery.toLowerCase());
+                      })
+                      .map((ord) => {
+                        const customerName = ord.customer || (ord.first_name ? `${ord.first_name} ${ord.last_name || ""}`.trim() : "Walk-in Diner");
+                        const trackingCode = ord.tracking || `TRK-${ord.id}`;
+                        const orderItemsDesc = ord.items || ord.order_items_desc || "Menu Items Placed";
+                        const orderDate = ord.date || (ord.created_at ? new Date(ord.created_at).toLocaleDateString() : "");
+                        const orderAmount = ord.amount || ord.total_amount || 0;
+                        return (
+                          <div key={ord.id} className="p-4 rounded-xl bg-zinc-900/40 border border-zinc-850 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div className="space-y-1 text-left">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-mono text-zinc-500 font-bold">{ord.id}</span>
+                                <span className={`text-[9px] font-mono px-2 py-0.5 rounded-full ${
+                                  ord.status === "Delivered" ? "bg-emerald-500/10 text-emerald-400" :
+                                  ord.status === "Shipped" ? "bg-cyan-500/10 text-cyan-400" : "bg-amber-500/10 text-amber-400 animate-pulse"
+                                }`}>
+                                  {ord.status}
+                                </span>
+                              </div>
+                              <h4 className="text-sm font-bold text-white">{customerName}</h4>
+                              <p className="text-xs text-zinc-400 leading-normal">{orderItemsDesc}</p>
+                              <p className="text-[10px] font-mono text-zinc-500">Placed: {orderDate} • Tracking: {trackingCode}</p>
                             </div>
-                            <h4 className="text-sm font-bold text-white">{ord.customer}</h4>
-                            <p className="text-xs text-zinc-400 leading-normal">{ord.items}</p>
-                            <p className="text-[10px] font-mono text-zinc-500">Placed: {ord.date} • Tracking: {ord.tracking}</p>
-                          </div>
 
-                          <div className="flex sm:flex-col items-start sm:items-end justify-between sm:justify-center gap-2 shrink-0">
-                            <p className="text-sm font-black text-emerald-400">${ord.amount}</p>
-                            
-                            <div className="flex gap-1.5">
-                              {ord.status === "Processing" && (
-                                <button 
-                                  onClick={() => handleOrderAction(ord.id, "Shipped")}
-                                  className="px-2.5 py-1 rounded bg-cyan-500 text-black font-bold text-[10px]"
-                                >
-                                  Mark Shipped
-                                </button>
-                              )}
-                              {ord.status === "Shipped" && (
-                                <button 
-                                  onClick={() => handleOrderAction(ord.id, "Delivered")}
-                                  className="px-2.5 py-1 rounded bg-emerald-500 text-black font-bold text-[10px]"
-                                >
-                                  Mark Delivered
-                                </button>
-                              )}
+                            <div className="flex sm:flex-col items-start sm:items-end justify-between sm:justify-center gap-2 shrink-0">
+                              <p className="text-sm font-black text-emerald-400">${orderAmount}</p>
+                              
+                              <div className="flex gap-1.5">
+                                {ord.status === "Processing" && (
+                                  <button 
+                                    onClick={() => handleOrderAction(ord.id, "Shipped")}
+                                    className="px-2.5 py-1 rounded bg-cyan-500 text-black font-bold text-[10px]"
+                                  >
+                                    Mark Shipped
+                                  </button>
+                                )}
+                                {ord.status === "Shipped" && (
+                                  <button 
+                                    onClick={() => handleOrderAction(ord.id, "Delivered")}
+                                    className="px-2.5 py-1 rounded bg-emerald-500 text-black font-bold text-[10px]"
+                                  >
+                                    Mark Delivered
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))
+                        );
+                      })
                   )}
                 </div>
               </motion.div>

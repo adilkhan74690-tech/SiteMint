@@ -215,7 +215,14 @@ export async function listOrders(req: Request, res: Response, next: NextFunction
 
   try {
     const orders = await query(
-      `SELECT o.*, c.first_name, c.last_name, c.email, c.phone 
+      `SELECT o.*, c.first_name, c.last_name, c.email, c.phone,
+              (
+                SELECT GROUP_CONCAT(CONCAT(oi.quantity, 'x ', COALESCE(pr.name, s2.name)) SEPARATOR ', ')
+                FROM order_items oi
+                LEFT JOIN products pr ON oi.product_id = pr.id
+                LEFT JOIN services s2 ON oi.product_id = s2.id
+                WHERE oi.order_id = o.id
+              ) AS order_items_desc
        FROM \`orders\` o
        JOIN \`customers\` c ON o.customer_id = c.id
        WHERE o.business_id = ? 

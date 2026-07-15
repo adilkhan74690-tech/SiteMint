@@ -78,28 +78,4 @@ body {
   background-size: 24px 24px;
 }
 
-/* Global Mobile Responsiveness Helpers */
-@media (max-width: 768px) {
-  input, select, textarea {
-    font-size: 16px !important;
-  }
-}
 
-img {
-  max-width: 100%;
-  height: auto;
-}
-
-/* Table Responsive wrapper */
-.table-responsive-container {
-  width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Mobile Touch Target minimums */
-@media (max-width: 640px) {
-  button, .touch-target {
-    min-height: 44px;
-  }
-}
