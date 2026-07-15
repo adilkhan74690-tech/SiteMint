@@ -47,7 +47,7 @@ CREATE TABLE `users` (
   `email` VARCHAR(100) NOT NULL,
   `password_hash` VARCHAR(255) NOT NULL,
   `full_name` VARCHAR(100) NOT NULL,
-  `role` ENUM('owner', 'manager', 'staff') NOT NULL DEFAULT 'staff',
+  `role` ENUM('owner', 'manager', 'staff', 'SUPER_ADMIN') NOT NULL DEFAULT 'staff',
   `status` ENUM('active', 'inactive', 'pending') NOT NULL DEFAULT 'pending',
   `refresh_token` VARCHAR(512) DEFAULT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
