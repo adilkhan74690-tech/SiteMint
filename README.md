@@ -16,24 +16,68 @@ The project focuses on solving a real-world problem by providing small businesse
 https://sitemint-t6b7.onrender.com
 
 ---
-
 # 🔑 Demo Credentials
 
-## Business Owner
+A demo Restaurant website has already been created for evaluation purposes.
 
-**Email:** adilkhan@gmail.com
+### 🍽️ Restaurant Demo (Business Owner)
 
-**Password:** 12345678
+Email: adilkhan@gmail.com
 
-## Super Admin
+Password: 12345678
 
-**Email:** test@gmail.com
+Using this account, you can:
 
-**Password:** Test@123
-
-> These accounts are provided only for project evaluation.
+- View the Owner Dashboard
+- Manage Menu Items
+- Manage Gallery
+- Manage Reservations
+- Manage Reviews
+- Manage Orders
+- Edit Website Content
+- Preview the Live Website
 
 ---
+
+### 👑 Super Admin
+
+Email: test@gmail.com
+
+Password: Test@123
+
+Using this account, you can:
+
+- Access the Super Admin Dashboard
+- Manage Business Owners
+- Monitor Registered Websites
+- View Platform Statistics
+
+---
+
+## 🧪 Create Your Own Demo
+
+You can also test the complete workflow by creating a new Business Owner account.
+
+Steps:
+
+1. Register a new account.
+2. Log in as the new Business Owner.
+3. Create a new website.
+4. Select any available template:
+   - Restaurant
+   - Gym
+   - Salon
+   - Clothing Store
+5. Customize the website using the Owner Dashboard.
+6. Open the generated website and test the customer experience.
+
+---
+
+## 🌐 Live Demo
+
+https://sitemint-t6b7.onrender.com
+
+> The Restaurant template has been pre-configured for quick evaluation. Other templates can be tested by creating a new Business Owner account and generating a website.
 
 # 📖 Project Background
 
