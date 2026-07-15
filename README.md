@@ -300,3 +300,9 @@ ReadyNest Internship Project
 # 📄 License
 
 This project was developed for educational purposes as part of the ReadyNest Internship Program.
+
+![React](https://img.shields.io/badge/React-19-blue)
+![Node](https://img.shields.io/badge/Node.js-Express-green)
+![MySQL](https://img.shields.io/badge/Database-MySQL-orange)
+![Render](https://img.shields.io/badge/Deploy-Render-purple)
+![Railway](https://img.shields.io/badge/Database-Railway-blueviolet)
