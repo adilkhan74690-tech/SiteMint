@@ -178,14 +178,14 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
   // UPI payment modal control
   const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
 
-  const displayMenu = productsList.length > 0 ? productsList.map(p => ({
-    id: String(p.id),
-    name: p.name,
-    price: Number(p.price),
-    category: p.category || "Mains",
-    description: p.description || "Freshly curated bistro specialty.",
-    image: p.image_url || "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=400&q=80",
-    tags: p.compare_at_price ? ["Promo"] : []
+  const displayMenu = servicesList.length > 0 ? servicesList.map(s => ({
+    id: String(s.id),
+    name: s.name,
+    price: Number(s.price),
+    category: s.category || "Mains",
+    description: s.description || "Freshly curated bistro specialty.",
+    image: s.image_url || "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=400&q=80",
+    tags: s.offer_price ? ["Promo"] : []
   })) : MENU_ITEMS;
 
   const displayGallery = galleryPhotos;

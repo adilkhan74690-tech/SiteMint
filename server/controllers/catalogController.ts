@@ -163,10 +163,12 @@ export async function createService(req: Request, res: Response, next: NextFunct
     return;
   }
 
-  if (!name || !duration_minutes || price === undefined) {
-    res.status(400).json({ status: "error", message: "Service name, duration, and price are required." });
+  if (!name || price === undefined) {
+    res.status(400).json({ status: "error", message: "Service name and price are required." });
     return;
   }
+
+  const finalDuration = (duration_minutes === undefined || duration_minutes === null || Number.isNaN(Number(duration_minutes))) ? 30 : Number(duration_minutes);
 
   try {
     const result: any = await query(
@@ -177,15 +179,15 @@ export async function createService(req: Request, res: Response, next: NextFunct
         businessId,
         name,
         description !== undefined ? description : null,
-        Number(duration_minutes),
-        Number(price),
-        capacity !== undefined ? Number(capacity) : 1,
+        finalDuration,
+        Number.isNaN(Number(price)) ? 0 : Number(price),
+        capacity !== undefined && !Number.isNaN(Number(capacity)) ? Number(capacity) : 1,
         is_active !== false,
         image_url || null,
-        offer_price !== undefined ? Number(offer_price) : null,
+        offer_price !== undefined && !Number.isNaN(Number(offer_price)) ? Number(offer_price) : null,
         category || null,
         featured_badge || null,
-        sort_order !== undefined ? Number(sort_order) : 0,
+        sort_order !== undefined && !Number.isNaN(Number(sort_order)) ? Number(sort_order) : 0,
         availability || null
       ]
     );
@@ -211,6 +213,10 @@ export async function updateService(req: Request, res: Response, next: NextFunct
     return;
   }
 
+  const finalDuration = (duration_minutes === undefined || duration_minutes === null)
+    ? undefined
+    : (Number.isNaN(Number(duration_minutes)) ? 30 : Number(duration_minutes));
+
   try {
     await query(
       `UPDATE \`services\` 
@@ -230,15 +236,15 @@ export async function updateService(req: Request, res: Response, next: NextFunct
       [
         name !== undefined ? name : null,
         description !== undefined ? description : null,
-        duration_minutes !== undefined ? Number(duration_minutes) : null,
-        price !== undefined ? Number(price) : null,
-        capacity !== undefined ? Number(capacity) : null,
+        finalDuration !== undefined ? finalDuration : null,
+        price !== undefined && !Number.isNaN(Number(price)) ? Number(price) : null,
+        capacity !== undefined && !Number.isNaN(Number(capacity)) ? Number(capacity) : null,
         is_active !== undefined ? is_active : null,
         image_url !== undefined ? image_url : null,
-        offer_price !== undefined ? Number(offer_price) : null,
+        offer_price !== undefined && !Number.isNaN(Number(offer_price)) ? Number(offer_price) : null,
         category !== undefined ? category : null,
         featured_badge !== undefined ? featured_badge : null,
-        sort_order !== undefined ? Number(sort_order) : null,
+        sort_order !== undefined && !Number.isNaN(Number(sort_order)) ? Number(sort_order) : null,
         availability !== undefined ? availability : null,
         id,
         businessId
