@@ -39,6 +39,43 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
   const [upiId, setUpiId] = useState("nordicloom@upi");
   const [logoUrl, setLogoUrl] = useState<string>("");
 
+  // Customer Notifications System
+  const [customerNotifications, setCustomerNotifications] = useState<any[]>([]);
+  const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
+
+  const fetchCustomerNotifications = () => {
+    if (!customerEmail || !businessId) return;
+    fetch(`/api/public/notifications?email=${customerEmail}&business_id=${businessId}`)
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.status === "success" && Array.isArray(res.data)) {
+          setCustomerNotifications(res.data);
+        }
+      })
+      .catch((e) => console.error("Error fetching customer notifications:", e));
+  };
+
+  useEffect(() => {
+    fetchCustomerNotifications();
+    const interval = setInterval(fetchCustomerNotifications, 5000);
+    return () => clearInterval(interval);
+  }, [customerEmail, businessId]);
+
+  const handleMarkAsRead = (id: number) => {
+    fetch(`/api/public/notifications/${id}/read`, { method: "PATCH" })
+      .then(() => fetchCustomerNotifications())
+      .catch((e) => console.error("Error marking notification as read:", e));
+  };
+
+  const handleMarkAllAsRead = () => {
+    const unread = customerNotifications.filter((n) => !n.is_read);
+    Promise.all(
+      unread.map((n) => fetch(`/api/public/notifications/${n.id}/read`, { method: "PATCH" }))
+    )
+      .then(() => fetchCustomerNotifications())
+      .catch((e) => console.error("Error marking all notifications as read:", e));
+  };
+
   // Catalog products and categories
   const [products, setProducts] = useState<any[]>([]);
   const [activeCategory, setActiveCategory] = useState("All");
@@ -323,6 +360,79 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
             >
               Sign In / Account
             </button>
+          )}
+
+          {/* Notification Bell */}
+          {customerEmail && (
+            <div className="relative">
+              <button
+                onClick={() => setNotifDropdownOpen(!notifDropdownOpen)}
+                className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 transition-all cursor-pointer relative"
+                id="btn-customer-notif-toggle"
+              >
+                <LucideIcon name="Bell" className="w-4 h-4" />
+                {customerNotifications.filter((n: any) => !n.is_read).length > 0 && (
+                  <span
+                    className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center text-black font-mono"
+                    style={{ backgroundColor: accentColor }}
+                  >
+                    {customerNotifications.filter((n: any) => !n.is_read).length}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification Dropdown */}
+              {notifDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-80 rounded-2xl border border-zinc-800 bg-[#09090B] p-4 text-white shadow-2xl z-50 text-left font-sans">
+                  <div className="flex items-center justify-between border-b border-zinc-900 pb-2 mb-2">
+                    <h5 className="text-xs font-bold font-mono text-zinc-400 uppercase tracking-wider">Notifications</h5>
+                    {customerNotifications.filter((n: any) => !n.is_read).length > 0 && (
+                      <button 
+                        onClick={handleMarkAllAsRead}
+                        className="text-[10px] text-emerald-400 hover:underline font-semibold"
+                      >
+                        Mark all as read
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-60 overflow-y-auto space-y-2 scrollbar-thin">
+                    {customerNotifications.length === 0 ? (
+                      <p className="text-[11px] text-zinc-500 text-center py-4">No notifications yet.</p>
+                    ) : (
+                      customerNotifications.map((n: any) => (
+                        <div 
+                          key={n.id} 
+                          className={`p-2.5 rounded-xl border transition-all flex flex-col gap-1 ${
+                            n.is_read 
+                              ? "bg-zinc-950/20 border-zinc-900 text-zinc-400" 
+                              : "bg-zinc-900/60 border-zinc-800 text-white"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold flex items-center gap-1.5">
+                              {!n.is_read && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+                              {n.title}
+                            </span>
+                            <span className="text-[9px] font-mono text-zinc-500">
+                              {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <p className="text-[11px] leading-normal">{n.message}</p>
+                          {!n.is_read && (
+                            <button
+                              onClick={() => handleMarkAsRead(n.id)}
+                              className="text-[9px] text-zinc-500 hover:text-white underline text-right self-end mt-1"
+                            >
+                              Mark read
+                            </button>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           <button

@@ -387,3 +387,51 @@ export async function updateReview(req: Request, res: Response, next: NextFuncti
   }
 }
 
+export async function getCustomerNotifications(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const { email, business_id } = req.query;
+
+  if (!email || !business_id) {
+    res.status(400).json({ status: "error", message: "Email and business_id are required query parameters." });
+    return;
+  }
+
+  try {
+    // 1. Resolve customer ID by email and business ID
+    const customers: any[] = await query(
+      "SELECT id FROM `customers` WHERE `business_id` = ? AND `email` = ?",
+      [business_id, email]
+    );
+
+    if (customers.length === 0) {
+      res.json({ status: "success", data: [] });
+      return;
+    }
+
+    const customerId = customers[0].id;
+
+    // 2. Fetch notifications for this customer
+    const notifications = await query(
+      "SELECT * FROM `notifications` WHERE `business_id` = ? AND `recipient_type` = 'customer' AND `recipient_id` = ? ORDER BY `id` DESC",
+      [business_id, customerId]
+    );
+
+    res.json({ status: "success", data: notifications });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function markCustomerNotificationAsRead(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const { id } = req.params;
+
+  try {
+    await query(
+      "UPDATE `notifications` SET `is_read` = TRUE WHERE `id` = ? AND `recipient_type` = 'customer'",
+      [id]
+    );
+    res.json({ status: "success", message: "Customer notification marked as read successfully." });
+  } catch (error) {
+    next(error);
+  }
+}
+

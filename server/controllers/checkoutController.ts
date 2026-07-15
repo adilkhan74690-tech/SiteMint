@@ -446,7 +446,7 @@ export async function approvePayment(req: Request, res: Response, next: NextFunc
       }
       if (payment.order_id) {
         await connection.execute(
-          "UPDATE `orders` SET `status` = 'completed' WHERE `id` = ?",
+          "UPDATE `orders` SET `status` = 'approved' WHERE `id` = ?",
           [payment.order_id]
         );
       }
@@ -460,17 +460,17 @@ export async function approvePayment(req: Request, res: Response, next: NextFunc
       }
       if (payment.order_id) {
         await connection.execute(
-          "UPDATE `orders` SET `status` = 'cancelled' WHERE `id` = ?",
+          "UPDATE `orders` SET `status` = 'rejected' WHERE `id` = ?",
           [payment.order_id]
         );
       }
     }
 
     // Create customer notification record
-    const notifTitle = status === "captured" ? "Payment Verified" : "Payment Rejected";
+    const notifTitle = status === "captured" ? "Approved" : "Rejected";
     const notifMessage = status === "captured" 
-      ? "Your payment has been verified. Your order is confirmed." 
-      : "Payment verification failed. Please upload a valid payment screenshot.";
+      ? "🎉 Your payment has been verified. Your order has been approved and is now being prepared." 
+      : "Your payment could not be verified. Please upload a new payment screenshot.";
     
     await connection.execute(
       `INSERT INTO \`notifications\` (\`business_id\`, \`recipient_type\`, \`recipient_id\`, \`title\`, \`message\`) 
@@ -545,17 +545,27 @@ export async function updateOrderStatus(req: Request, res: Response, next: NextF
     }
 
     // Create customer notification record and propagate payment status
-    let notifTitle = "Pending Approval";
-    let notifMessage = "Your request has been submitted successfully and is waiting for owner approval.";
+    let notifTitle = "Pending";
+    let notifMessage = "Your order has been received and is waiting for approval.";
     const lowerStatus = status.toLowerCase();
-    if (lowerStatus === "completed" || lowerStatus === "delivered" || lowerStatus === "processed" || lowerStatus === "processing" || lowerStatus === "confirmed" || lowerStatus === "approved") {
+
+    if (lowerStatus === "approved" || lowerStatus === "confirmed" || lowerStatus === "processed") {
       notifTitle = "Approved";
-      notifMessage = "Your payment has been verified. Your order has been confirmed.";
+      notifMessage = "🎉 Your payment has been verified. Your order has been approved and is now being prepared.";
       await query("UPDATE `payments` SET `status` = 'captured' WHERE `order_id` = ? AND `business_id` = ?", [id, businessId]);
-    } else if (lowerStatus === "cancelled" || lowerStatus === "rejected") {
+    } else if (lowerStatus === "rejected" || lowerStatus === "failed") {
       notifTitle = "Rejected";
-      notifMessage = "Payment verification failed. Please upload a valid screenshot.";
+      notifMessage = "Your payment could not be verified. Please upload a new payment screenshot.";
       await query("UPDATE `payments` SET `status` = 'failed' WHERE `order_id` = ? AND `business_id` = ?", [id, businessId]);
+    } else if (lowerStatus === "completed") {
+      notifTitle = "Completed";
+      notifMessage = "Your order has been completed. Thank you for choosing us.";
+    } else if (lowerStatus === "cancelled") {
+      notifTitle = "Cancelled";
+      notifMessage = "Your order has been cancelled.";
+    } else if (lowerStatus === "pending") {
+      notifTitle = "Pending";
+      notifMessage = "Your order has been received and is waiting for approval.";
     }
 
     await query(

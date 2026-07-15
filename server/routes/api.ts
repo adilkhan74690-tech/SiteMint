@@ -68,7 +68,9 @@ import {
   updateReviewStatus,
   updateReviewReply,
   deleteReview,
-  updateReview
+  updateReview,
+  getCustomerNotifications,
+  markCustomerNotificationAsRead
 } from "../controllers/feedbackController.js";
 import {
   authenticateUser,
@@ -293,6 +295,10 @@ router.patch(
   authenticateUser,
   markNotificationAsRead
 );
+
+// Public Customer Notifications
+router.get("/public/notifications", getCustomerNotifications);
+router.patch("/public/notifications/:id/read", markCustomerNotificationAsRead);
 
 // ==========================================
 // 7. Staff Management Routes

@@ -221,17 +221,24 @@ export async function updateBookingStatus(req: Request, res: Response, next: Nex
     }
 
     // Create customer notification record and propagate payment status
-    let notifTitle = "Pending Approval";
-    let notifMessage = "Your request has been submitted successfully and is waiting for owner approval.";
+    let notifTitle = "Pending";
+    let notifMessage = "Your order has been received and is waiting for approval.";
     const lowerStatus = status.toLowerCase();
-    if (lowerStatus === "confirmed" || lowerStatus === "completed" || lowerStatus === "approved") {
+
+    if (lowerStatus === "confirmed" || lowerStatus === "approved") {
       notifTitle = "Approved";
-      notifMessage = "Your payment has been verified. Your order has been confirmed.";
+      notifMessage = "🎉 Your payment has been verified. Your order has been approved and is now being prepared.";
       await query("UPDATE `payments` SET `status` = 'captured' WHERE `booking_id` = ? AND `business_id` = ?", [id, businessId]);
     } else if (lowerStatus === "cancelled" || lowerStatus === "rejected") {
       notifTitle = "Rejected";
-      notifMessage = "Payment verification failed. Please upload a valid screenshot.";
+      notifMessage = "Your payment could not be verified. Please upload a new payment screenshot.";
       await query("UPDATE `payments` SET `status` = 'failed' WHERE `booking_id` = ? AND `business_id` = ?", [id, businessId]);
+    } else if (lowerStatus === "completed") {
+      notifTitle = "Completed";
+      notifMessage = "Your order has been completed. Thank you for choosing us.";
+    } else if (lowerStatus === "pending") {
+      notifTitle = "Pending";
+      notifMessage = "Your order has been received and is waiting for approval.";
     }
 
     await query(
