@@ -84,7 +84,9 @@ import {
   deleteBusiness,
   listAnnouncements,
   createAnnouncement,
-  deleteAnnouncement
+  deleteAnnouncement,
+  getAdminPayments,
+  getAdminSubscriptions
 } from "../controllers/adminController.js";
 
 const router = Router();
@@ -116,6 +118,8 @@ router.delete("/admin/businesses/:id", authenticateUser, requireRole(["SUPER_ADM
 router.get("/admin/announcements", authenticateUser, listAnnouncements);
 router.post("/admin/announcements", authenticateUser, requireRole(["SUPER_ADMIN"]), createAnnouncement);
 router.delete("/admin/announcements/:id", authenticateUser, requireRole(["SUPER_ADMIN"]), deleteAnnouncement);
+router.get("/admin/payments", authenticateUser, requireRole(["SUPER_ADMIN"]), getAdminPayments);
+router.get("/admin/subscriptions", authenticateUser, requireRole(["SUPER_ADMIN"]), getAdminSubscriptions);
 
 // ==========================================
 // 2. Business & Tenant Branding Routes

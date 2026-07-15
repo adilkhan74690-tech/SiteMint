@@ -1118,8 +1118,19 @@ export async function initializeDatabase(): Promise<void> {
       `);
       console.log("🌱 Seeded default templates.");
       reportText += `- **Templates:** Seeded default templates (\`gym\`, \`restaurant\`, \`salon\`, \`clothing\`).\n`;
-    } else {
-      reportText += `- **Templates:** Already seeded (${templateCheck[0].count} templates).\n`;
+    }
+
+    // Seed default Super Admin user: test@gmail.com / Test@123
+    const [adminCheck]: any = await conn.execute("SELECT COUNT(*) as count FROM `users` WHERE `email` = 'test@gmail.com'");
+    if (adminCheck[0].count === 0) {
+      const bcrypt = await import("bcryptjs");
+      const salt = await bcrypt.default.genSalt(10);
+      const hash = await bcrypt.default.hash("Test@123", salt);
+      await conn.execute(`
+        INSERT INTO \`users\` (\`business_id\`, \`email\`, \`password_hash\`, \`full_name\`, \`role\`, \`status\`)
+        VALUES (NULL, 'test@gmail.com', ?, 'Platform Super Admin', 'SUPER_ADMIN', 'active')
+      `, [hash]);
+      console.log("🌱 Seeded default Super Admin user.");
     }
 
     // Insert business owner foreign keys constraint if missing

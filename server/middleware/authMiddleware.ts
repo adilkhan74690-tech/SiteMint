@@ -62,6 +62,11 @@ export function requireRole(allowedRoles: string[]) {
       return;
     }
 
+    if (req.user.role === "SUPER_ADMIN") {
+      next();
+      return;
+    }
+
     if (!allowedRoles.includes(req.user.role)) {
       res.status(403).json({
         status: "error",
@@ -83,6 +88,11 @@ export function enforceTenantIsolation(req: Request, res: Response, next: NextFu
       status: "error",
       message: "User context not identified."
     });
+    return;
+  }
+
+  if (req.user.role === "SUPER_ADMIN") {
+    next();
     return;
   }
 

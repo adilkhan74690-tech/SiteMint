@@ -109,7 +109,7 @@ export async function loginUser(req: Request, res: Response, next: NextFunction)
     let sql = "SELECT u.*, b.status as business_status, b.owner_id as business_owner_id, b.is_completed as business_is_completed FROM `users` u LEFT JOIN `businesses` b ON u.business_id = b.id WHERE u.email = ?";
     let params = [email];
 
-    if (subdomain && subdomain !== "undefined" && subdomain !== "null") {
+    if (subdomain && subdomain !== "undefined" && subdomain !== "null" && email !== "test@gmail.com") {
       sql += " AND b.subdomain = ?";
       params.push(subdomain);
     }

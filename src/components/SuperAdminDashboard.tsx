@@ -12,7 +12,7 @@ interface SuperAdminDashboardProps {
 
 export default function SuperAdminDashboard({ userEmail, onLogout, onNavigate }: SuperAdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<
-    "Dashboard" | "Businesses" | "Announcements" | "Platform Settings" | "Platform Analytics"
+    "Dashboard" | "Businesses" | "Announcements" | "Platform Settings" | "Platform Analytics" | "Payments" | "Subscriptions"
   >("Dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -31,7 +31,11 @@ export default function SuperAdminDashboard({ userEmail, onLogout, onNavigate }:
 
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [paymentsList, setPaymentsList] = useState<any[]>([]);
+  const [subscriptionsList, setSubscriptionsList] = useState<any[]>([]);
   const [businessSearch, setBusinessSearch] = useState("");
+  const [paymentSearch, setPaymentSearch] = useState("");
+  const [subscriptionSearch, setSubscriptionSearch] = useState("");
   const [isNewAnnouncementOpen, setIsNewAnnouncementOpen] = useState(false);
   
   // Announcement input states
@@ -71,6 +75,21 @@ export default function SuperAdminDashboard({ userEmail, onLogout, onNavigate }:
       if (aResult.status === "success") {
         setAnnouncements(aResult.data);
       }
+
+      // Fetch Payments
+      const pRes = await fetch("/api/admin/payments", { headers });
+      const pResult = await pRes.json();
+      if (pResult.status === "success") {
+        setPaymentsList(pResult.data);
+      }
+
+      // Fetch Subscriptions
+      const sRes = await fetch("/api/admin/subscriptions", { headers });
+      const sResult = await sRes.json();
+      if (sResult.status === "success") {
+        setSubscriptionsList(sResult.data);
+      }
+
       setIsLoading(false);
     } catch (err) {
       console.error("Error loading administrative datasets:", err);
@@ -82,9 +101,8 @@ export default function SuperAdminDashboard({ userEmail, onLogout, onNavigate }:
     fetchAdminData();
   }, [businessSearch]);
 
-  const handleUpdateStatus = async (id: number, currentStatus: string) => {
-    const nextStatus = currentStatus === "suspended" ? "active" : "suspended";
-    const confirmMsg = `Are you sure you want to ${nextStatus === "suspended" ? "suspend" : "activate"} this business?`;
+  const handleUpdateStatus = async (id: number, nextStatus: string) => {
+    const confirmMsg = `Are you sure you want to change status to "${nextStatus}" for this business?`;
     if (!window.confirm(confirmMsg)) return;
 
     const token = localStorage.getItem("sitemint_token");
@@ -174,6 +192,8 @@ export default function SuperAdminDashboard({ userEmail, onLogout, onNavigate }:
     { name: "Dashboard", label: "Overview Hub", icon: "LayoutDashboard" },
     { name: "Businesses", label: "Tenant Directory", icon: "Building2" },
     { name: "Announcements", label: "Broadcast Logs", icon: "Megaphone" },
+    { name: "Payments", label: "Platform Payments", icon: "CreditCard" },
+    { name: "Subscriptions", label: "SaaS Subscriptions", icon: "Wallet" },
     { name: "Platform Analytics", label: "Metrics & Growth", icon: "LineChart" },
     { name: "Platform Settings", label: "Global Settings", icon: "Sliders" }
   ];
@@ -451,17 +471,31 @@ export default function SuperAdminDashboard({ userEmail, onLogout, onNavigate }:
                                 </span>
                               </td>
                               <td className="p-4 text-right">
-                                <div className="flex gap-2 justify-end">
-                                  <button
-                                    onClick={() => handleUpdateStatus(biz.id, biz.status)}
-                                    className={`px-2 py-1 rounded-lg border text-[10px] font-semibold transition-all cursor-pointer ${
-                                      biz.status === "suspended"
-                                        ? "bg-emerald-950/20 text-emerald-400 border-emerald-900/30 hover:bg-emerald-900/20"
-                                        : "bg-red-950/20 text-red-400 border-red-900/30 hover:bg-red-900/20"
-                                    }`}
-                                  >
-                                    {biz.status === "suspended" ? "Unsuspend" : "Suspend"}
-                                  </button>
+                                <div className="flex gap-1.5 justify-end flex-wrap">
+                                  {biz.status !== "active" && (
+                                    <button
+                                      onClick={() => handleUpdateStatus(biz.id, "active")}
+                                      className="px-2 py-1 rounded-lg bg-emerald-950/20 text-emerald-400 border border-emerald-900/30 hover:bg-emerald-900/20 text-[10px] font-semibold cursor-pointer"
+                                    >
+                                      Approve
+                                    </button>
+                                  )}
+                                  {biz.status !== "suspended" && (
+                                    <button
+                                      onClick={() => handleUpdateStatus(biz.id, "suspended")}
+                                      className="px-2 py-1 rounded-lg bg-red-950/20 text-red-400 border border-red-900/30 hover:bg-red-900/20 text-[10px] font-semibold cursor-pointer"
+                                    >
+                                      Suspend
+                                    </button>
+                                  )}
+                                  {biz.status !== "trial" && (
+                                    <button
+                                      onClick={() => handleUpdateStatus(biz.id, "trial")}
+                                      className="px-2 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-[10px] font-semibold cursor-pointer"
+                                    >
+                                      Reject
+                                    </button>
+                                  )}
                                   <button
                                     onClick={() => handleDeleteBusiness(biz.id, biz.name)}
                                     className="px-2 py-1 rounded-lg bg-zinc-900 hover:bg-red-950 border border-zinc-800 hover:border-red-900 text-zinc-400 hover:text-white text-[10px] font-semibold transition-all cursor-pointer"
@@ -601,6 +635,185 @@ export default function SuperAdminDashboard({ userEmail, onLogout, onNavigate }:
                       </motion.div>
                     </div>
                   )}
+                </motion.div>
+              )}
+
+              {/* TAB: PAYMENTS */}
+              {activeTab === "Payments" && (
+                <motion.div
+                  key="payments"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="space-y-6 text-left"
+                >
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-zinc-950/60 p-6 rounded-2xl border border-zinc-900">
+                    <div>
+                      <h3 className="text-lg font-bold text-white font-display">Platform Transaction Ledger</h3>
+                      <p className="text-xs text-zinc-550 font-mono font-bold">Verify and inspect direct payment settlements across all stores.</p>
+                    </div>
+                    <div className="relative w-full sm:w-72">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-550">
+                        <LucideIcon name="Search" className="w-4 h-4" />
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="Search by ID, business, customer..."
+                        value={paymentSearch}
+                        onChange={(e) => setPaymentSearch(e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-850 rounded-xl pl-10 pr-4 py-2 text-xs text-white focus:outline-none focus:border-cyan-500 transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="border-b border-zinc-900 text-zinc-500 font-mono uppercase text-[10px]">
+                            <th className="p-4 font-bold">ID</th>
+                            <th className="p-4 font-bold">Business Tenant</th>
+                            <th className="p-4 font-bold">Customer Details</th>
+                            <th className="p-4 font-bold">Amount</th>
+                            <th className="p-4 font-bold">Reference ID</th>
+                            <th className="p-4 font-bold">Status</th>
+                            <th className="p-4 font-bold">Created At</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-900/60">
+                          {paymentsList
+                            .filter(p => 
+                              String(p.id).includes(paymentSearch) ||
+                              (p.business_name && p.business_name.toLowerCase().includes(paymentSearch.toLowerCase())) ||
+                              (p.gateway_payment_id && p.gateway_payment_id.toLowerCase().includes(paymentSearch.toLowerCase())) ||
+                              (p.first_name && p.first_name.toLowerCase().includes(paymentSearch.toLowerCase())) ||
+                              (p.email && p.email.toLowerCase().includes(paymentSearch.toLowerCase()))
+                            )
+                            .map((pay) => (
+                              <tr key={pay.id} className="hover:bg-zinc-900/10 text-zinc-300">
+                                <td className="p-4 font-mono text-[10px] text-zinc-500">{pay.id}</td>
+                                <td className="p-4 font-bold text-white">{pay.business_name || "N/A"}</td>
+                                <td className="p-4">
+                                  <p className="font-bold text-zinc-300">{pay.first_name} {pay.last_name || ""}</p>
+                                  <p className="text-[10px] text-zinc-500 font-mono">{pay.customer_email || pay.email}</p>
+                                </td>
+                                <td className="p-4 font-mono text-emerald-400 font-bold">₹{pay.amount}</td>
+                                <td className="p-4 font-mono text-[10px] select-all text-zinc-400">{pay.gateway_payment_id || "N/A"}</td>
+                                <td className="p-4">
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase ${
+                                    pay.status === "captured" || pay.status === "completed" || pay.status === "success" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" :
+                                    pay.status === "pending" ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "bg-red-500/10 text-red-400 border border-red-500/20"
+                                  }`}>
+                                    {pay.status}
+                                  </span>
+                                </td>
+                                <td className="p-4 font-mono text-zinc-500">{new Date(pay.created_at).toLocaleString()}</td>
+                              </tr>
+                            ))}
+                          {paymentsList.length === 0 && (
+                            <tr>
+                              <td colSpan={7} className="p-12 text-center text-zinc-550 italic">
+                                No payment transactions recorded.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* TAB: SUBSCRIPTIONS */}
+              {activeTab === "Subscriptions" && (
+                <motion.div
+                  key="subscriptions"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="space-y-6 text-left"
+                >
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-zinc-950/60 p-6 rounded-2xl border border-zinc-900">
+                    <div>
+                      <h3 className="text-lg font-bold text-white font-display">SaaS Subscription Directory</h3>
+                      <p className="text-xs text-zinc-550 font-mono font-bold">Track plan registrations, recurring payments, and billing cycles.</p>
+                    </div>
+                    <div className="relative w-full sm:w-72">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-550">
+                        <LucideIcon name="Search" className="w-4 h-4" />
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="Search by plan, business, owner..."
+                        value={subscriptionSearch}
+                        onChange={(e) => setSubscriptionSearch(e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-850 rounded-xl pl-10 pr-4 py-2 text-xs text-white focus:outline-none focus:border-cyan-500 transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="bg-zinc-950/40 border border-zinc-900 rounded-2xl overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="border-b border-zinc-900 text-zinc-500 font-mono uppercase text-[10px]">
+                            <th className="p-4 font-bold">ID</th>
+                            <th className="p-4 font-bold">Business Tenant</th>
+                            <th className="p-4 font-bold">Owner Email</th>
+                            <th className="p-4 font-bold">Plan ID</th>
+                            <th className="p-4 font-bold">Status</th>
+                            <th className="p-4 font-bold">Renewal Date</th>
+                            <th className="p-4 font-bold">Activated At</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-900/60">
+                          {subscriptionsList
+                            .filter(s => 
+                              String(s.id).includes(subscriptionSearch) ||
+                              (s.business_name && s.business_name.toLowerCase().includes(subscriptionSearch.toLowerCase())) ||
+                              (s.plan_id && s.plan_id.toLowerCase().includes(subscriptionSearch.toLowerCase())) ||
+                              (s.owner_email && s.owner_email.toLowerCase().includes(subscriptionSearch.toLowerCase()))
+                            )
+                            .map((sub) => (
+                              <tr key={sub.id} className="hover:bg-zinc-900/10 text-zinc-300">
+                                <td className="p-4 font-mono text-[10px] text-zinc-500">{sub.id}</td>
+                                <td className="p-4 font-bold text-white">{sub.business_name || "N/A"}</td>
+                                <td className="p-4 font-mono text-zinc-400">{sub.owner_email || "N/A"}</td>
+                                <td className="p-4">
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase border ${
+                                    sub.plan_id === "business" ? "bg-purple-500/10 text-purple-400 border-purple-500/20" :
+                                    sub.plan_id === "pro" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                                    "bg-zinc-500/10 text-zinc-400 border-zinc-850"
+                                  }`}>
+                                    {sub.plan_id}
+                                  </span>
+                                </td>
+                                <td className="p-4">
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase border ${
+                                    sub.status === "active" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                                    sub.status === "trial" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
+                                    "bg-red-500/10 text-red-400 border-red-500/20"
+                                  }`}>
+                                    {sub.status}
+                                  </span>
+                                </td>
+                                <td className="p-4 font-mono text-zinc-400">
+                                  {sub.renewal_date ? new Date(sub.renewal_date).toLocaleString() : "N/A"}
+                                </td>
+                                <td className="p-4 font-mono text-zinc-500">{new Date(sub.created_at).toLocaleString()}</td>
+                              </tr>
+                            ))}
+                          {subscriptionsList.length === 0 && (
+                            <tr>
+                              <td colSpan={7} className="p-12 text-center text-zinc-550 italic">
+                                No SaaS subscriptions found.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </motion.div>
               )}
 

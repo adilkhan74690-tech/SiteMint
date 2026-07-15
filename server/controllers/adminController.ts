@@ -148,3 +148,33 @@ export async function deleteAnnouncement(req: Request, res: Response, next: Next
     next(error);
   }
 }
+
+export async function getAdminPayments(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const list = await query(`
+      SELECT p.*, b.name as business_name, c.email as customer_email, c.first_name, c.last_name
+      FROM \`payments\` p
+      LEFT JOIN \`businesses\` b ON p.business_id = b.id
+      LEFT JOIN \`customers\` c ON p.customer_id = c.id
+      ORDER BY p.id DESC
+    `);
+    res.json({ status: "success", data: list });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getAdminSubscriptions(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const list = await query(`
+      SELECT s.*, b.name as business_name, u.email as owner_email
+      FROM \`subscriptions\` s
+      LEFT JOIN \`businesses\` b ON s.business_id = b.id
+      LEFT JOIN \`users\` u ON b.owner_id = u.id
+      ORDER BY s.id DESC
+    `);
+    res.json({ status: "success", data: list });
+  } catch (error) {
+    next(error);
+  }
+}
