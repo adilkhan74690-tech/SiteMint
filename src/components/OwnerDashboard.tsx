@@ -386,11 +386,11 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
       });
 
       const result = await response.json();
-      if (!response.ok) {
+      if (!response.ok || !result.success) {
         throw new Error(result.message || "Failed to update payment status.");
       }
 
-      alert(`UPI payment has been successfully ${approve ? "Approved" : "Rejected"}.`);
+      alert(result.message || `Payment approved successfully.`);
       fetchDashboardData(); // Reload list
     } catch (err: any) {
       alert("Error approving payment: " + err.message);
@@ -5449,8 +5449,9 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                                             },
                                             body: JSON.stringify({ status: "captured" })
                                           });
-                                          if (!res.ok) throw new Error("Failed to approve payment.");
-                                          alert("Payment approved and booking/order confirmed!");
+                                          const data = await res.json();
+                                          if (!res.ok || !data.success) throw new Error(data.message || "Failed to approve payment.");
+                                          alert(data.message || "Payment approved and booking/order confirmed!");
                                           fetchDashboardData();
                                         } catch (err: any) {
                                           alert(err.message);
@@ -5472,8 +5473,9 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                                             },
                                             body: JSON.stringify({ status: "failed" })
                                           });
-                                          if (!res.ok) throw new Error("Failed to reject payment.");
-                                          alert("Payment rejected and booking/order cancelled.");
+                                          const data = await res.json();
+                                          if (!res.ok || !data.success) throw new Error(data.message || "Failed to reject payment.");
+                                          alert(data.message || "Payment rejected and booking/order cancelled.");
                                           fetchDashboardData();
                                         } catch (err: any) {
                                           alert(err.message);

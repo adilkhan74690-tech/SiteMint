@@ -493,9 +493,9 @@ export async function approvePayment(req: Request, res: Response, next: NextFunc
       amount: payment.amount
     });
 
-    res.json({
-      status: "success",
-      message: `Payment settlement transaction has been marked as ${status === "captured" ? "Approved" : "Rejected"}.`
+    res.status(200).json({
+      success: true,
+      message: status === "captured" ? "Payment approved successfully." : "Payment rejected successfully."
     });
   } catch (error) {
     if (connection) await connection.rollback();
