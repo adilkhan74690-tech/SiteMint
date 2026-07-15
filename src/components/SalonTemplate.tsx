@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import UpiPaymentModal from "./UpiPaymentModal";
 import LucideIcon from "./LucideIcon";
 import CustomerAuth from "./CustomerAuth";
+import SuccessModal from "./SuccessModal";
 
 interface SalonTemplateProps {
   onBackToHub: () => void;
@@ -181,6 +182,7 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [bookingTicket, setBookingTicket] = useState<any>(null);
   const [liveStatus, setLiveStatus] = useState("Pending Approval");
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
   const timeslots = ["09:00 AM", "10:00 AM", "11:30 AM", "01:00 PM", "02:30 PM", "04:00 PM", "05:30 PM", "07:00 PM"];
 
@@ -251,13 +253,14 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
       price: totalPrice,
     });
     setIsUpiModalOpen(false);
-    setBookingConfirmed(true);
+    setIsSuccessModalOpen(true);
   };
 
   useEffect(() => {
-    if (!bookingConfirmed || !bookingTicket || !bookingTicket.id) return;
+    if ((!bookingConfirmed && !isSuccessModalOpen) || !bookingTicket || !bookingTicket.id) return;
     
     setLiveStatus("Pending Approval");
+    
     const interval = setInterval(async () => {
       try {
         const res = await fetch(`/api/public/bookings/${bookingTicket.id}/status`);
@@ -266,11 +269,12 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
           setLiveStatus(data.data.status);
         }
       } catch (err) {
-        console.error("Error polling salon appointment status:", err);
+        console.error("Error polling booking status:", err);
       }
     }, 3000);
+
     return () => clearInterval(interval);
-  }, [bookingConfirmed, bookingTicket]);
+  }, [bookingConfirmed, isSuccessModalOpen, bookingTicket]);
 
   const totalCalculated = displayServices
     .filter((s) => selectedServices.includes(s.id))
@@ -910,6 +914,18 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
         )}
       </AnimatePresence>
 
+      <SuccessModal
+        isOpen={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        liveStatus={liveStatus}
+        onContinueShopping={() => {
+          setIsSuccessModalOpen(false);
+          setBookingConfirmed(false);
+          setCustName("");
+          setCustPhone("");
+          setSelectedServices([]);
+        }}
+      />
     </div>
   );
 }

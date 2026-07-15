@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import UpiPaymentModal from "./UpiPaymentModal";
 import LucideIcon from "./LucideIcon";
 import CustomerAuth from "./CustomerAuth";
+import SuccessModal from "./SuccessModal";
 
 interface RestaurantTemplateProps {
   onBackToHub: () => void;
@@ -219,6 +220,7 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
   const [pendingOrderId, setPendingOrderId] = useState<number | string | null>(null);
   const [liveOrderStatus, setLiveOrderStatus] = useState("Pending Approval");
   const [liveReserveStatus, setLiveReserveStatus] = useState("Pending Approval");
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
   const guestOptions = ["1 Guest - Solo Critic", "2 Guests - Intimate Bistro", "4 Guests - Family Banq", "6 Guests - Executive Table", "8+ Guests - Gala Dining"];
   const reservationTimes = ["05:30 PM - Sunset Seat", "07:00 PM - Candlelight Prime", "08:00 PM - Prime Dining", "09:30 PM - Late Jazz Hour", "10:30 PM - Chef Nightcap"];
@@ -315,6 +317,7 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
       if (!res.ok) throw new Error(result.message || "Failed to place order.");
 
       setPendingOrderId(result.data.order_id);
+      setCartOpen(false); // Hide and unmount basket drawer immediately
       setIsOrderUpiModalOpen(true);
     } catch (err: any) {
       alert("Error placing order: " + err.message);
@@ -323,17 +326,7 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
 
   const handleOrderPaymentSuccess = (orderId: string | number) => {
     setIsOrderUpiModalOpen(false);
-    setCheckoutStep("success");
-    // Clear cart in a few seconds after success view
-    setTimeout(() => {
-      setCart([]);
-      setCheckoutStep("cart");
-      setCartOpen(false);
-      setBillingName("");
-      setBillingPhone("");
-      setDeliveryNote("");
-      setPendingOrderId(null);
-    }, 4500);
+    setIsSuccessModalOpen(true);
   };
 
   useEffect(() => {
@@ -873,6 +866,11 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
               <UpiPaymentModal
                 isOpen={isOrderUpiModalOpen}
                 onClose={() => setIsOrderUpiModalOpen(false)}
+                onBack={() => {
+                  setIsOrderUpiModalOpen(false);
+                  setCartOpen(true);
+                  setCheckoutStep("billing");
+                }}
                 businessId={businessId}
                 businessName={brandName}
                 upiId={upiId}
@@ -1158,6 +1156,21 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
           />
         )}
       </AnimatePresence>
+
+      <SuccessModal
+        isOpen={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        liveStatus={pendingOrderId ? liveOrderStatus : liveReserveStatus}
+        onContinueShopping={() => {
+          setIsSuccessModalOpen(false);
+          setCart([]);
+          setCheckoutStep("cart");
+          setBillingName("");
+          setBillingPhone("");
+          setDeliveryNote("");
+          setPendingOrderId(null);
+        }}
+      />
 
     </div>
   );

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import UpiPaymentModal from "./UpiPaymentModal";
 import LucideIcon from "./LucideIcon";
 import CustomerAuth from "./CustomerAuth";
+import SuccessModal from "./SuccessModal";
 
 interface GymTemplateProps {
   onBackToHub: () => void;
@@ -207,6 +208,7 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
   const [upiAmount, setUpiAmount] = useState(500);
   const [upiBookingDetails, setUpiBookingDetails] = useState<any>(null);
   const [liveStatus, setLiveStatus] = useState("Pending Approval");
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
   // Contact Form
   const [contactFormName, setContactFormName] = useState("");
@@ -271,11 +273,11 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
       id: bookingId,
     });
     setIsUpiModalOpen(false);
-    setBookingConfirmed(true);
+    setIsSuccessModalOpen(true);
   };
 
   useEffect(() => {
-    if (!bookingConfirmed || !bookingDetails || !bookingDetails.id) return;
+    if ((!bookingConfirmed && !isSuccessModalOpen) || !bookingDetails || !bookingDetails.id) return;
     
     setLiveStatus("Pending Approval");
     
@@ -292,7 +294,7 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [bookingConfirmed, bookingDetails]);
+  }, [bookingConfirmed, isSuccessModalOpen, bookingDetails]);
 
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1132,6 +1134,19 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
         )}
       </AnimatePresence>
 
+      <SuccessModal
+        isOpen={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        liveStatus={liveStatus}
+        onContinueShopping={() => {
+          setIsSuccessModalOpen(false);
+          setBookingConfirmed(false);
+          setCustName("");
+          setCustPhone("");
+          setSelectedTrainer("");
+          setSelectedSlot("");
+        }}
+      />
     </div>
   );
 }

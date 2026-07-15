@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import UpiPaymentModal from "./UpiPaymentModal";
 import LucideIcon from "./LucideIcon";
 import CustomerAuth from "./CustomerAuth";
+import SuccessModal from "./SuccessModal";
 
 interface ClothingTemplateProps {
   onBackToHub: () => void;
@@ -54,6 +55,7 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
   const [orderTicket, setOrderTicket] = useState<any>(null);
   const [pendingOrderId, setPendingOrderId] = useState<number | string | null>(null);
   const [liveStatus, setLiveStatus] = useState("Pending Approval");
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
   // Customer billing details
   const [custName, setCustName] = useState("");
@@ -239,6 +241,7 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
       if (!res.ok) throw new Error(result.message || "Failed to place order.");
 
       setPendingOrderId(result.data.order_id);
+      setIsCartOpen(false); // Hide and unmount basket drawer immediately
       setIsUpiModalOpen(true);
     } catch (err: any) {
       alert("Error placing order: " + err.message);
@@ -255,13 +258,13 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
     });
     setCart([]);
     setIsUpiModalOpen(false);
-    setCheckoutConfirmed(true);
+    setIsSuccessModalOpen(true);
   };
 
   const totalCartCost = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
   useEffect(() => {
-    if (!checkoutConfirmed || !orderTicket || !orderTicket.id) return;
+    if ((!checkoutConfirmed && !isSuccessModalOpen) || !orderTicket || !orderTicket.id) return;
     
     setLiveStatus("Pending Approval");
     
@@ -278,7 +281,7 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [checkoutConfirmed, orderTicket]);
+  }, [checkoutConfirmed, isSuccessModalOpen, orderTicket]);
 
   return (
     <div
@@ -745,6 +748,10 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
         <UpiPaymentModal
           isOpen={isUpiModalOpen}
           onClose={() => setIsUpiModalOpen(false)}
+          onBack={() => {
+            setIsUpiModalOpen(false);
+            setIsCartOpen(true);
+          }}
           businessId={businessId}
           businessName={brandName}
           upiId={upiId}
@@ -773,6 +780,20 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
           }}
         />
       )}
+
+      <SuccessModal
+        isOpen={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        liveStatus={liveStatus}
+        onContinueShopping={() => {
+          setIsSuccessModalOpen(false);
+          setCart([]);
+          setCustName("");
+          setCustPhone("");
+          setCustAddress("");
+          setPendingOrderId(null);
+        }}
+      />
     </div>
   );
 }

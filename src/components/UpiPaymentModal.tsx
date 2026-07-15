@@ -24,6 +24,7 @@ interface UpiPaymentModalProps {
   };
   orderId?: number | string;
   onSuccess: (id: string | number) => void;
+  onBack?: () => void;
 }
 
 export default function UpiPaymentModal({
@@ -36,7 +37,8 @@ export default function UpiPaymentModal({
   customer,
   bookingDetails,
   orderId,
-  onSuccess
+  onSuccess,
+  onBack
 }: UpiPaymentModalProps) {
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string>("");
@@ -274,6 +276,17 @@ export default function UpiPaymentModal({
                 )}
               </span>
             </button>
+
+            {onBack && (
+              <button
+                type="button"
+                onClick={onBack}
+                className="w-full py-2.5 rounded-xl border border-zinc-800 text-xs font-semibold text-zinc-400 hover:text-white transition-all flex items-center justify-center gap-1.5 bg-zinc-950/40 hover:bg-zinc-900"
+              >
+                <LucideIcon name="ChevronLeft" className="w-3.5 h-3.5" />
+                Back to Basket
+              </button>
+            )}
           </form>
         </motion.div>
       </div>
