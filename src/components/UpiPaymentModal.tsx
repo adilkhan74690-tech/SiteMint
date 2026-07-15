@@ -16,13 +16,14 @@ interface UpiPaymentModalProps {
     first_name: string;
     last_name: string;
   };
-  bookingDetails: {
+  bookingDetails?: {
     service_id: number;
     staff_id?: number | null;
     start_time: string;
     notes?: string;
   };
-  onSuccess: (bookingId: string | number) => void;
+  orderId?: number | string;
+  onSuccess: (id: string | number) => void;
 }
 
 export default function UpiPaymentModal({
@@ -34,6 +35,7 @@ export default function UpiPaymentModal({
   amount,
   customer,
   bookingDetails,
+  orderId,
   onSuccess
 }: UpiPaymentModalProps) {
   const [transactionId, setTransactionId] = useState("");
@@ -58,53 +60,78 @@ export default function UpiPaymentModal({
     setErrorMsg("");
 
     try {
-      // 1. Create the booking
-      const bookingRes = await fetch("/api/bookings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          business_id: businessId,
-          service_id: bookingDetails.service_id,
-          staff_id: bookingDetails.staff_id,
-          start_time: bookingDetails.start_time,
-          notes: bookingDetails.notes,
-          customer
-        })
-      });
+      if (orderId) {
+        // Create the UPI payment transaction record linked to order
+        const paymentRes = await fetch("/api/checkout/upi-payment", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            business_id: businessId,
+            order_id: orderId,
+            amount,
+            transaction_id: transactionId,
+            customer_email: customer.email
+          })
+        });
 
-      const bookingResult = await bookingRes.json();
+        const paymentResult = await paymentRes.json();
+        if (!paymentRes.ok) {
+          throw new Error(paymentResult.message || "Failed to submit UPI payment verification.");
+        }
 
-      if (!bookingRes.ok) {
-        throw new Error(bookingResult.message || "Failed to create booking.");
+        setIsSubmitting(false);
+        onSuccess(orderId);
+      } else if (bookingDetails) {
+        // 1. Create the booking
+        const bookingRes = await fetch("/api/bookings", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            business_id: businessId,
+            service_id: bookingDetails.service_id,
+            staff_id: bookingDetails.staff_id,
+            start_time: bookingDetails.start_time,
+            notes: bookingDetails.notes,
+            customer
+          })
+        });
+
+        const bookingResult = await bookingRes.json();
+        if (!bookingRes.ok) {
+          throw new Error(bookingResult.message || "Failed to create booking.");
+        }
+
+        const bookingId = bookingResult.data.booking_id;
+
+        // 2. Create the UPI payment transaction record
+        const paymentRes = await fetch("/api/checkout/upi-payment", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            business_id: businessId,
+            booking_id: bookingId,
+            amount,
+            transaction_id: transactionId,
+            customer_email: customer.email
+          })
+        });
+
+        const paymentResult = await paymentRes.json();
+        if (!paymentRes.ok) {
+          throw new Error(paymentResult.message || "Failed to submit UPI payment verification.");
+        }
+
+        setIsSubmitting(false);
+        onSuccess(bookingId);
+      } else {
+        throw new Error("Invalid transaction parameters.");
       }
-
-      const bookingId = bookingResult.data.booking_id;
-
-      // 2. Create the UPI payment transaction record
-      const paymentRes = await fetch("/api/checkout/upi-payment", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          business_id: businessId,
-          booking_id: bookingId,
-          amount,
-          transaction_id: transactionId,
-          customer_email: customer.email
-        })
-      });
-
-      const paymentResult = await paymentRes.json();
-
-      if (!paymentRes.ok) {
-        throw new Error(paymentResult.message || "Failed to submit UPI payment verification.");
-      }
-
-      setIsSubmitting(false);
-      onSuccess(bookingId);
     } catch (err: any) {
       setIsSubmitting(false);
       setErrorMsg(err.message || "An unexpected error occurred during submission.");

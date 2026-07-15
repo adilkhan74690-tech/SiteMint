@@ -45,7 +45,8 @@ import {
   listOrders,
   listPayments,
   createUpiPayment,
-  approvePayment
+  approvePayment,
+  updateOrderStatus
 } from "../controllers/checkoutController.js";
 import {
   getSubscriptionStatus,
@@ -244,6 +245,12 @@ router.patch(
   authenticateUser,
   requireRole(["owner", "manager"]),
   approvePayment
+);
+router.patch(
+  "/checkout/orders/:id/status",
+  authenticateUser,
+  requireRole(["owner", "manager", "staff"]),
+  updateOrderStatus
 );
 
 // ==========================================

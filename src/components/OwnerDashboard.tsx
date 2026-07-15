@@ -1219,29 +1219,48 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
   };
 
   // Instantly reflect state changes
-  const handleBookingAction = (id: string, action: "Confirm" | "Reject") => {
-    setBookings((prev) =>
-      prev.map((b) => {
-        if (b.id === id) {
-          const updatedStatus = action === "Confirm" ? "Confirmed" : "Cancelled";
-          logSystemActivity(`Booking ${b.id} ${updatedStatus}`, `${b.customer}'s reservation has been updated to ${updatedStatus}.`, "booking");
-          return { ...b, status: updatedStatus };
-        }
-        return b;
-      })
-    );
+  const handleBookingAction = async (id: string, action: "Confirm" | "Reject") => {
+    const token = localStorage.getItem("sitemint_token");
+    const updatedStatus = action === "Confirm" ? "confirmed" : "cancelled";
+    try {
+      const res = await fetch(`/api/bookings/${id}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: updatedStatus })
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "Failed to update booking status.");
+
+      logSystemActivity(`Booking ${id} ${updatedStatus}`, `Booking has been updated to ${updatedStatus}.`, "booking");
+      fetchDashboardData();
+    } catch (err: any) {
+      alert("Error updating booking: " + err.message);
+    }
   };
 
-  const handleOrderAction = (id: string, action: "Shipped" | "Delivered") => {
-    setOrders((prev) =>
-      prev.map((o) => {
-        if (o.id === id) {
-          logSystemActivity(`Order ${o.id} marked ${action}`, `Tracking status updated for ${o.customer}.`, "product");
-          return { ...o, status: action };
-        }
-        return o;
-      })
-    );
+  const handleOrderAction = async (id: string, action: "Shipped" | "Delivered") => {
+    const token = localStorage.getItem("sitemint_token");
+    const updatedStatus = action === "Shipped" ? "processing" : action === "Delivered" ? "completed" : action;
+    try {
+      const res = await fetch(`/api/checkout/orders/${id}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: updatedStatus })
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "Failed to update order status.");
+
+      logSystemActivity(`Order ${id} marked ${action}`, `Order status updated to ${updatedStatus}.`, "product");
+      fetchDashboardData();
+    } catch (err: any) {
+      alert("Error updating order: " + err.message);
+    }
   };
 
   const handleProductStockChange = async (id: number | string, newStock: number) => {

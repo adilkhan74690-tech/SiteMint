@@ -215,6 +215,8 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
   const [billingName, setBillingName] = useState("");
   const [billingPhone, setBillingPhone] = useState("");
   const [deliveryNote, setDeliveryNote] = useState("");
+  const [isOrderUpiModalOpen, setIsOrderUpiModalOpen] = useState(false);
+  const [pendingOrderId, setPendingOrderId] = useState<number | string | null>(null);
 
   const guestOptions = ["1 Guest - Solo Critic", "2 Guests - Intimate Bistro", "4 Guests - Family Banq", "6 Guests - Executive Table", "8+ Guests - Gala Dining"];
   const reservationTimes = ["05:30 PM - Sunset Seat", "07:00 PM - Candlelight Prime", "08:00 PM - Prime Dining", "09:30 PM - Late Jazz Hour", "10:30 PM - Chef Nightcap"];
@@ -310,19 +312,26 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
       const result = await res.json();
       if (!res.ok) throw new Error(result.message || "Failed to place order.");
 
-      setCheckoutStep("success");
-      // Clear cart in a few seconds after success view
-      setTimeout(() => {
-        setCart([]);
-        setCheckoutStep("cart");
-        setCartOpen(false);
-        setBillingName("");
-        setBillingPhone("");
-        setDeliveryNote("");
-      }, 4500);
+      setPendingOrderId(result.data.order_id);
+      setIsOrderUpiModalOpen(true);
     } catch (err: any) {
       alert("Error placing order: " + err.message);
     }
+  };
+
+  const handleOrderPaymentSuccess = (orderId: string | number) => {
+    setIsOrderUpiModalOpen(false);
+    setCheckoutStep("success");
+    // Clear cart in a few seconds after success view
+    setTimeout(() => {
+      setCart([]);
+      setCheckoutStep("cart");
+      setCartOpen(false);
+      setBillingName("");
+      setBillingPhone("");
+      setDeliveryNote("");
+      setPendingOrderId(null);
+    }, 4500);
   };
 
   return (
@@ -815,6 +824,25 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
               }}
               onSuccess={handlePaymentSuccess}
             />
+
+            {isOrderUpiModalOpen && pendingOrderId && (
+              <UpiPaymentModal
+                isOpen={isOrderUpiModalOpen}
+                onClose={() => setIsOrderUpiModalOpen(false)}
+                businessId={businessId}
+                businessName={brandName}
+                upiId={upiId}
+                amount={cartTotal}
+                customer={{
+                  email: customerEmail,
+                  phone: billingPhone,
+                  first_name: billingName.split(" ")[0] || "",
+                  last_name: billingName.split(" ").slice(1).join(" ") || ""
+                }}
+                orderId={pendingOrderId}
+                onSuccess={handleOrderPaymentSuccess}
+              />
+            )}
           </div>
         </div>
       </section>

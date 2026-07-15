@@ -257,12 +257,12 @@ export async function listPayments(req: Request, res: Response, next: NextFuncti
  * Create a new pending UPI payment submission from booking page.
  */
 export async function createUpiPayment(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const { business_id, booking_id, amount, transaction_id, customer_email } = req.body;
+  const { business_id, booking_id, order_id, amount, transaction_id, customer_email } = req.body;
 
-  if (!business_id || !booking_id || !amount || !transaction_id || !customer_email) {
+  if (!business_id || (!booking_id && !order_id) || !amount || !transaction_id || !customer_email) {
     res.status(400).json({
       status: "error",
-      message: "Required parameters are missing: business_id, booking_id, amount, transaction_id, and customer_email."
+      message: "Required parameters are missing: business_id, amount, transaction_id, customer_email, and either booking_id or order_id."
     });
     return;
   }
@@ -284,12 +284,13 @@ export async function createUpiPayment(req: Request, res: Response, next: NextFu
     // 2. Insert UPI payment record
     const gatewayOrderId = `UPI-ORD-${Math.floor(100000 + Math.random() * 900000)}`;
     const result: any = await query(
-      `INSERT INTO \`payments\` (\`business_id\`, \`customer_id\`, \`booking_id\`, \`gateway\`, \`gateway_order_id\`, \`gateway_payment_id\`, \`amount\`, \`status\`) 
-       VALUES (?, ?, ?, 'upi', ?, ?, ?, 'pending')`,
+      `INSERT INTO \`payments\` (\`business_id\`, \`customer_id\`, \`booking_id\`, \`order_id\`, \`gateway\`, \`gateway_order_id\`, \`gateway_payment_id\`, \`amount\`, \`status\`) 
+       VALUES (?, ?, ?, ?, 'upi', ?, ?, ?, 'pending')`,
       [
         business_id,
         customerId,
-        booking_id,
+        booking_id || null,
+        order_id || null,
         gatewayOrderId,
         transaction_id,
         amount
@@ -403,5 +404,40 @@ export async function approvePayment(req: Request, res: Response, next: NextFunc
     next(error);
   } finally {
     if (connection) connection.release();
+  }
+}
+
+/**
+ * Update the status of an order record.
+ */
+export async function updateOrderStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const businessId = req.user?.businessId;
+  const { id } = req.params;
+  const { status } = req.body;
+
+  if (!businessId) {
+    res.status(401).json({ status: "error", message: "Unauthorized tenant." });
+    return;
+  }
+
+  if (!status) {
+    res.status(400).json({ status: "error", message: "Status parameter is required." });
+    return;
+  }
+
+  try {
+    const result: any = await query(
+      "UPDATE `orders` SET `status` = ? WHERE `id` = ? AND `business_id` = ?",
+      [status.toLowerCase(), id, businessId]
+    );
+
+    if (result.affectedRows === 0) {
+      res.status(404).json({ status: "error", message: "Order record not found." });
+      return;
+    }
+
+    res.json({ status: "success", message: `Order status updated to ${status} successfully.` });
+  } catch (error) {
+    next(error);
   }
 }
