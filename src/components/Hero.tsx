@@ -490,7 +490,7 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
 
                       {/* Simulated Hero Grid / Stack */}
                       <div className="flex-grow p-4 md:p-6 flex flex-col justify-between gap-4 overflow-y-auto">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                        <div className={`grid gap-4 items-center ${previewMode === "mobile" ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"}`}>
                           <div className="text-left space-y-2">
                             <h4 className="text-base md:text-lg font-bold text-white font-display leading-tight">
                               {selectedSector.tagline}
@@ -525,7 +525,7 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
                             <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Premium Offerings</span>
                             <span className="text-[10px] text-zinc-400">Book below</span>
                           </div>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                          <div className={`grid gap-2 ${previewMode === "mobile" ? "grid-cols-1" : "grid-cols-1 md:grid-cols-3"}`}>
                             {selectedSector.items.map((item, idx) => (
                               <div
                                 key={idx}

@@ -146,7 +146,7 @@ export default function UpiPaymentModal({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ duration: 0.3 }}
-          className="relative w-full max-w-md rounded-2xl border border-zinc-800 bg-[#09090B] p-6 text-white shadow-2xl flex flex-col"
+          className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-800 bg-[#09090B] p-6 text-white shadow-2xl flex flex-col scrollbar-thin"
           id="upi-payment-modal-card"
         >
           {/* Header */}

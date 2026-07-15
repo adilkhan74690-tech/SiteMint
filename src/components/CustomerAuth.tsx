@@ -95,7 +95,7 @@ export default function CustomerAuth({ sector, brandName, accentColor, onClose, 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="w-full max-w-4xl h-full max-h-[600px] rounded-3xl overflow-hidden grid grid-cols-1 md:grid-cols-12 border border-zinc-800 shadow-2xl bg-[#09090B]"
+        className="w-full max-w-4xl h-auto md:h-full max-h-[90vh] md:max-h-[600px] rounded-3xl overflow-y-auto md:overflow-hidden grid grid-cols-1 md:grid-cols-12 border border-zinc-800 shadow-2xl bg-[#09090B]"
         id="customer-auth-card"
       >
         {/* 1. Brand Side Banner (col-span-5) */}
