@@ -300,6 +300,43 @@ export async function createUpiPayment(req: Request, res: Response, next: NextFu
   }
 
   try {
+    // Check if order/booking already exists and has a payment record
+    if (order_id) {
+      const [existingOrder]: any = await query("SELECT id FROM `orders` WHERE `id` = ?", [order_id]);
+      if (existingOrder.length > 0) {
+        const [existingPayment]: any = await query(
+          "SELECT id, gateway_order_id FROM `payments` WHERE `order_id` = ? AND `business_id` = ?",
+          [order_id, business_id]
+        );
+        if (existingPayment.length > 0) {
+          res.status(200).json({
+            success: true,
+            message: "Payment submitted successfully. Waiting for owner approval.",
+            orderId: String(order_id),
+            trackingId: existingPayment[0].gateway_order_id
+          });
+          return;
+        }
+      }
+    } else if (booking_id) {
+      const [existingBooking]: any = await query("SELECT id FROM `bookings` WHERE `id` = ?", [booking_id]);
+      if (existingBooking.length > 0) {
+        const [existingPayment]: any = await query(
+          "SELECT id, gateway_order_id FROM `payments` WHERE `booking_id` = ? AND `business_id` = ?",
+          [booking_id, business_id]
+        );
+        if (existingPayment.length > 0) {
+          res.status(200).json({
+            success: true,
+            message: "Payment submitted successfully. Waiting for owner approval.",
+            orderId: String(booking_id),
+            trackingId: existingPayment[0].gateway_order_id
+          });
+          return;
+        }
+      }
+    }
+
     // 1. Upload screenshot to Cloudinary/Mock storage
     const folderPath = `sitemint_payments_${business_id}`;
     const uploadResult = await uploadToCloudinary(file.buffer, folderPath, file.originalname);
@@ -341,15 +378,16 @@ export async function createUpiPayment(req: Request, res: Response, next: NextFu
       ]
     );
 
-    res.status(201).json({
-      status: "success",
-      message: "Payment submitted successfully. Waiting for owner verification.",
-      data: { payment_id: result.insertId }
+    res.status(200).json({
+      success: true,
+      message: "Payment submitted successfully. Waiting for owner approval.",
+      orderId: String(order_id || booking_id),
+      trackingId: gatewayOrderId
     });
   } catch (error: any) {
     console.error("Error in createUpiPayment:", error);
     res.status(400).json({
-      status: "error",
+      success: false,
       message: error.message || "Your payment submission could not be completed. Please try again."
     });
   }
