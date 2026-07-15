@@ -1,3 +1,6 @@
+<img width="1526" height="697" alt="image" src="https://github.com/user-attachments/assets/5ce1aafa-6a97-48c1-ba71-239049b732cf" />
+
+
 # SiteMint
 
 SiteMint is a multi-tenant SaaS website builder developed as part of the **ReadyNest Internship Program**. The platform allows business owners to create, customize, and publish their own professional business websites without writing code.
