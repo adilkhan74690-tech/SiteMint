@@ -1014,6 +1014,14 @@ export async function initializeDatabase(): Promise<void> {
         console.warn("⚠️ Warning modifying users.role to include SUPER_ADMIN:", roleErr.message);
       }
 
+      // Ensure payments.gateway column supports 'upi'
+      try {
+        await conn.execute("ALTER TABLE `payments` MODIFY COLUMN `gateway` ENUM('razorpay', 'stripe', 'upi') NOT NULL DEFAULT 'razorpay';");
+        console.log("🛠️  Altered payments.gateway to include 'upi'.");
+      } catch (gateErr: any) {
+        console.warn("⚠️ Warning modifying payments.gateway to include upi:", gateErr.message);
+      }
+
       // Drop order_items foreign key constraints to allow both products and services to be purchased
       try {
         await conn.execute("ALTER TABLE `order_items` DROP FOREIGN KEY `fk_items_product`;");

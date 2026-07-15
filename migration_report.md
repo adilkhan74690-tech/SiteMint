@@ -1,6 +1,6 @@
 # SiteMint Migration & Database Initialization Report
 
-- **Timestamp:** 2026-07-14T14:53:57.210Z
+- **Timestamp:** 2026-07-15T11:36:53.173Z
 - **Railway Host:** `tokaido.proxy.rlwy.net`
 - **Database:** `railway`
 
@@ -83,11 +83,11 @@
 
 ### 4. Data Seeding & Defaults
 - **Subscription Plans:** Already seeded (3 plans).
-- **Templates:** Already seeded (4 templates).
+- **Templates:** Verified templates (`gym`, `restaurant`, `salon`, `clothing`) are seeded.
 
 ### 5. Integration Verification Test
-- **Test User Insertion:** Successful (ID: 13)
-- **Test User Retrieval:** Successful (Retrieved: "Test Verification User" with email "verify_user_1784040879592@sitemint.app")
+- **Test User Insertion:** Successful (ID: 46)
+- **Test User Retrieval:** Successful (Retrieved: "Test Verification User" with email "verify_user_1784115590109@sitemint.app")
 - **Test User Cleanup:** Successful
 - **Database Verified:** Operational 🚀
 

@@ -346,10 +346,11 @@ export async function createUpiPayment(req: Request, res: Response, next: NextFu
       message: "Payment submitted successfully. Waiting for owner verification.",
       data: { payment_id: result.insertId }
     });
-  } catch (error) {
+  } catch (error: any) {
+    console.error("Error in createUpiPayment:", error);
     res.status(400).json({
       status: "error",
-      message: "Your payment submission could not be completed. Please try again."
+      message: error.message || "Your payment submission could not be completed. Please try again."
     });
   }
 }
