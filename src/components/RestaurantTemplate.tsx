@@ -226,7 +226,10 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
   const reservationTimes = ["05:30 PM - Sunset Seat", "07:00 PM - Candlelight Prime", "08:00 PM - Prime Dining", "09:30 PM - Late Jazz Hour", "10:30 PM - Chef Nightcap"];
   const seatOptions = ["Indoor Velvet Booth", "Outdoor Heated Terrace", "Chef Counter Stool", "Private Fireplace Alcove"];
 
-  const filteredItems = displayMenu.filter((item) => item.category?.toLowerCase().trim() === activeCategory.toLowerCase().trim());
+  const filteredItems = (displayMenu || []).filter((item) => {
+    if (!item) return false;
+    return (item.category || "").toLowerCase().trim() === (activeCategory || "").toLowerCase().trim();
+  });
 
   // Add Item to Cart
   const handleAddToCart = (item: any) => {

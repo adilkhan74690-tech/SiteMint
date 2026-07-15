@@ -240,9 +240,21 @@ export async function onboardBusiness(req: Request, res: Response, next: NextFun
       // 2. Create the new Business
       const businessUuid = crypto.randomUUID();
       const [bizResult]: any = await connection.execute(
-        `INSERT INTO \`businesses\` (\`uuid\`, \`name\`, \`subdomain\`, \`contact_email\`, \`contact_phone\`, \`status\`, \`owner_id\`, \`is_completed\`) 
-         VALUES (?, ?, ?, ?, ?, 'trial', ?, TRUE)`,
-        [businessUuid, name, subdomain, req.user?.email, contact_phone || null, req.user?.userId]
+        `INSERT INTO \`businesses\` (\`uuid\`, \`name\`, \`subdomain\`, \`contact_email\`, \`contact_phone\`, \`status\`, \`owner_id\`, \`is_completed\`, \`business_type\`, \`address\`, \`description\`, \`upi_id\`, \`logo_url\`, \`is_published\`) 
+         VALUES (?, ?, ?, ?, ?, 'trial', ?, TRUE, ?, ?, ?, ?, ?, TRUE)`,
+        [
+          businessUuid,
+          name,
+          subdomain,
+          req.user?.email,
+          contact_phone || null,
+          req.user?.userId,
+          business_type,
+          address || null,
+          description || null,
+          upi_id,
+          logo_url || null
+        ]
       );
       activeBusinessId = bizResult.insertId;
 
@@ -316,29 +328,42 @@ export async function onboardBusiness(req: Request, res: Response, next: NextFun
       [activeBusinessId]
     );
 
+    const defaultSettingsJson = JSON.stringify({
+      faqs: [
+        { q: "What are the hours of operation?", a: "We are open Monday to Friday 9 AM to 9 PM, and weekends 10 AM to 6 PM." },
+        { q: "How can I contact support?", a: `You can reach us at ${req.user?.email || "support@sitemint.app"}.` }
+      ],
+      gallery: [
+        "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80",
+        "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=800&q=80"
+      ]
+    });
+
     const activeTemplateId = template_id || 1;
     if (currentTheme.length === 0) {
       await connection.execute(
-        `INSERT INTO \`theme_settings\` (\`business_id\`, \`template_id\`, \`primary_color\`, \`secondary_color\`, \`font_family\`)
-         VALUES (?, ?, ?, ?, ?)`,
+        `INSERT INTO \`theme_settings\` (\`business_id\`, \`template_id\`, \`primary_color\`, \`secondary_color\`, \`font_family\`, \`custom_settings_json\`)
+         VALUES (?, ?, ?, ?, ?, ?)`,
         [
           activeBusinessId,
           activeTemplateId,
           primary_color || "#10B981",
           secondary_color || "#111827",
-          font_family || "Inter"
+          font_family || "Inter",
+          defaultSettingsJson
         ]
       );
     } else {
       await connection.execute(
         `UPDATE \`theme_settings\` 
-         SET \`template_id\` = ?, \`primary_color\` = ?, \`secondary_color\` = ?, \`font_family\` = ?
+         SET \`template_id\` = ?, \`primary_color\` = ?, \`secondary_color\` = ?, \`font_family\` = ?, \`custom_settings_json\` = COALESCE(\`custom_settings_json\`, ?)
          WHERE \`business_id\` = ?`,
         [
           activeTemplateId,
           primary_color || "#10B981",
           secondary_color || "#111827",
           font_family || "Inter",
+          defaultSettingsJson,
           activeBusinessId
         ]
       );

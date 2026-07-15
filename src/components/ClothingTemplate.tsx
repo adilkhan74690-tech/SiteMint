@@ -149,15 +149,16 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
   }, []);
 
   // Filtered list
-  const filteredProducts = products.filter((prod) => {
+  const filteredProducts = (products || []).filter((prod) => {
+    if (!prod) return false;
     const matchesCategory = activeCategory === "All" || prod.category?.toLowerCase() === activeCategory.toLowerCase();
-    const matchesSearch = prod.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          prod.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (prod.name || "").toLowerCase().includes((searchQuery || "").toLowerCase()) || 
+                          (prod.description || "").toLowerCase().includes((searchQuery || "").toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
   // Unique categories helper
-  const categories = ["All", ...Array.from(new Set(products.map((p) => p.category).filter(Boolean)))];
+  const categories = ["All", ...Array.from(new Set((products || []).map((p) => p?.category).filter(Boolean)))];
 
   // Cart operations
   const addToCart = (product: any) => {

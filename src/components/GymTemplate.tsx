@@ -797,14 +797,15 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
                     {/* Coach Dropdown */}
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block">Assigned Coach</label>
-                      <select 
+                  <select 
                         value={selectedTrainer}
                         onChange={(e) => setSelectedTrainer(e.target.value)}
                         className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-zinc-700 transition-colors cursor-pointer"
                       >
-                        {displayTrainers.map((tr) => (
-                          <option key={tr.id} value={tr.name}>{tr.name}</option>
-                        ))}
+                        {(displayTrainers || []).map((tr) => {
+                          if (!tr) return null;
+                          return <option key={tr.id || String(Math.random())} value={tr.name || ""}>{tr.name || ""}</option>;
+                        })}
                       </select>
                     </div>
 

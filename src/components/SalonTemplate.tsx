@@ -772,9 +772,15 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
                         onChange={(e) => setSelectedStylist(e.target.value)}
                         className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-zinc-700 cursor-pointer"
                       >
-                        {displayStylists.map((sty) => (
-                          <option key={sty.id} value={sty.name}>{sty.name} ({sty.role.split(" ")[0]})</option>
-                        ))}
+                        {(displayStylists || []).map((sty) => {
+                          if (!sty) return null;
+                          const roleFirstWord = (sty.role || "Stylist").split(" ")[0] || "Stylist";
+                          return (
+                            <option key={sty.id || String(Math.random())} value={sty.name || ""}>
+                              {sty.name || ""} ({roleFirstWord})
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
 
