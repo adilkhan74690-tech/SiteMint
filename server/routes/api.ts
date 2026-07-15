@@ -37,7 +37,8 @@ import {
 import {
   listBookings,
   createBooking,
-  updateBookingStatus
+  updateBookingStatus,
+  getPublicBookingStatus
 } from "../controllers/bookingController.js";
 import {
   createCheckoutOrder,
@@ -46,7 +47,8 @@ import {
   listPayments,
   createUpiPayment,
   approvePayment,
-  updateOrderStatus
+  updateOrderStatus,
+  getPublicOrderStatus
 } from "../controllers/checkoutController.js";
 import {
   getSubscriptionStatus,
@@ -215,6 +217,7 @@ router.get(
   listBookings
 );
 router.post("/bookings", createBooking); // Public booking endpoint
+router.get("/public/bookings/:id/status", getPublicBookingStatus); // Public status check
 router.patch(
   "/bookings/:id/status",
   authenticateUser,
@@ -228,6 +231,7 @@ router.patch(
 router.post("/checkout/order", createCheckoutOrder); // Public checkout placement
 router.post("/checkout/verify", verifyAndCapturePayment); // Public verification endpoint
 router.post("/checkout/upi-payment", createUpiPayment); // Public UPI payment placement
+router.get("/public/orders/:id/status", getPublicOrderStatus); // Public status check
 router.get(
   "/checkout/orders",
   authenticateUser,

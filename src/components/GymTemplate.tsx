@@ -204,6 +204,9 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
   const [selectedSlot, setSelectedSlot] = useState("");
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [bookingDetails, setBookingDetails] = useState<any>(null);
+  const [upiAmount, setUpiAmount] = useState(500);
+  const [upiBookingDetails, setUpiBookingDetails] = useState<any>(null);
+  const [liveStatus, setLiveStatus] = useState("Pending Approval");
 
   // Contact Form
   const [contactFormName, setContactFormName] = useState("");
@@ -227,19 +230,69 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
       return;
     }
 
+    setUpiAmount(500);
+    setUpiBookingDetails({
+      service_id: Number(servicesList[0]?.id) || 1, 
+      staff_id: null,
+      start_time: `${selectedDate}T${selectedSlot.split(" ")[0] === "07:00" ? "07:00:00" : selectedSlot.split(" ")[0] === "09:30" ? "09:30:00" : selectedSlot.split(" ")[0] === "11:00" ? "11:00:00" : selectedSlot.split(" ")[0] === "02:00" ? "14:00:00" : selectedSlot.split(" ")[0] === "04:30" ? "16:30:00" : "18:00:00"}`,
+      notes: `Trainer: ${selectedTrainer}`
+    });
+    setIsUpiModalOpen(true);
+  };
+
+  const handleBuyMembership = () => {
+    if (!customerEmail) {
+      setAuthOpen(true);
+      return;
+    }
+    const name = custName || customerEmail.split("@")[0];
+    const phone = custPhone || "9999999999";
+    
+    setCustName(name);
+    setCustPhone(phone);
+    setCustEmail(customerEmail);
+
+    setUpiAmount(Number(selectedTier.price));
+    setUpiBookingDetails({
+      service_id: Number(selectedTier.id) || 1,
+      staff_id: null,
+      start_time: new Date().toISOString().replace(/\.\d+Z$/, ""),
+      notes: `Membership Pass: ${selectedTier.name}`
+    });
+    setSelectedTier(null);
     setIsUpiModalOpen(true);
   };
 
   const handlePaymentSuccess = (bookingId: string | number) => {
     setBookingDetails({
-      trainer: selectedTrainer,
-      date: selectedDate,
-      time: selectedSlot,
+      trainer: selectedTrainer || "Gym Desk",
+      date: selectedDate || new Date().toLocaleDateString(),
+      time: selectedSlot || "Membership Access Activation",
       id: bookingId,
     });
     setIsUpiModalOpen(false);
     setBookingConfirmed(true);
   };
+
+  useEffect(() => {
+    if (!bookingConfirmed || !bookingDetails || !bookingDetails.id) return;
+    
+    setLiveStatus("Pending Approval");
+    
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/public/bookings/${bookingDetails.id}/status`);
+        const data = await res.json();
+        if (res.ok && data.status === "success" && data.data?.status) {
+          setLiveStatus(data.data.status);
+        }
+      } catch (err) {
+        console.error("Error polling booking status:", err);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [bookingConfirmed, bookingDetails]);
 
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -647,18 +700,24 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
                   exit={{ opacity: 0 }}
                   className="text-center py-8 space-y-5"
                 >
-                  <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mx-auto flex items-center justify-center">
-                    <LucideIcon name="Check" className="w-6 h-6 stroke-[3]" />
+                  <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 mx-auto flex items-center justify-center">
+                    <LucideIcon name="Clock" className="w-6 h-6 stroke-[3]" />
                   </div>
 
                   <div className="space-y-1.5">
-                    <h4 className="text-xl font-bold font-display text-white">RESERVATION APPROVED!</h4>
+                    <h4 className="text-xl font-bold font-display text-white">REQUEST SUBMITTED</h4>
                     <p className="text-xs text-zinc-400">
-                      {isStandalone ? "Your diagnostic workout appointment is successfully booked." : "Your diagnostic workout appointment is logged inside our Sandbox memory."}
+                      Your request has been submitted successfully and is waiting for owner approval.
                     </p>
                   </div>
 
                   <div className="p-4 rounded-xl bg-zinc-950 text-left space-y-3 border border-zinc-900 max-w-md mx-auto">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-zinc-500">Status:</span>
+                      <span className={`font-bold ${liveStatus.includes("Approved") || liveStatus.includes("Verified") ? "text-emerald-400" : liveStatus.includes("Rejected") || liveStatus.includes("Rejected") ? "text-red-400" : "text-amber-400"}`}>
+                        {liveStatus}
+                      </span>
+                    </div>
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-zinc-500">Ticket Serial:</span>
                       <span className="font-mono font-bold text-white">{bookingDetails.id}</span>
@@ -811,19 +870,14 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
               businessId={businessId}
               businessName={brandName}
               upiId={upiId}
-              amount={500}
+              amount={upiAmount}
               customer={{
                 email: custEmail,
                 phone: custPhone,
                 first_name: custName.split(" ")[0] || "",
                 last_name: custName.split(" ").slice(1).join(" ") || ""
               }}
-              bookingDetails={{
-                service_id: Number(servicesList[0]?.id) || 1, 
-                staff_id: null,
-                start_time: `${selectedDate}T${selectedSlot.split(" ")[0] === "07:00" ? "07:00:00" : selectedSlot.split(" ")[0] === "09:30" ? "09:30:00" : selectedSlot.split(" ")[0] === "11:00" ? "11:00:00" : selectedSlot.split(" ")[0] === "02:00" ? "14:00:00" : selectedSlot.split(" ")[0] === "04:30" ? "16:30:00" : "18:00:00"}`,
-                notes: `Trainer: ${selectedTrainer}`
-              }}
+              bookingDetails={upiBookingDetails || undefined}
               onSuccess={handlePaymentSuccess}
             />
           </div>
@@ -1053,10 +1107,7 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
                 )}
 
                 <button
-                  onClick={() => {
-                    alert(`Mock activation successful! Welcome to the premium ${selectedTier.name} cadre.`);
-                    setSelectedTier(null);
-                  }}
+                  onClick={handleBuyMembership}
                   className="w-full py-3 rounded-xl font-bold text-xs text-black tracking-wide transition-all hover:brightness-110 active:scale-[0.98]"
                   style={{ backgroundColor: accentColor }}
                 >

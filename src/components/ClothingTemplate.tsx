@@ -52,6 +52,8 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
   const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
   const [checkoutConfirmed, setCheckoutConfirmed] = useState(false);
   const [orderTicket, setOrderTicket] = useState<any>(null);
+  const [pendingOrderId, setPendingOrderId] = useState<number | string | null>(null);
+  const [liveStatus, setLiveStatus] = useState("Pending Approval");
 
   // Customer billing details
   const [custName, setCustName] = useState("");
@@ -195,7 +197,7 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
     }
   };
 
-  const handleCheckout = (e: React.FormEvent) => {
+  const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerEmail) {
       setAuthOpen(true);
@@ -209,7 +211,38 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
       alert("Please fill out your complete billing and delivery details.");
       return;
     }
-    setIsUpiModalOpen(true);
+    
+    try {
+      const res = await fetch("/api/checkout/order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          business_id: businessId,
+          customer: {
+            email: customerEmail,
+            phone: custPhone,
+            first_name: custName,
+            last_name: ""
+          },
+          items: cart.map(item => ({
+            id: Number(item.id),
+            name: item.name,
+            price: Number(item.price),
+            quantity: Number(item.quantity)
+          }))
+        })
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "Failed to place order.");
+
+      setPendingOrderId(result.data.order_id);
+      setIsUpiModalOpen(true);
+    } catch (err: any) {
+      alert("Error placing order: " + err.message);
+    }
   };
 
   const handlePaymentSuccess = (orderId: string | number) => {
@@ -226,6 +259,26 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
   };
 
   const totalCartCost = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+
+  useEffect(() => {
+    if (!checkoutConfirmed || !orderTicket || !orderTicket.id) return;
+    
+    setLiveStatus("Pending Approval");
+    
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/public/orders/${orderTicket.id}/status`);
+        const data = await res.json();
+        if (res.ok && data.status === "success" && data.data?.status) {
+          setLiveStatus(data.data.status);
+        }
+      } catch (err) {
+        console.error("Error polling order status:", err);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [checkoutConfirmed, orderTicket]);
 
   return (
     <div
@@ -634,18 +687,20 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
               className="relative w-full max-w-md bg-[#0C0D14] border border-zinc-850 rounded-3xl p-6 shadow-2xl text-left space-y-6"
             >
               <div className="text-center space-y-2">
-                <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto text-emerald-400">
-                  <LucideIcon name="CheckCircle" className="w-6 h-6" />
+                <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto text-amber-400">
+                  <LucideIcon name="Clock" className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-bold text-white font-display">Order Successful!</h3>
-                <p className="text-xs text-zinc-500 font-mono">Your payments have been processed and logged in MySQL.</p>
+                <h3 className="text-lg font-bold text-white font-display">Request Submitted!</h3>
+                <p className="text-xs text-zinc-400">Your request has been submitted successfully and is waiting for owner approval.</p>
               </div>
 
               {/* Dynamic Invoice Panel */}
               <div className="p-4 rounded-2xl bg-zinc-950 border border-zinc-900 space-y-4">
                 <div className="flex justify-between items-center border-b border-zinc-900 pb-2 text-[10px] font-mono text-zinc-500 uppercase">
+                  <span className={`font-bold ${liveStatus.includes("Approved") || liveStatus.includes("Verified") ? "text-emerald-400" : liveStatus.includes("Rejected") || liveStatus.includes("Rejected") ? "text-red-400" : "text-amber-400"}`}>
+                    Status: {liveStatus}
+                  </span>
                   <span>Invoice # {orderTicket.id}</span>
-                  <span>{new Date().toLocaleDateString()}</span>
                 </div>
 
                 {/* Optional brand logo header */}
@@ -700,11 +755,7 @@ export default function ClothingTemplate({ onBackToHub, initialBrandName = "Nord
             first_name: custName,
             last_name: ""
           }}
-          bookingDetails={{
-            service_id: 1,
-            start_time: new Date().toISOString(),
-            notes: `Direct purchase from ${brandName}`
-          }}
+          orderId={pendingOrderId || undefined}
           onSuccess={handlePaymentSuccess}
         />
       )}

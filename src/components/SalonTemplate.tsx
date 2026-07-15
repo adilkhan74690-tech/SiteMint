@@ -180,6 +180,7 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [bookingTicket, setBookingTicket] = useState<any>(null);
+  const [liveStatus, setLiveStatus] = useState("Pending Approval");
 
   const timeslots = ["09:00 AM", "10:00 AM", "11:30 AM", "01:00 PM", "02:30 PM", "04:00 PM", "05:30 PM", "07:00 PM"];
 
@@ -252,6 +253,24 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
     setIsUpiModalOpen(false);
     setBookingConfirmed(true);
   };
+
+  useEffect(() => {
+    if (!bookingConfirmed || !bookingTicket || !bookingTicket.id) return;
+    
+    setLiveStatus("Pending Approval");
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/public/bookings/${bookingTicket.id}/status`);
+        const data = await res.json();
+        if (res.ok && data.status === "success" && data.data?.status) {
+          setLiveStatus(data.data.status);
+        }
+      } catch (err) {
+        console.error("Error polling salon appointment status:", err);
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [bookingConfirmed, bookingTicket]);
 
   const totalCalculated = displayServices
     .filter((s) => selectedServices.includes(s.id))
@@ -648,18 +667,24 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
                   exit={{ opacity: 0 }}
                   className="text-center py-6 space-y-4"
                 >
-                  <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mx-auto flex items-center justify-center">
-                    <LucideIcon name="Check" className="w-6 h-6 stroke-[3]" />
+                  <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 mx-auto flex items-center justify-center">
+                    <LucideIcon name="Clock" className="w-6 h-6 stroke-[3]" />
                   </div>
 
                   <div className="space-y-1.5">
-                    <h4 className="text-lg font-bold font-serif text-white">APPOINTMENT SECURED</h4>
+                    <h4 className="text-lg font-bold font-serif text-white">REQUEST SUBMITTED</h4>
                     <p className="text-xs text-zinc-400">
-                      {isStandalone ? "Your luxurious therapy is successfully booked." : "Your luxurious therapy is successfully booked inside Sandbox memory state."}
+                      Your request has been submitted successfully and is waiting for owner approval.
                     </p>
                   </div>
 
                   <div className="p-4 rounded-xl bg-zinc-950 text-left space-y-2.5 max-w-md mx-auto">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-zinc-500">Status:</span>
+                      <span className={`font-bold ${liveStatus.includes("Approved") || liveStatus.includes("Verified") ? "text-emerald-400" : liveStatus.includes("Rejected") || liveStatus.includes("Rejected") ? "text-red-400" : "text-amber-400"}`}>
+                        {liveStatus}
+                      </span>
+                    </div>
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-zinc-500">Ticket ID:</span>
                       <span className="font-mono text-white font-bold">{bookingTicket.id}</span>

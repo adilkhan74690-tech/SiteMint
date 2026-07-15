@@ -198,9 +198,19 @@ export async function updateBookingStatus(req: Request, res: Response, next: Nex
   }
 
   try {
+    const bookings: any[] = await query(
+      "SELECT customer_id FROM `bookings` WHERE `id` = ? AND `business_id` = ?",
+      [id, businessId]
+    );
+    if (bookings.length === 0) {
+      res.status(404).json({ status: "error", message: "Appointment record not found." });
+      return;
+    }
+    const customerId = bookings[0].customer_id;
+
     const result: any = await query(
       "UPDATE `bookings` SET `status` = ? WHERE `id` = ? AND `business_id` = ?",
-      [status, id, businessId]
+      [status.toLowerCase(), id, businessId]
     );
 
     if (result.affectedRows === 0) {
@@ -208,7 +218,78 @@ export async function updateBookingStatus(req: Request, res: Response, next: Nex
       return;
     }
 
+    // Create customer notification record
+    let notifTitle = "Pending Approval";
+    let notifMessage = "Your request has been submitted successfully and is waiting for owner approval.";
+    const lowerStatus = status.toLowerCase();
+    if (lowerStatus === "confirmed" || lowerStatus === "completed" || lowerStatus === "approved") {
+      notifTitle = "Approved";
+      notifMessage = "Your request has been approved.";
+    } else if (lowerStatus === "cancelled" || lowerStatus === "rejected") {
+      notifTitle = "Rejected";
+      notifMessage = "Your request has been rejected.";
+    }
+
+    await query(
+      `INSERT INTO \`notifications\` (\`business_id\`, \`recipient_type\`, \`recipient_id\`, \`title\`, \`message\`) 
+       VALUES (?, 'customer', ?, ?, ?)`,
+      [businessId, customerId, notifTitle, notifMessage]
+    );
+
     res.json({ status: "success", message: `Booking status updated to ${status} successfully.` });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Public endpoint to fetch status of a booking.
+ */
+export async function getPublicBookingStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const { id } = req.params;
+  try {
+    const bookings: any[] = await query(
+      "SELECT b.status, b.customer_id, b.business_id FROM `bookings` b WHERE b.id = ?",
+      [id]
+    );
+
+    if (bookings.length === 0) {
+      res.status(404).json({ status: "error", message: "Booking not found." });
+      return;
+    }
+
+    const booking = bookings[0];
+    let displayStatus = "Pending Approval";
+    const lowerStatus = booking.status.toLowerCase();
+
+    // Check if there is a pending UPI payment linked
+    const payments: any[] = await query(
+      "SELECT status, gateway FROM `payments` WHERE `booking_id` = ? ORDER BY `id` DESC LIMIT 1",
+      [id]
+    );
+
+    if (payments.length > 0) {
+      const payment = payments[0];
+      if (payment.gateway === "upi" && payment.status === "pending") {
+        displayStatus = "Payment Pending Verification";
+      } else if (payment.status === "captured") {
+        displayStatus = "Payment Verified";
+      } else if (payment.status === "failed") {
+        displayStatus = "Payment Rejected";
+      } else if (lowerStatus === "confirmed" || lowerStatus === "completed") {
+        displayStatus = "Approved";
+      } else if (lowerStatus === "cancelled") {
+        displayStatus = "Rejected";
+      }
+    } else {
+      if (lowerStatus === "confirmed" || lowerStatus === "completed") {
+        displayStatus = "Approved";
+      } else if (lowerStatus === "cancelled") {
+        displayStatus = "Rejected";
+      }
+    }
+
+    res.json({ status: "success", data: { status: displayStatus } });
   } catch (error) {
     next(error);
   }

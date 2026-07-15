@@ -113,8 +113,13 @@ export async function createReview(req: Request, res: Response, next: NextFuncti
   const businessId = req.body.business_id || req.user?.businessId;
   let { customer_id, product_id, service_id, rating, comment, customer_name, is_approved } = req.body;
 
-  if (!businessId || !rating) {
-    res.status(400).json({ status: "error", message: "Required parameters missing: business_id and rating (1-5)." });
+  if (!businessId) {
+    res.status(400).json({ status: "error", message: "business_id is required." });
+    return;
+  }
+
+  if (rating === undefined || rating === null || Number.isNaN(Number(rating)) || Number(rating) < 1 || Number(rating) > 5) {
+    res.status(400).json({ status: "error", message: "A rating between 1 and 5 is required." });
     return;
   }
 
@@ -138,7 +143,7 @@ export async function createReview(req: Request, res: Response, next: NextFuncti
       return;
     }
 
-    const approvedVal = is_approved === undefined ? false : (is_approved === true || is_approved === "true" || is_approved === 1);
+    const approvedVal = req.user ? (is_approved === true || is_approved === "true" || is_approved === 1) : false;
 
     const result: any = await query(
       `INSERT INTO \`reviews\` (\`business_id\`, \`customer_id\`, \`product_id\`, \`service_id\`, \`rating\`, \`comment\`, \`is_approved\`) 

@@ -134,7 +134,7 @@ export default function UpiPaymentModal({
       }
     } catch (err: any) {
       setIsSubmitting(false);
-      setErrorMsg(err.message || "An unexpected error occurred during submission.");
+      setErrorMsg("Your request could not be processed. Please check your transaction details and try again.");
     }
   };
 

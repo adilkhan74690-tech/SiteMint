@@ -76,7 +76,7 @@ export async function createCheckoutOrder(req: Request, res: Response, next: Nex
       await connection.execute(
         `INSERT INTO \`order_items\` (\`order_id\`, \`product_id\`, \`quantity\`, \`unit_price\`) 
          VALUES (?, ?, ?, ?)`,
-        [orderId, item.product_id, item.quantity, item.price]
+        [orderId, item.product_id || item.id, item.quantity, item.price]
       );
     }
 
@@ -380,6 +380,18 @@ export async function approvePayment(req: Request, res: Response, next: NextFunc
       }
     }
 
+    // Create customer notification record
+    const notifTitle = status === "captured" ? "Payment Verified" : "Payment Rejected";
+    const notifMessage = status === "captured" 
+      ? "Your request has been approved." 
+      : "Your request has been rejected.";
+    
+    await connection.execute(
+      `INSERT INTO \`notifications\` (\`business_id\`, \`recipient_type\`, \`recipient_id\`, \`title\`, \`message\`) 
+       VALUES (?, 'customer', ?, ?, ?)`,
+      [businessId, payment.customer_id, notifTitle, notifMessage]
+    );
+
     // Write activity log
     await connection.execute(
       `INSERT INTO \`activity_logs\` (\`business_id\`, \`action\`, \`details\`) 
@@ -426,6 +438,16 @@ export async function updateOrderStatus(req: Request, res: Response, next: NextF
   }
 
   try {
+    const orders: any[] = await query(
+      "SELECT customer_id FROM `orders` WHERE `id` = ? AND `business_id` = ?",
+      [id, businessId]
+    );
+    if (orders.length === 0) {
+      res.status(404).json({ status: "error", message: "Order record not found." });
+      return;
+    }
+    const customerId = orders[0].customer_id;
+
     const result: any = await query(
       "UPDATE `orders` SET `status` = ? WHERE `id` = ? AND `business_id` = ?",
       [status.toLowerCase(), id, businessId]
@@ -436,7 +458,78 @@ export async function updateOrderStatus(req: Request, res: Response, next: NextF
       return;
     }
 
+    // Create customer notification record
+    let notifTitle = "Pending Approval";
+    let notifMessage = "Your request has been submitted successfully and is waiting for owner approval.";
+    const lowerStatus = status.toLowerCase();
+    if (lowerStatus === "completed" || lowerStatus === "delivered" || lowerStatus === "processed" || lowerStatus === "processing") {
+      notifTitle = "Approved";
+      notifMessage = "Your request has been approved.";
+    } else if (lowerStatus === "cancelled" || lowerStatus === "rejected") {
+      notifTitle = "Rejected";
+      notifMessage = "Your request has been rejected.";
+    }
+
+    await query(
+      `INSERT INTO \`notifications\` (\`business_id\`, \`recipient_type\`, \`recipient_id\`, \`title\`, \`message\`) 
+       VALUES (?, 'customer', ?, ?, ?)`,
+      [businessId, customerId, notifTitle, notifMessage]
+    );
+
     res.json({ status: "success", message: `Order status updated to ${status} successfully.` });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Public endpoint to fetch status of an order.
+ */
+export async function getPublicOrderStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const { id } = req.params;
+  try {
+    const orders: any[] = await query(
+      "SELECT o.status, o.customer_id, o.business_id FROM `orders` o WHERE o.id = ?",
+      [id]
+    );
+
+    if (orders.length === 0) {
+      res.status(404).json({ status: "error", message: "Order not found." });
+      return;
+    }
+
+    const order = orders[0];
+    let displayStatus = "Pending Approval";
+    const lowerStatus = order.status.toLowerCase();
+
+    // Check if there is a pending UPI payment linked
+    const payments: any[] = await query(
+      "SELECT status, gateway FROM `payments` WHERE `order_id` = ? ORDER BY `id` DESC LIMIT 1",
+      [id]
+    );
+
+    if (payments.length > 0) {
+      const payment = payments[0];
+      if (payment.gateway === "upi" && payment.status === "pending") {
+        displayStatus = "Payment Pending Verification";
+      } else if (payment.status === "captured") {
+        displayStatus = "Payment Verified";
+      } else if (payment.status === "failed") {
+        displayStatus = "Payment Rejected";
+      } else if (lowerStatus === "completed" || lowerStatus === "processing") {
+        displayStatus = "Approved";
+      } else if (lowerStatus === "cancelled") {
+        displayStatus = "Rejected";
+      }
+    } else {
+      if (lowerStatus === "completed" || lowerStatus === "processing") {
+        displayStatus = "Approved";
+      } else if (lowerStatus === "cancelled") {
+        displayStatus = "Rejected";
+      }
+    }
+
+    res.json({ status: "success", data: { status: displayStatus } });
   } catch (error) {
     next(error);
   }

@@ -217,6 +217,8 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
   const [deliveryNote, setDeliveryNote] = useState("");
   const [isOrderUpiModalOpen, setIsOrderUpiModalOpen] = useState(false);
   const [pendingOrderId, setPendingOrderId] = useState<number | string | null>(null);
+  const [liveOrderStatus, setLiveOrderStatus] = useState("Pending Approval");
+  const [liveReserveStatus, setLiveReserveStatus] = useState("Pending Approval");
 
   const guestOptions = ["1 Guest - Solo Critic", "2 Guests - Intimate Bistro", "4 Guests - Family Banq", "6 Guests - Executive Table", "8+ Guests - Gala Dining"];
   const reservationTimes = ["05:30 PM - Sunset Seat", "07:00 PM - Candlelight Prime", "08:00 PM - Prime Dining", "09:30 PM - Late Jazz Hour", "10:30 PM - Chef Nightcap"];
@@ -333,6 +335,42 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
       setPendingOrderId(null);
     }, 4500);
   };
+
+  useEffect(() => {
+    if (!reserveSuccess || !reserveTicket || !reserveTicket.id) return;
+    
+    setLiveReserveStatus("Pending Approval");
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/public/bookings/${reserveTicket.id}/status`);
+        const data = await res.json();
+        if (res.ok && data.status === "success" && data.data?.status) {
+          setLiveReserveStatus(data.data.status);
+        }
+      } catch (err) {
+        console.error("Error polling reservation status:", err);
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [reserveSuccess, reserveTicket]);
+
+  useEffect(() => {
+    if (checkoutStep !== "success" || !pendingOrderId) return;
+    
+    setLiveOrderStatus("Pending Approval");
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/public/orders/${pendingOrderId}/status`);
+        const data = await res.json();
+        if (res.ok && data.status === "success" && data.data?.status) {
+          setLiveOrderStatus(data.data.status);
+        }
+      } catch (err) {
+        console.error("Error polling order status:", err);
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [checkoutStep, pendingOrderId]);
 
   return (
     <div 
@@ -646,17 +684,23 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
                   exit={{ opacity: 0 }}
                   className="text-center py-6 space-y-4"
                 >
-                  <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mx-auto flex items-center justify-center">
-                    <LucideIcon name="Check" className="w-6 h-6 stroke-[3]" />
+                  <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 mx-auto flex items-center justify-center">
+                    <LucideIcon name="Clock" className="w-6 h-6 stroke-[3]" />
                   </div>
                   <div>
-                    <h4 className="text-lg font-bold text-white">RESERVATION LOGGED</h4>
+                    <h4 className="text-lg font-bold text-white">REQUEST SUBMITTED</h4>
                     <p className="text-xs text-zinc-400 mt-1">
-                      {isStandalone ? "We have locked in your dining table reservation." : "We have locked in your dining table in our Sandbox state."}
+                      Your request has been submitted successfully and is waiting for owner approval.
                     </p>
                   </div>
 
                   <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-900 text-left space-y-2.5 max-w-md mx-auto">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-zinc-500">Status:</span>
+                      <span className={`font-bold ${liveReserveStatus.includes("Approved") || liveReserveStatus.includes("Verified") ? "text-emerald-400" : liveReserveStatus.includes("Rejected") || liveReserveStatus.includes("Rejected") ? "text-red-400" : "text-amber-400"}`}>
+                        {liveReserveStatus}
+                      </span>
+                    </div>
                     <div className="flex justify-between text-xs">
                       <span className="text-zinc-500">Receipt Serial:</span>
                       <span className="font-mono text-white font-bold">{reserveTicket.id}</span>
@@ -944,14 +988,17 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
               {/* Drawer Body state routing */}
               {checkoutStep === "success" ? (
                 <div className="flex-grow flex flex-col items-center justify-center text-center space-y-4 py-12" id="checkout-success-view">
-                  <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400 animate-bounce">
-                    <LucideIcon name="Check" className="w-8 h-8 stroke-[3]" />
+                  <div className="w-14 h-14 rounded-full bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-400 animate-bounce">
+                    <LucideIcon name="Clock" className="w-8 h-8 stroke-[3]" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold font-serif text-white">ORDER VERIFIED</h3>
+                    <h3 className="text-lg font-bold font-serif text-white">REQUEST SUBMITTED</h3>
                     <p className="text-xs text-zinc-400 mt-1 max-w-xs mx-auto">
-                      Your gourmet reservation has been stored. Culinary handshakes successfully fired!
+                      Your request has been submitted successfully and is waiting for owner approval.
                     </p>
+                    <div className={`pt-2 text-xs font-bold ${liveOrderStatus.includes("Approved") || liveOrderStatus.includes("Verified") ? "text-emerald-400" : liveOrderStatus.includes("Rejected") || liveOrderStatus.includes("Rejected") ? "text-red-400" : "text-amber-400"}`}>
+                      Status: {liveOrderStatus}
+                    </div>
                   </div>
                 </div>
               ) : checkoutStep === "billing" ? (

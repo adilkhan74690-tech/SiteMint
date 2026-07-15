@@ -534,8 +534,7 @@ const TABLE_SCHEMAS: TableSchema[] = [
         \`product_id\` BIGINT UNSIGNED NOT NULL,
         \`quantity\` INT NOT NULL,
         \`unit_price\` DECIMAL(10, 2) NOT NULL,
-        FOREIGN KEY (\`order_id\`) REFERENCES \`orders\` (\`id\`) ON DELETE CASCADE,
-        FOREIGN KEY (\`product_id\`) REFERENCES \`products\` (\`id\`) ON DELETE CASCADE
+        FOREIGN KEY (\`order_id\`) REFERENCES \`orders\` (\`id\`) ON DELETE CASCADE
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `,
     columns: {
@@ -1013,6 +1012,20 @@ export async function initializeDatabase(): Promise<void> {
         console.log("🛠️  Altered users.role to include 'SUPER_ADMIN'.");
       } catch (roleErr: any) {
         console.warn("⚠️ Warning modifying users.role to include SUPER_ADMIN:", roleErr.message);
+      }
+
+      // Drop order_items foreign key constraints to allow both products and services to be purchased
+      try {
+        await conn.execute("ALTER TABLE `order_items` DROP FOREIGN KEY `fk_items_product`;");
+        console.log("🛠️  Dropped fk_items_product constraint from order_items.");
+      } catch (err: any) {
+        // Ignored if constraint does not exist
+      }
+      try {
+        await conn.execute("ALTER TABLE `order_items` DROP FOREIGN KEY `order_items_ibfk_2`;");
+        console.log("🛠️  Dropped order_items_ibfk_2 constraint from order_items.");
+      } catch (err: any) {
+        // Ignored if constraint does not exist
       }
 
       reportText += `- **schema.sql Execution:** Executed successfully (parsed and skipped database creation commands)\n`;
