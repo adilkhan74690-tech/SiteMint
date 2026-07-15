@@ -38,9 +38,19 @@ export default function UpiPaymentModal({
   orderId,
   onSuccess
 }: UpiPaymentModalProps) {
-  const [transactionId, setTransactionId] = useState("");
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setScreenshotFile(file);
+      setFilePreview(URL.createObjectURL(file));
+      setErrorMsg("");
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -51,8 +61,8 @@ export default function UpiPaymentModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (transactionId.length < 8) {
-      setErrorMsg("Please enter a valid Transaction Ref ID (at least 8 digits).");
+    if (!screenshotFile) {
+      setErrorMsg("Please upload your payment screenshot.");
       return;
     }
 
@@ -61,19 +71,17 @@ export default function UpiPaymentModal({
 
     try {
       if (orderId) {
-        // Create the UPI payment transaction record linked to order
+        // Create the UPI payment transaction record linked to order using FormData
+        const formData = new FormData();
+        formData.append("business_id", String(businessId));
+        formData.append("order_id", String(orderId));
+        formData.append("amount", String(amount));
+        formData.append("customer_email", customer.email);
+        formData.append("screenshot", screenshotFile);
+
         const paymentRes = await fetch("/api/checkout/upi-payment", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            business_id: businessId,
-            order_id: orderId,
-            amount,
-            transaction_id: transactionId,
-            customer_email: customer.email
-          })
+          body: formData
         });
 
         const paymentResult = await paymentRes.json();
@@ -107,19 +115,17 @@ export default function UpiPaymentModal({
 
         const bookingId = bookingResult.data.booking_id;
 
-        // 2. Create the UPI payment transaction record
+        // 2. Create the UPI payment transaction record using FormData
+        const formData = new FormData();
+        formData.append("business_id", String(businessId));
+        formData.append("booking_id", String(bookingId));
+        formData.append("amount", String(amount));
+        formData.append("customer_email", customer.email);
+        formData.append("screenshot", screenshotFile);
+
         const paymentRes = await fetch("/api/checkout/upi-payment", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            business_id: businessId,
-            booking_id: bookingId,
-            amount,
-            transaction_id: transactionId,
-            customer_email: customer.email
-          })
+          body: formData
         });
 
         const paymentResult = await paymentRes.json();
@@ -134,7 +140,7 @@ export default function UpiPaymentModal({
       }
     } catch (err: any) {
       setIsSubmitting(false);
-      setErrorMsg("Your request could not be processed. Please check your transaction details and try again.");
+      setErrorMsg("Your payment submission could not be processed. Please check your network and try again.");
     }
   };
 
@@ -213,21 +219,38 @@ export default function UpiPaymentModal({
               </div>
             </div>
 
-            {/* Verification Inputs */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                Transaction ID / Ref Number
+            {/* Verification Inputs - Screenshot Upload */}
+            <div className="space-y-3">
+              <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider block text-left">
+                Upload Payment Screenshot
               </label>
-              <input
-                type="text"
-                required
-                value={transactionId}
-                onChange={(e) => setTransactionId(e.target.value.replace(/[^0-9]/g, ""))}
-                placeholder="Enter 12-digit UPI Ref Number"
-                className="w-full bg-zinc-900/60 border border-zinc-800 text-white placeholder-zinc-500 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-mint focus:ring-1 focus:ring-mint transition-all font-mono"
-              />
-              <p className="text-[10px] text-zinc-500 leading-normal">
-                Submit the UPI reference number from your payment confirmation screen to clear settlement.
+              
+              <div className="relative border border-dashed border-zinc-800 rounded-xl p-4 bg-zinc-950 hover:bg-zinc-900/40 transition-all text-center flex flex-col items-center justify-center min-h-[120px] cursor-pointer group">
+                <input
+                  type="file"
+                  accept="image/*"
+                  required
+                  onChange={handleFileChange}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                />
+                {filePreview ? (
+                  <div className="relative z-0 max-w-[150px] mx-auto rounded-lg overflow-hidden border border-zinc-800 shadow-lg">
+                    <img src={filePreview} alt="Screenshot Preview" className="w-full h-auto max-h-24 object-contain" />
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-[10px] font-bold text-white uppercase opacity-0 group-hover:opacity-100 transition-opacity">
+                      Change File
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 flex flex-col items-center text-zinc-400 group-hover:text-white transition-colors">
+                    <LucideIcon name="Upload" className="w-6 h-6 text-zinc-500 group-hover:text-mint transition-colors" />
+                    <span className="text-xs font-semibold">Tap to select or take photo</span>
+                    <span className="text-[9px] text-zinc-500">Supports PNG, JPG, JPEG</span>
+                  </div>
+                )}
+              </div>
+              
+              <p className="text-[10px] text-zinc-500 leading-normal text-left">
+                Upload the payment receipt screenshot from your UPI app (GPay, PhonePe, Paytm, etc.) to verify settlement.
               </p>
             </div>
 

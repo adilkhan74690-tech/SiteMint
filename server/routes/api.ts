@@ -230,7 +230,7 @@ router.patch(
 // ==========================================
 router.post("/checkout/order", createCheckoutOrder); // Public checkout placement
 router.post("/checkout/verify", verifyAndCapturePayment); // Public verification endpoint
-router.post("/checkout/upi-payment", createUpiPayment); // Public UPI payment placement
+router.post("/checkout/upi-payment", upload.single("screenshot"), createUpiPayment); // Public UPI payment placement
 router.get("/public/orders/:id/status", getPublicOrderStatus); // Public status check
 router.get(
   "/checkout/orders",

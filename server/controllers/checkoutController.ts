@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { query, getConnection } from "../config/database.js";
 import { createRazorpayOrder, verifyPaymentSignature } from "../services/razorpayService.js";
 import { emitToStaff } from "../services/socketService.js";
+import { uploadToCloudinary } from "../services/cloudinaryService.js";
 
 /**
  * Create a new customer Order and request a Razorpay transaction token.
@@ -240,9 +241,22 @@ export async function listPayments(req: Request, res: Response, next: NextFuncti
 
   try {
     const payments = await query(
-      `SELECT p.*, c.first_name, c.last_name, c.email, c.phone
+      `SELECT p.*, 
+              c.first_name, c.last_name, c.email, c.phone,
+              s.name AS service_name, b.start_time AS booking_start_time,
+              o.total_amount AS order_total_amount,
+              (
+                SELECT GROUP_CONCAT(CONCAT(oi.quantity, 'x ', COALESCE(pr.name, s2.name)) SEPARATOR ', ')
+                FROM order_items oi
+                LEFT JOIN products pr ON oi.product_id = pr.id
+                LEFT JOIN services s2 ON oi.product_id = s2.id
+                WHERE oi.order_id = p.order_id
+              ) AS order_items_desc
        FROM \`payments\` p
        JOIN \`customers\` c ON p.customer_id = c.id
+       LEFT JOIN \`bookings\` b ON p.booking_id = b.id
+       LEFT JOIN \`services\` s ON b.service_id = s.id
+       LEFT JOIN \`orders\` o ON p.order_id = o.id
        WHERE p.business_id = ? 
        ORDER BY p.id DESC`,
       [businessId]
@@ -257,31 +271,52 @@ export async function listPayments(req: Request, res: Response, next: NextFuncti
  * Create a new pending UPI payment submission from booking page.
  */
 export async function createUpiPayment(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const { business_id, booking_id, order_id, amount, transaction_id, customer_email } = req.body;
+  const { business_id, booking_id, order_id, amount, customer_email } = req.body;
+  const file = req.file;
 
-  if (!business_id || (!booking_id && !order_id) || !amount || !transaction_id || !customer_email) {
+  if (!business_id || (!booking_id && !order_id) || !amount || !customer_email) {
     res.status(400).json({
       status: "error",
-      message: "Required parameters are missing: business_id, amount, transaction_id, customer_email, and either booking_id or order_id."
+      message: "Required parameters are missing: business_id, amount, customer_email, and either booking_id or order_id."
+    });
+    return;
+  }
+
+  if (!file) {
+    res.status(400).json({
+      status: "error",
+      message: "Please upload your payment screenshot."
     });
     return;
   }
 
   try {
-    // 1. Check customer profile
+    // 1. Upload screenshot to Cloudinary/Mock storage
+    const folderPath = `sitemint_payments_${business_id}`;
+    const uploadResult = await uploadToCloudinary(file.buffer, folderPath, file.originalname);
+    const screenshotUrl = uploadResult.url;
+
+    // 2. Check/create customer profile
     const customers = await query(
       "SELECT id FROM `customers` WHERE `business_id` = ? AND `email` = ?",
       [business_id, customer_email]
     );
 
+    let customerId;
     if (customers.length === 0) {
-      res.status(404).json({ status: "error", message: "Customer profile not found." });
-      return;
+      const parts = customer_email.split("@")[0].split(".");
+      const firstName = parts[0] || "Customer";
+      const lastName = parts.slice(1).join(" ") || "";
+      const custResult: any = await query(
+        "INSERT INTO `customers` (`business_id`, `first_name`, `last_name`, `email`) VALUES (?, ?, ?, ?)",
+        [business_id, firstName, lastName, customer_email]
+      );
+      customerId = custResult.insertId;
+    } else {
+      customerId = customers[0].id;
     }
 
-    const customerId = customers[0].id;
-
-    // 2. Insert UPI payment record
+    // 3. Insert UPI payment record
     const gatewayOrderId = `UPI-ORD-${Math.floor(100000 + Math.random() * 900000)}`;
     const result: any = await query(
       `INSERT INTO \`payments\` (\`business_id\`, \`customer_id\`, \`booking_id\`, \`order_id\`, \`gateway\`, \`gateway_order_id\`, \`gateway_payment_id\`, \`amount\`, \`status\`) 
@@ -292,18 +327,21 @@ export async function createUpiPayment(req: Request, res: Response, next: NextFu
         booking_id || null,
         order_id || null,
         gatewayOrderId,
-        transaction_id,
+        screenshotUrl,
         amount
       ]
     );
 
     res.status(201).json({
       status: "success",
-      message: "UPI transaction submitted successfully and is pending owner verification.",
+      message: "Payment submitted successfully. Waiting for owner verification.",
       data: { payment_id: result.insertId }
     });
   } catch (error) {
-    next(error);
+    res.status(400).json({
+      status: "error",
+      message: "Your payment submission could not be completed. Please try again."
+    });
   }
 }
 
@@ -383,8 +421,8 @@ export async function approvePayment(req: Request, res: Response, next: NextFunc
     // Create customer notification record
     const notifTitle = status === "captured" ? "Payment Verified" : "Payment Rejected";
     const notifMessage = status === "captured" 
-      ? "Your request has been approved." 
-      : "Your request has been rejected.";
+      ? "Your payment has been verified. Your order is confirmed." 
+      : "Payment verification failed. Please upload a valid payment screenshot.";
     
     await connection.execute(
       `INSERT INTO \`notifications\` (\`business_id\`, \`recipient_type\`, \`recipient_id\`, \`title\`, \`message\`) 

@@ -4812,38 +4812,69 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
 
                 </div>
 
-                {/* Pending UPI Settlements */}
+                {/* Payment Verification Section */}
                 <div className="p-6 rounded-2xl bg-zinc-950/40 border border-zinc-900 mb-6">
-                  <h4 className="text-base font-bold text-white font-display mb-4">Pending UPI Settlements Verification</h4>
+                  <h4 className="text-base font-bold text-white font-display mb-4">Payment Verification</h4>
                   
                   {paymentsList.filter(p => p.gateway === "upi" && p.status === "pending").length === 0 ? (
-                    <p className="text-xs text-zinc-500 py-2">No pending settlements awaiting verification.</p>
+                    <p className="text-xs text-zinc-500 py-2">No pending payments awaiting verification.</p>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       {paymentsList.filter(p => p.gateway === "upi" && p.status === "pending").map((tx) => (
-                        <div key={tx.id} className="p-4 rounded-xl bg-zinc-900/40 border border-zinc-850 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs">
-                          <div className="text-left space-y-1">
-                            <div className="flex items-center gap-2">
+                        <div key={tx.id} className="p-4 rounded-xl bg-zinc-900/40 border border-zinc-850 flex flex-col md:flex-row md:items-start md:justify-between gap-4 text-xs">
+                          <div className="text-left space-y-2 flex-grow">
+                            <div className="flex flex-wrap items-center gap-2">
                               <span className="font-bold text-base text-amber-400 font-mono">₹{tx.amount}</span>
                               <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 font-mono font-bold text-[9px] uppercase">
-                                Pending Verification
+                                Payment Pending Verification
                               </span>
                             </div>
-                            <p className="text-zinc-300 font-semibold">{tx.first_name} {tx.last_name} ({tx.email})</p>
-                            <p className="text-zinc-500 text-[10px] font-mono">UPI Ref ID: <span className="text-white font-bold select-all">{tx.gateway_payment_id}</span></p>
+                            
+                            <div className="space-y-1">
+                              <p className="text-zinc-300 font-semibold">Customer: {tx.first_name} {tx.last_name} ({tx.email || tx.phone})</p>
+                              
+                              <p className="text-zinc-400">
+                                <strong className="text-zinc-500">Details:</strong>{" "}
+                                {tx.booking_id ? (
+                                  <span>Booking: {tx.service_name || "Service"} ({tx.booking_start_time ? new Date(tx.booking_start_time).toLocaleString() : "Date pending"})</span>
+                                ) : (
+                                  <span>Order: {tx.order_items_desc || "Direct Purchase"}</span>
+                                )}
+                              </p>
+                              
+                              <p className="text-zinc-500 text-[10px] font-mono">
+                                Submitted At: {new Date(tx.created_at).toLocaleString()}
+                              </p>
+                            </div>
+
+                            {/* Payment Screenshot Display */}
+                            {tx.gateway_payment_id && (tx.gateway_payment_id.startsWith("http://") || tx.gateway_payment_id.startsWith("https://")) ? (
+                              <div className="mt-3">
+                                <p className="text-zinc-500 text-[9px] uppercase font-bold tracking-wider mb-1 font-mono">Uploaded Payment Screenshot:</p>
+                                <a href={tx.gateway_payment_id} target="_blank" rel="noopener noreferrer" className="inline-block relative rounded-lg border border-zinc-800 overflow-hidden hover:border-zinc-700 transition-all max-w-[180px]">
+                                  <img src={tx.gateway_payment_id} alt="Payment Receipt Screenshot" className="w-full h-auto max-h-36 object-contain" />
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 flex items-center justify-center text-white text-[9px] font-bold transition-all uppercase">
+                                    View Full Image
+                                  </div>
+                                </a>
+                              </div>
+                            ) : (
+                              <p className="text-zinc-500 text-[10px] font-mono">UPI Ref ID: <span className="text-white font-bold select-all">{tx.gateway_payment_id}</span></p>
+                            )}
                           </div>
-                          <div className="flex items-center gap-2 shrink-0">
+                          
+                          <div className="flex items-center gap-2 shrink-0 md:self-center">
                             <button
                               onClick={() => handleApprovePayment(tx.id, false)}
-                              className="px-3.5 py-2 rounded-xl bg-zinc-950 hover:bg-zinc-900 border border-zinc-850 text-red-400 hover:text-red-300 font-bold transition-all text-xs"
+                              className="px-3.5 py-2 rounded-xl bg-zinc-950 hover:bg-zinc-900 border border-zinc-850 text-red-400 hover:text-red-300 font-bold transition-all text-xs touch-target"
                             >
-                              Reject
+                              Reject Payment
                             </button>
                             <button
                               onClick={() => handleApprovePayment(tx.id, true)}
-                              className="px-4 py-2 rounded-xl bg-emerald-500 text-black hover:opacity-90 font-bold transition-all text-xs"
+                              className="px-4 py-2 rounded-xl bg-emerald-500 text-black hover:opacity-90 font-bold transition-all text-xs touch-target"
                             >
-                              Approve Settlement
+                              Approve Payment
                             </button>
                           </div>
                         </div>
