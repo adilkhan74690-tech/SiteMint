@@ -282,7 +282,10 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
             date: dateObj.toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' }),
             time: dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             amount: b.service_price || 0,
-            status: b.status ? (b.status.charAt(0).toUpperCase() + b.status.slice(1).toLowerCase()) : "Pending"
+            status: b.status ? (b.status.charAt(0).toUpperCase() + b.status.slice(1).toLowerCase()) : "Pending",
+            screenshot_url: b.screenshot_url || null,
+            payment_status: b.payment_status || null,
+            created_at: b.created_at
           };
         }));
       }
@@ -1241,9 +1244,13 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
     }
   };
 
-  const handleOrderAction = async (id: string, action: "Shipped" | "Delivered") => {
+  const handleOrderAction = async (id: string, action: "Shipped" | "Delivered" | "Approve" | "Reject") => {
     const token = localStorage.getItem("sitemint_token");
-    const updatedStatus = action === "Shipped" ? "processing" : action === "Delivered" ? "completed" : action;
+    let updatedStatus = "";
+    if (action === "Shipped") updatedStatus = "processing";
+    else if (action === "Delivered") updatedStatus = "completed";
+    else if (action === "Approve") updatedStatus = "completed";
+    else if (action === "Reject") updatedStatus = "cancelled";
     try {
       const res = await fetch(`/api/checkout/orders/${id}/status`, {
         method: "PATCH",
@@ -3527,14 +3534,14 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                             </div>
                             <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${
                               bk.status === "Confirmed" ? "bg-emerald-500/10 text-emerald-400" :
-                              bk.status === "Pending" ? "bg-amber-500/10 text-amber-400" : "bg-red-500/10 text-red-400"
+                              bk.status === "Pending" ? "bg-amber-500/10 text-amber-400 animate-pulse" : "bg-red-500/10 text-red-400"
                             }`}>
                               {bk.status}
                             </span>
                           </div>
 
                           <div className="p-3 bg-zinc-900/40 border border-zinc-850 rounded-xl flex items-center justify-between text-xs text-zinc-300">
-                            <div>
+                            <div className="text-left">
                               <p className="text-zinc-500 text-[10px] font-mono">SERVICE REQUEST</p>
                               <p className="font-bold text-white">{bk.service}</p>
                               <p className="text-zinc-400 mt-0.5">{bk.date} at {bk.time}</p>
@@ -3545,6 +3552,24 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                             </div>
                           </div>
 
+                          {/* Payment Screenshot Display */}
+                          {bk.screenshot_url && (bk.screenshot_url.startsWith("http://") || bk.screenshot_url.startsWith("https://")) && (
+                            <div className="text-left mt-2">
+                              <p className="text-zinc-500 text-[9px] uppercase font-bold tracking-wider mb-1 font-mono">Uploaded Payment Screenshot:</p>
+                              <div className="flex items-center gap-2">
+                                <a href={bk.screenshot_url} target="_blank" rel="noopener noreferrer" className="inline-block relative rounded-lg border border-zinc-800 overflow-hidden hover:border-zinc-700 transition-all max-w-[120px] group/ss">
+                                  <img src={bk.screenshot_url} alt="Payment Receipt Screenshot" className="w-full h-auto max-h-20 object-contain" />
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/ss:opacity-100 flex items-center justify-center text-white text-[9px] font-bold transition-all uppercase">
+                                    View Full
+                                  </div>
+                                </a>
+                                <a href={bk.screenshot_url} target="_blank" rel="noopener noreferrer" className="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-[10px] text-zinc-300 hover:text-white transition-colors">
+                                  View Screenshot
+                                </a>
+                              </div>
+                            </div>
+                          )}
+
                           {/* Interactive trigger actions inside table */}
                           <div className="flex justify-end gap-2 border-t border-zinc-900 pt-3">
                             {bk.status === "Pending" ? (
@@ -3553,7 +3578,7 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                                   onClick={() => handleBookingAction(bk.id, "Reject")}
                                   className="px-3 py-1.5 rounded-lg border border-red-500/20 text-red-400 bg-red-500/5 hover:bg-red-500/10 text-xs font-semibold"
                                 >
-                                  Decline
+                                  Reject
                                 </button>
                                 <button
                                   onClick={() => handleBookingAction(bk.id, "Confirm")}
@@ -4402,43 +4427,78 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                         const orderDate = ord.date || (ord.created_at ? new Date(ord.created_at).toLocaleDateString() : "");
                         const orderAmount = ord.amount || ord.total_amount || 0;
                         return (
-                          <div key={ord.id} className="p-4 rounded-xl bg-zinc-900/40 border border-zinc-850 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div className="space-y-1 text-left">
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-mono text-zinc-500 font-bold">{ord.id}</span>
-                                <span className={`text-[9px] font-mono px-2 py-0.5 rounded-full ${
-                                  ord.status === "Delivered" ? "bg-emerald-500/10 text-emerald-400" :
-                                  ord.status === "Shipped" ? "bg-cyan-500/10 text-cyan-400" : "bg-amber-500/10 text-amber-400 animate-pulse"
-                                }`}>
-                                  {ord.status}
-                                </span>
+                          <div key={ord.id} className="p-4 rounded-xl bg-zinc-900/40 border border-zinc-850 flex flex-col justify-between gap-4">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                              <div className="space-y-1 text-left">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-mono text-zinc-500 font-bold">{ord.id}</span>
+                                  <span className={`text-[9px] font-mono px-2 py-0.5 rounded-full ${
+                                    ord.status === "completed" || ord.status === "Completed" || ord.status === "Delivered" ? "bg-emerald-500/10 text-emerald-400" :
+                                    ord.status === "processing" || ord.status === "Processing" || ord.status === "Shipped" ? "bg-cyan-500/10 text-cyan-400" : "bg-amber-500/10 text-amber-400 animate-pulse"
+                                  }`}>
+                                    {ord.status}
+                                  </span>
+                                </div>
+                                <h4 className="text-sm font-bold text-white">{customerName}</h4>
+                                <p className="text-xs text-zinc-400 leading-normal">{orderItemsDesc}</p>
+                                <p className="text-[10px] font-mono text-zinc-500">Placed: {orderDate} • Tracking: {trackingCode}</p>
                               </div>
-                              <h4 className="text-sm font-bold text-white">{customerName}</h4>
-                              <p className="text-xs text-zinc-400 leading-normal">{orderItemsDesc}</p>
-                              <p className="text-[10px] font-mono text-zinc-500">Placed: {orderDate} • Tracking: {trackingCode}</p>
+
+                              <div className="flex sm:flex-col items-start sm:items-end justify-between sm:justify-center gap-2 shrink-0">
+                                <p className="text-sm font-black text-emerald-400">${orderAmount}</p>
+                              </div>
                             </div>
 
-                            <div className="flex sm:flex-col items-start sm:items-end justify-between sm:justify-center gap-2 shrink-0">
-                              <p className="text-sm font-black text-emerald-400">${orderAmount}</p>
-                              
-                              <div className="flex gap-1.5">
-                                {ord.status === "Processing" && (
-                                  <button 
-                                    onClick={() => handleOrderAction(ord.id, "Shipped")}
-                                    className="px-2.5 py-1 rounded bg-cyan-500 text-black font-bold text-[10px]"
-                                  >
-                                    Mark Shipped
-                                  </button>
-                                )}
-                                {ord.status === "Shipped" && (
-                                  <button 
-                                    onClick={() => handleOrderAction(ord.id, "Delivered")}
-                                    className="px-2.5 py-1 rounded bg-emerald-500 text-black font-bold text-[10px]"
-                                  >
-                                    Mark Delivered
-                                  </button>
-                                )}
+                            {/* Payment Screenshot Display */}
+                            {ord.screenshot_url && (ord.screenshot_url.startsWith("http://") || ord.screenshot_url.startsWith("https://")) && (
+                              <div className="text-left mt-2">
+                                <p className="text-zinc-500 text-[9px] uppercase font-bold tracking-wider mb-1 font-mono">Uploaded Payment Screenshot:</p>
+                                <div className="flex items-center gap-2">
+                                  <a href={ord.screenshot_url} target="_blank" rel="noopener noreferrer" className="inline-block relative rounded-lg border border-zinc-800 overflow-hidden hover:border-zinc-700 transition-all max-w-[120px] group/ss">
+                                    <img src={ord.screenshot_url} alt="Payment Receipt Screenshot" className="w-full h-auto max-h-20 object-contain" />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/ss:opacity-100 flex items-center justify-center text-white text-[9px] font-bold transition-all uppercase">
+                                      View Full
+                                    </div>
+                                  </a>
+                                  <a href={ord.screenshot_url} target="_blank" rel="noopener noreferrer" className="px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 text-[10px] text-zinc-300 hover:text-white transition-colors">
+                                    View Screenshot
+                                  </a>
+                                </div>
                               </div>
+                            )}
+
+                            {/* Action Buttons */}
+                            <div className="flex justify-end gap-1.5 border-t border-zinc-900 pt-3">
+                              {(ord.status === "pending" || ord.status === "Pending") ? (
+                                <>
+                                  <button 
+                                    onClick={() => handleOrderAction(ord.id, "Reject")}
+                                    className="px-3 py-1.5 rounded-lg border border-red-500/20 text-red-400 bg-red-500/5 hover:bg-red-500/10 text-xs font-semibold"
+                                  >
+                                    Reject
+                                  </button>
+                                  <button 
+                                    onClick={() => handleOrderAction(ord.id, "Approve")}
+                                    className="px-3 py-1.5 rounded-lg bg-emerald-500 text-black hover:opacity-90 text-xs font-bold"
+                                  >
+                                    Approve
+                                  </button>
+                                </>
+                              ) : ord.status === "Processing" ? (
+                                <button 
+                                  onClick={() => handleOrderAction(ord.id, "Shipped")}
+                                  className="px-3 py-1.5 rounded bg-cyan-500 text-black font-bold text-xs"
+                                >
+                                  Mark Shipped
+                                </button>
+                              ) : ord.status === "Shipped" ? (
+                                <button 
+                                  onClick={() => handleOrderAction(ord.id, "Delivered")}
+                                  className="px-3 py-1.5 rounded bg-emerald-500 text-black font-bold text-xs"
+                                >
+                                  Mark Delivered
+                                </button>
+                              ) : null}
                             </div>
                           </div>
                         );

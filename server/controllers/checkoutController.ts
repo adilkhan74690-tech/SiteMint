@@ -216,6 +216,7 @@ export async function listOrders(req: Request, res: Response, next: NextFunction
   try {
     const orders = await query(
       `SELECT o.*, c.first_name, c.last_name, c.email, c.phone,
+              p.gateway_payment_id AS screenshot_url, p.status AS payment_status, p.amount AS payment_amount,
               (
                 SELECT GROUP_CONCAT(CONCAT(oi.quantity, 'x ', COALESCE(pr.name, s2.name)) SEPARATOR ', ')
                 FROM order_items oi
@@ -225,6 +226,7 @@ export async function listOrders(req: Request, res: Response, next: NextFunction
               ) AS order_items_desc
        FROM \`orders\` o
        JOIN \`customers\` c ON o.customer_id = c.id
+       LEFT JOIN \`payments\` p ON p.order_id = o.id AND p.gateway = 'upi'
        WHERE o.business_id = ? 
        ORDER BY o.id DESC`,
       [businessId]
@@ -503,16 +505,18 @@ export async function updateOrderStatus(req: Request, res: Response, next: NextF
       return;
     }
 
-    // Create customer notification record
+    // Create customer notification record and propagate payment status
     let notifTitle = "Pending Approval";
     let notifMessage = "Your request has been submitted successfully and is waiting for owner approval.";
     const lowerStatus = status.toLowerCase();
-    if (lowerStatus === "completed" || lowerStatus === "delivered" || lowerStatus === "processed" || lowerStatus === "processing") {
+    if (lowerStatus === "completed" || lowerStatus === "delivered" || lowerStatus === "processed" || lowerStatus === "processing" || lowerStatus === "confirmed" || lowerStatus === "approved") {
       notifTitle = "Approved";
-      notifMessage = "Your request has been approved.";
+      notifMessage = "Your payment has been verified. Your order has been confirmed.";
+      await query("UPDATE `payments` SET `status` = 'captured' WHERE `order_id` = ? AND `business_id` = ?", [id, businessId]);
     } else if (lowerStatus === "cancelled" || lowerStatus === "rejected") {
       notifTitle = "Rejected";
-      notifMessage = "Your request has been rejected.";
+      notifMessage = "Payment verification failed. Please upload a valid screenshot.";
+      await query("UPDATE `payments` SET `status` = 'failed' WHERE `order_id` = ? AND `business_id` = ?", [id, businessId]);
     }
 
     await query(

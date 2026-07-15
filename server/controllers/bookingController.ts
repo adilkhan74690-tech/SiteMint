@@ -19,11 +19,13 @@ export async function listBookings(req: Request, res: Response, next: NextFuncti
       SELECT b.*, 
              c.first_name as customer_first_name, c.last_name as customer_last_name, c.email as customer_email, c.phone as customer_phone,
              s.name as service_name, s.duration_minutes as service_duration, s.price as service_price,
-             u.full_name as staff_name
+             u.full_name as staff_name,
+             p.gateway_payment_id AS screenshot_url, p.status AS payment_status, p.amount AS payment_amount
       FROM \`bookings\` b
       JOIN \`customers\` c ON b.customer_id = c.id
       JOIN \`services\` s ON b.service_id = s.id
       LEFT JOIN \`users\` u ON b.staff_id = u.id
+      LEFT JOIN \`payments\` p ON p.booking_id = b.id AND p.gateway = 'upi'
       WHERE b.business_id = ?
     `;
     const params: any[] = [businessId];
@@ -218,16 +220,18 @@ export async function updateBookingStatus(req: Request, res: Response, next: Nex
       return;
     }
 
-    // Create customer notification record
+    // Create customer notification record and propagate payment status
     let notifTitle = "Pending Approval";
     let notifMessage = "Your request has been submitted successfully and is waiting for owner approval.";
     const lowerStatus = status.toLowerCase();
     if (lowerStatus === "confirmed" || lowerStatus === "completed" || lowerStatus === "approved") {
       notifTitle = "Approved";
-      notifMessage = "Your request has been approved.";
+      notifMessage = "Your payment has been verified. Your order has been confirmed.";
+      await query("UPDATE `payments` SET `status` = 'captured' WHERE `booking_id` = ? AND `business_id` = ?", [id, businessId]);
     } else if (lowerStatus === "cancelled" || lowerStatus === "rejected") {
       notifTitle = "Rejected";
-      notifMessage = "Your request has been rejected.";
+      notifMessage = "Payment verification failed. Please upload a valid screenshot.";
+      await query("UPDATE `payments` SET `status` = 'failed' WHERE `booking_id` = ? AND `business_id` = ?", [id, businessId]);
     }
 
     await query(
