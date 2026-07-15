@@ -50,7 +50,7 @@ export async function createProduct(req: Request, res: Response, next: NextFunct
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
 
   try {
-    const [result]: any = await query(
+    const result: any = await query(
       `INSERT INTO \`products\` (\`business_id\`, \`name\`, \`slug\`, \`description\`, \`price\`, \`compare_at_price\`, \`sku\`, \`inventory_qty\`, \`is_active\`, \`image_url\`) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -166,7 +166,7 @@ export async function createService(req: Request, res: Response, next: NextFunct
   }
 
   try {
-    const [result]: any = await query(
+    const result: any = await query(
       `INSERT INTO \`services\` (\`business_id\`, \`name\`, \`description\`, \`duration_minutes\`, \`price\`, \`capacity\`, \`is_active\`, \`image_url\`,
                                  \`offer_price\`, \`category\`, \`featured_badge\`, \`sort_order\`, \`availability\`) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,

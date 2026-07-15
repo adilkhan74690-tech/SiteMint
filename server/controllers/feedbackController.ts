@@ -26,7 +26,7 @@ export async function uploadMedia(req: Request, res: Response, next: NextFunctio
     const uploadResult = await uploadToCloudinary(file.buffer, folderPath, file.originalname);
 
     // 2. Persist in MySQL schema
-    const [result]: any = await query(
+    const result: any = await query(
       `INSERT INTO \`media\` (\`business_id\`, \`public_id\`, \`url\`, \`file_name\`, \`file_size\`, \`mime_type\`) 
        VALUES (?, ?, ?, ?, ?, ?)`,
       [businessId, uploadResult.publicId, uploadResult.url, file.originalname, file.size, file.mimetype]
@@ -119,7 +119,7 @@ export async function createReview(req: Request, res: Response, next: NextFuncti
   }
 
   try {
-    const [result]: any = await query(
+    const result: any = await query(
       `INSERT INTO \`reviews\` (\`business_id\`, \`customer_id\`, \`product_id\`, \`service_id\`, \`rating\`, \`comment\`, \`is_approved\`) 
        VALUES (?, ?, ?, ?, ?, ?, FALSE)`,
       [

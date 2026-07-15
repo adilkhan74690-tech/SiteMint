@@ -138,6 +138,9 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
       .then((res) => {
         if (res.status === "success" && Array.isArray(res.data)) {
           setTrainers(res.data);
+          if (res.data.length > 0) {
+            setSelectedTrainer(res.data[0].full_name);
+          }
         }
       })
       .catch((err) => console.error("Error loading staff:", err));
@@ -153,16 +156,16 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
       .catch((err) => console.error("Error loading services:", err));
   }, []);
 
-  const displayTiers = servicesList.length > 0 ? servicesList.map((s, idx) => ({
+  const displayTiers = servicesList.map((s, idx) => ({
     id: String(s.id),
     name: s.name,
     price: Number(s.price),
     interval: "mo",
     features: s.description ? s.description.split(/[,\n.]+/).map((f: string) => f.trim()).filter(Boolean) : ["Full gym access", "Professional coaching advice", "Locker access"],
     popular: idx === 1
-  })) : MEMBERSHIP_TIERS;
+  }));
 
-  const displayTrainers = trainers.length > 0 ? trainers.map(t => ({
+  const displayTrainers = trainers.map(t => ({
     id: String(t.id),
     name: t.full_name,
     role: t.staff_title || t.role || "Performance Coach",
@@ -170,20 +173,17 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
     image: t.staff_photo_url || "https://images.unsplash.com/photo-1567013127542-490d757e51fc?auto=format&fit=crop&w=300&q=80",
     rating: t.rating || 5,
     specialty: t.staff_title || "Strength & Power"
-  })) : TRAINERS;
+  }));
 
   const displayGallery = galleryPhotos;
 
-  const displayReviews = reviewsList.length > 0 ? reviewsList.map(r => ({
+  const displayReviews = reviewsList.map(r => ({
     name: `${r.first_name} ${r.last_name || ""}`.trim(),
     role: "Athlete Member",
     comment: r.comment,
     rating: r.rating,
     date: new Date(r.created_at).toLocaleDateString()
-  })) : [
-    { name: "Damian Thorne", role: "Vanguard Level 2 Athlete", comment: "The biometric mapping and custom power plates are incredible. Scaled my deadlift by 40kg.", rating: 5, date: "3 weeks ago" },
-    { name: "Elena Rostova", role: "Olympic Weightlifting Member", comment: "Clean platforms, certified competitive bars, and coaches who understand velocity based training.", rating: 5, date: "1 month ago" }
-  ];
+  }));
 
   // Customer credentials inputs
   const [custName, setCustName] = useState("");
@@ -195,7 +195,7 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
 
   // Gym Booking Engine States
   const [selectedDate, setSelectedDate] = useState("2026-07-13");
-  const [selectedTrainer, setSelectedTrainer] = useState(TRAINERS[0].name);
+  const [selectedTrainer, setSelectedTrainer] = useState("");
   const [selectedSlot, setSelectedSlot] = useState("");
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [bookingDetails, setBookingDetails] = useState<any>(null);

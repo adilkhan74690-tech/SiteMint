@@ -66,13 +66,11 @@ const WEB_TEMPLATES = [
   { id: "electronics", name: "Electronics", category: "Electronics", isLive: false },
   { id: "pet-store", name: "Pet Store", category: "Pet Store", isLive: false },
   { id: "hotel", name: "Hotel", category: "Hotel", isLive: false },
-  { id: "clinic", name: "Clinic", category: "Clinic", isLive: false },
   { id: "bakery", name: "Bakery", category: "Bakery", isLive: false },
   { id: "florist", name: "Florist", category: "Florist", isLive: false },
   { id: "jewellery", name: "Jewellery", category: "Jewellery", isLive: false },
   { id: "furniture", name: "Furniture", category: "Furniture", isLive: false },
   { id: "photography", name: "Photography", category: "Photography", isLive: false },
-  { id: "education", name: "Education", category: "Education", isLive: false },
   { id: "car-wash", name: "Car Wash", category: "Car Wash", isLive: false },
   { id: "travel-agency", name: "Travel Agency", category: "Travel Agency", isLive: false },
   { id: "real-estate", name: "Real Estate", category: "Real Estate", isLive: false },
@@ -145,7 +143,6 @@ const CATEGORIES = [
   { id: "spa", label: "Spas & Body Rituals", icon: "Sparkles", tag: "Luxury Bookings" },
   { id: "cafe", label: "Cafes & Roasteries", icon: "Coffee", tag: "Order & Pickups" },
   { id: "consulting", label: "Professional Services", icon: "Briefcase", tag: "Intake & Hourly" },
-  { id: "clinics", label: "Boutique Medical", icon: "Heart", tag: "HIPAA & Consults" },
   { id: "creative", label: "Art & Photo Studios", icon: "Camera", tag: "Galleries & Bookings" },
 ];
 

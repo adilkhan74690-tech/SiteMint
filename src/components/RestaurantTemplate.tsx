@@ -176,7 +176,7 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
   // UPI payment modal control
   const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
 
-  const displayMenu = productsList.length > 0 ? productsList.map(p => ({
+  const displayMenu = productsList.map(p => ({
     id: String(p.id),
     name: p.name,
     price: Number(p.price),
@@ -184,16 +184,16 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
     description: p.description || "Freshly curated bistro specialty.",
     image: p.image_url || "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=400&q=80",
     tags: p.compare_at_price ? ["Promo"] : []
-  })) : MENU_ITEMS;
+  }));
 
   const displayGallery = galleryPhotos;
 
-  const displayReviews = reviewsList.length > 0 ? reviewsList.map(r => ({
+  const displayReviews = reviewsList.map(r => ({
     name: `${r.first_name} ${r.last_name || ""}`.trim(),
     rating: r.rating,
     comment: r.comment,
     date: new Date(r.created_at).toLocaleDateString()
-  })) : REVIEWS;
+  }));
 
   // Table reservation state
   const [guests, setGuests] = useState("4 Guests");

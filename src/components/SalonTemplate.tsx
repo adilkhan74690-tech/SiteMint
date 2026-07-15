@@ -145,6 +145,9 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
       .then((res) => {
         if (res.status === "success" && Array.isArray(res.data)) {
           setTrainers(res.data);
+          if (res.data.length > 0) {
+            setSelectedStylist(res.data[0].full_name);
+          }
         }
       })
       .catch((err) => console.error("Error loading staff:", err));
@@ -169,7 +172,7 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
   const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
 
   // Appointment Booking States
-  const [selectedStylist, setSelectedStylist] = useState(STYLISTS[0].name);
+  const [selectedStylist, setSelectedStylist] = useState("");
   const [selectedDate, setSelectedDate] = useState("2026-07-13");
   const [selectedTime, setSelectedTime] = useState("10:00 AM");
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -201,32 +204,32 @@ export default function SalonTemplate({ onBackToHub, initialBrandName = "Luna St
     setIsUpiModalOpen(true);
   };
 
-  const displayServices = servicesList.length > 0 ? servicesList.map(s => ({
+  const displayServices = servicesList.map(s => ({
     id: String(s.id),
     name: s.name,
     price: Number(s.price),
     duration: `${s.duration_minutes} mins`,
     category: s.category || "General",
     description: s.description || ""
-  })) : SALON_SERVICES;
+  }));
 
-  const displayStylists = trainers.length > 0 ? trainers.map(t => ({
+  const displayStylists = trainers.map(t => ({
     id: String(t.id),
     name: t.full_name,
     role: t.staff_title || t.role || "Stylist",
     image: t.staff_photo_url || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80",
     rating: t.rating || 5,
     bio: t.bio || "Professional beauty expert"
-  })) : STYLISTS;
+  }));
 
   const displayLookbook = galleryPhotos;
 
-  const displayReviews = reviewsList.length > 0 ? reviewsList.map(r => ({
+  const displayReviews = reviewsList.map(r => ({
     name: `${r.first_name} ${r.last_name || ""}`.trim(),
     rating: r.rating,
     comment: r.comment,
     date: new Date(r.created_at).toLocaleDateString()
-  })) : REVIEWS;
+  }));
 
   const handlePaymentSuccess = (bookingId: string | number) => {
     const compiledItems = displayServices.filter((s) => selectedServices.includes(s.id));

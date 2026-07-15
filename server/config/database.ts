@@ -1114,7 +1114,8 @@ export async function initializeDatabase(): Promise<void> {
     }
 
     // Seed templates
-    const [templateCheck]: any = await conn.execute("SELECT COUNT(*) as count FROM `templates`");
+    await conn.execute("DELETE FROM `templates` WHERE `code` IN ('medical', 'education')");
+    const [templateCheck]: any = await conn.execute("SELECT COUNT(*) as count FROM `templates` WHERE `code` IN ('gym', 'restaurant', 'salon', 'clothing')");
     if (templateCheck[0].count === 0) {
       await conn.execute(`
         INSERT INTO \`templates\` (\`id\`, \`code\`, \`name\`, \`category\`, \`is_active\`)
@@ -1126,6 +1127,8 @@ export async function initializeDatabase(): Promise<void> {
       `);
       console.log("🌱 Seeded default templates.");
       reportText += `- **Templates:** Seeded default templates (\`gym\`, \`restaurant\`, \`salon\`, \`clothing\`).\n`;
+    } else {
+      reportText += `- **Templates:** Verified templates (\`gym\`, \`restaurant\`, \`salon\`, \`clothing\`) are seeded.\n`;
     }
 
     // Seed default Super Admin user: test@gmail.com / Test@123

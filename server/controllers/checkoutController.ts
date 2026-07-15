@@ -283,7 +283,7 @@ export async function createUpiPayment(req: Request, res: Response, next: NextFu
 
     // 2. Insert UPI payment record
     const gatewayOrderId = `UPI-ORD-${Math.floor(100000 + Math.random() * 900000)}`;
-    const [result]: any = await query(
+    const result: any = await query(
       `INSERT INTO \`payments\` (\`business_id\`, \`customer_id\`, \`booking_id\`, \`gateway\`, \`gateway_order_id\`, \`gateway_payment_id\`, \`amount\`, \`status\`) 
        VALUES (?, ?, ?, 'upi', ?, ?, ?, 'pending')`,
       [

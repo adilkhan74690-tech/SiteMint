@@ -75,6 +75,8 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [subscription, setSubscription] = useState<any>(null);
   const [subTransactions, setSubTransactions] = useState<any[]>([]);
+  const [templateCode, setTemplateCode] = useState<string>("gym");
+  const [templateCategory, setTemplateCategory] = useState<string>("Gym & Fitness");
 
   // Settings Form States
   const [settingsName, setSettingsName] = useState("");
@@ -230,6 +232,11 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
           setThemeAccent(settingsResult.data.theme_settings.primary_color);
           setThemeSecondary(settingsResult.data.theme_settings.secondary_color);
           setTypography(settingsResult.data.theme_settings.font_family);
+          
+          if (settingsResult.data.theme_settings.template) {
+            setTemplateCode(settingsResult.data.theme_settings.template.code || "gym");
+            setTemplateCategory(settingsResult.data.theme_settings.template.category || "Gym & Fitness");
+          }
           
           let customJson: any = {};
           try {
@@ -737,16 +744,59 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
     ];
 
     if (businessDetails) {
+      // Core items always visible
       items.push(
         { name: "Website Builder", label: "Website Builder", icon: "Globe", badge: 0 },
         { name: "Pages", label: "Pages", icon: "BookOpen", badge: 0 },
-        { name: "Theme", label: "Theme", icon: "Palette", badge: 0 },
-        { name: "Media", label: "Media", icon: "Image", badge: 0 },
-        { name: "Staff", label: "Staff", icon: "Users", badge: 0 },
-        { name: "Services", label: "Services", icon: "Scissors", badge: 0 },
-        { name: "Bookings", label: "Bookings", icon: "Calendar", badge: bookings.filter(b => b.status === "Pending" || b.status === "pending").length },
-        { name: "Customers", label: "Customers", icon: "Users", badge: 0 },
-        { name: "Orders", label: "Orders", icon: "ShoppingCart", badge: orders.filter(o => o.status === "processing" || o.status === "pending").length },
+        { name: "Theme", label: "Theme", icon: "Palette", badge: 0 }
+      );
+
+      // Category-specific dynamic items
+      if (templateCode === "gym") {
+        items.push(
+          { name: "Staff", label: "Coaches", icon: "Users", badge: 0 },
+          { name: "Services", label: "Classes & Plans", icon: "Scissors", badge: 0 },
+          { name: "Bookings", label: "Timetable & Bookings", icon: "Calendar", badge: bookings.filter(b => b.status === "Pending" || b.status === "pending").length },
+          { name: "Media", label: "Gallery", icon: "Image", badge: 0 },
+          { name: "Reviews", label: "Testimonials", icon: "Star", badge: 0 }
+        );
+      } else if (templateCode === "restaurant") {
+        items.push(
+          { name: "Services", label: "Menu Items", icon: "Utensils", badge: 0 },
+          { name: "Orders", label: "Takeout Orders", icon: "ShoppingCart", badge: orders.filter(o => o.status === "processing" || o.status === "pending").length },
+          { name: "Bookings", label: "Table Reservations", icon: "Calendar", badge: bookings.filter(b => b.status === "Pending" || b.status === "pending").length },
+          { name: "Media", label: "Gallery", icon: "Image", badge: 0 },
+          { name: "Reviews", label: "Food Reviews", icon: "Star", badge: 0 }
+        );
+      } else if (templateCode === "clothing") {
+        items.push(
+          { name: "Products", label: "Products Catalog", icon: "Shirt", badge: 0 },
+          { name: "Orders", label: "Store Orders", icon: "ShoppingCart", badge: orders.filter(o => o.status === "processing" || o.status === "pending").length },
+          { name: "Reviews", label: "Product Reviews", icon: "Star", badge: 0 }
+        );
+      } else if (templateCode === "salon") {
+        items.push(
+          { name: "Staff", label: "Stylists", icon: "Users", badge: 0 },
+          { name: "Services", label: "Services", icon: "Scissors", badge: 0 },
+          { name: "Bookings", label: "Bookings", icon: "Calendar", badge: bookings.filter(b => b.status === "Pending" || b.status === "pending").length },
+          { name: "Media", label: "Gallery", icon: "Image", badge: 0 },
+          { name: "Reviews", label: "Customer Reviews", icon: "Star", badge: 0 }
+        );
+      } else {
+        // Fallback/Default tabs
+        items.push(
+          { name: "Staff", label: "Staff", icon: "Users", badge: 0 },
+          { name: "Services", label: "Services", icon: "Scissors", badge: 0 },
+          { name: "Bookings", label: "Bookings", icon: "Calendar", badge: bookings.filter(b => b.status === "Pending" || b.status === "pending").length },
+          { name: "Customers", label: "Customers", icon: "Users", badge: 0 },
+          { name: "Orders", label: "Orders", icon: "ShoppingCart", badge: orders.filter(o => o.status === "processing" || o.status === "pending").length },
+          { name: "Reviews", label: "Reviews", icon: "Star", badge: 0 },
+          { name: "Media", label: "Media", icon: "Image", badge: 0 }
+        );
+      }
+
+      // Add common backend utilities
+      items.push(
         { name: "Analytics", label: "Analytics", icon: "LineChart", badge: 0 },
         { name: "Payments", label: "Payments", icon: "CreditCard", badge: 0 },
         { name: "Billing", label: "Billing", icon: "Wallet", badge: 0 },
@@ -762,6 +812,37 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
 
     return items;
   };
+
+  const getStaffLabels = () => {
+    if (templateCode === "gym") return { single: "Coach", plural: "Coaches", addBtn: "Add Coach", roleField: "Specialty / Title" };
+    if (templateCode === "salon") return { single: "Stylist", plural: "Stylists", addBtn: "Add Stylist", roleField: "Stylist Role / Specialty" };
+    return { single: "Staff Member", plural: "Staff", addBtn: "Add Team Member", roleField: "Staff Title" };
+  };
+  const staffLabels = getStaffLabels();
+
+  const getServiceLabels = () => {
+    if (templateCode === "gym") return { single: "Class / Plan", plural: "Classes & Plans", addBtn: "Add Class/Plan", descPlaceholder: "Describe plan details or schedule..." };
+    if (templateCode === "restaurant") return { single: "Menu Item", plural: "Menu Items", addBtn: "Add Menu Item", descPlaceholder: "Ingredients, allergens, description..." };
+    if (templateCode === "salon") return { single: "Service", plural: "Services", addBtn: "Add Service", descPlaceholder: "Service descriptions..." };
+    return { single: "Service", plural: "Services", addBtn: "Add Service", descPlaceholder: "Describe the service..." };
+  };
+  const serviceLabels = getServiceLabels();
+
+  const getBookingLabels = () => {
+    if (templateCode === "gym") return { single: "Booking", plural: "Timetable & Bookings" };
+    if (templateCode === "restaurant") return { single: "Reservation", plural: "Table Reservations" };
+    if (templateCode === "salon") return { single: "Appointment", plural: "Appointments" };
+    return { single: "Booking", plural: "Bookings" };
+  };
+  const bookingLabels = getBookingLabels();
+  const getReviewsLabels = () => {
+    if (templateCode === "gym") return { plural: "Testimonials" };
+    if (templateCode === "restaurant") return { plural: "Food Reviews" };
+    if (templateCode === "clothing") return { plural: "Product Reviews" };
+    if (templateCode === "salon") return { plural: "Customer Reviews" };
+    return { plural: "Reviews" };
+  };
+  const reviewsLabels = getReviewsLabels();
 
   useEffect(() => {
     fetchDashboardData();
@@ -2441,8 +2522,8 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
               >
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-zinc-950/60 p-6 rounded-2xl border border-zinc-900">
                   <div>
-                    <h3 className="text-lg font-bold text-white font-display">Team Directory</h3>
-                    <p className="text-xs text-zinc-500 font-mono">Add, edit, and delete staff accounts saved securely in MySQL.</p>
+                    <h3 className="text-lg font-bold text-white font-display">{staffLabels.plural} Directory</h3>
+                    <p className="text-xs text-zinc-500 font-mono">Add, edit, and delete {staffLabels.plural.toLowerCase()} profiles saved securely in MySQL.</p>
                   </div>
                   <button
                     onClick={() => {
@@ -2456,7 +2537,7 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                     className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all hover:scale-[1.02] cursor-pointer"
                   >
                     <LucideIcon name="UserPlus" className="w-4 h-4" />
-                    Add Team Member
+                    {staffLabels.addBtn}
                   </button>
                 </div>
 
@@ -2467,9 +2548,9 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                       <LucideIcon name="Users" className="w-6 h-6" />
                     </div>
                     <div className="space-y-1 max-w-xs mx-auto">
-                      <h4 className="text-sm font-bold text-zinc-300 font-display">No staff registered yet</h4>
+                      <h4 className="text-sm font-bold text-zinc-300 font-display">No {staffLabels.plural.toLowerCase()} registered yet</h4>
                       <p className="text-xs text-zinc-555 leading-normal">
-                        Your business has no staff profiles cataloged. Click "Add Team Member" to register your staff.
+                        Your business has no {staffLabels.plural.toLowerCase()} profiles cataloged. Click "{staffLabels.addBtn}" to register them.
                       </p>
                     </div>
                   </div>
@@ -2567,9 +2648,9 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                     >
                       <div>
                         <h3 className="text-base font-bold text-white font-display">
-                          {editingStaffId ? "Edit Staff Details" : "Register Team Member"}
+                          {editingStaffId ? `Edit ${staffLabels.single} Details` : `Register ${staffLabels.single}`}
                         </h3>
-                        <p className="text-xs text-zinc-500">Provide their details to store in MySQL records.</p>
+                        <p className="text-xs text-zinc-500">Provide their details to store securely in MySQL records.</p>
                       </div>
 
                       <form onSubmit={handleStaffSubmit} className="space-y-4 text-left">
@@ -2645,7 +2726,7 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
 
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1">
-                            <label className="text-[10px] font-mono font-bold text-zinc-550 uppercase tracking-widest block">Staff Title (e.g. Chef, Stylist)</label>
+                            <label className="text-[10px] font-mono font-bold text-zinc-550 uppercase tracking-widest block">{staffLabels.single} Title (e.g. Chef, Stylist)</label>
                             <input
                               type="text"
                               placeholder="Trainer"
@@ -3258,7 +3339,7 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                     </span>
                     <input
                       type="text"
-                      placeholder="Search bookings by client, service or transaction code..."
+                      placeholder={`Search ${bookingLabels.plural.toLowerCase()} by client, service or transaction code...`}
                       value={bookingQuery}
                       onChange={(e) => setBookingQuery(e.target.value)}
                       className="w-full bg-zinc-950/60 border border-zinc-900 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-400 transition-all"
@@ -3278,9 +3359,9 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                         <LucideIcon name="Calendar" className="w-6 h-6" />
                       </div>
                       <div className="space-y-1 max-w-sm mx-auto">
-                        <h4 className="text-sm font-bold text-white">No Bookings Yet</h4>
+                        <h4 className="text-sm font-bold text-white">No {bookingLabels.plural} Yet</h4>
                         <p className="text-xs text-zinc-500 leading-normal">
-                          Publish your website to start receiving bookings from customers.
+                          Publish your website to start receiving {bookingLabels.plural.toLowerCase()} from customers.
                         </p>
                       </div>
                     </div>
@@ -3710,7 +3791,7 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                     </span>
                     <input
                       type="text"
-                      placeholder="Search services..."
+                      placeholder={`Search ${serviceLabels.plural.toLowerCase()}...`}
                       className="w-full bg-zinc-950/60 border border-zinc-900 rounded-xl pl-10 pr-4 py-2 text-xs text-white focus:outline-none focus:border-emerald-400 transition-all"
                     />
                   </div>
@@ -3720,7 +3801,7 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                     className="bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 hover:opacity-95 cursor-pointer"
                   >
                     <LucideIcon name="Plus" className="w-4 h-4 stroke-[3]" />
-                    Add Service
+                    {serviceLabels.addBtn}
                   </button>
                 </div>
 
@@ -3731,9 +3812,9 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                         <LucideIcon name="Scissors" className="w-6 h-6" />
                       </div>
                       <div className="space-y-1 max-w-sm mx-auto">
-                        <h4 className="text-sm font-bold text-white">No Services Added</h4>
+                        <h4 className="text-sm font-bold text-white">No {serviceLabels.plural} Added</h4>
                         <p className="text-xs text-zinc-500 leading-normal">
-                          Add service offerings (durations & pricing) for online booking.
+                          Add {serviceLabels.single.toLowerCase()} offerings for online scheduling and display.
                         </p>
                       </div>
                     </div>
@@ -3749,7 +3830,7 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
 
                         <div className="p-4 space-y-3">
                           <div className="space-y-0.5">
-                            <span className="text-[9px] font-mono text-zinc-500 uppercase">SERVICE ID: {s.id}</span>
+                            <span className="text-[9px] font-mono text-zinc-500 uppercase">{serviceLabels.single.toUpperCase()} ID: {s.id}</span>
                             <h4 className="text-xs font-bold text-white truncate">{s.name}</h4>
                           </div>
 
@@ -3805,16 +3886,16 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                         </button>
 
                         <form onSubmit={handleAddServiceSubmit} className="space-y-4 text-left">
-                          <h3 className="text-base font-bold text-white font-display border-b border-zinc-900 pb-2">Add New Service</h3>
+                          <h3 className="text-base font-bold text-white font-display border-b border-zinc-900 pb-2">Add New {serviceLabels.single}</h3>
 
                           <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Service Name</label>
+                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">{serviceLabels.single} Name</label>
                             <input 
                               type="text" 
                               required
                               value={newServName}
                               onChange={(e) => setNewServName(e.target.value)}
-                              placeholder="e.g. Therapeutic Sports Massage"
+                              placeholder={`e.g. ${templateCode === "gym" ? "Premium Conditioning Bootcamp" : (templateCode === "restaurant" ? "Truffle Pasta" : (templateCode === "salon" ? "Hair Cut & Style" : "Intro Course")) }`}
                               className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
                             />
                           </div>
@@ -3860,7 +3941,7 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                             <textarea 
                               value={newServDesc}
                               onChange={(e) => setNewServDesc(e.target.value)}
-                              placeholder="Describe the treatment or class..."
+                              placeholder={serviceLabels.descPlaceholder}
                               rows={3}
                               className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400 resize-none"
                             />
@@ -3879,9 +3960,9 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
 
                           <button
                             type="submit"
-                            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-bold py-3 rounded-xl text-xs hover:opacity-95 cursor-pointer"
+                            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-bold py-3 rounded-xl text-xs hover:opacity-95 transition-all cursor-pointer"
                           >
-                            Add Service
+                            Add {serviceLabels.single}
                           </button>
                         </form>
                       </motion.div>
@@ -3913,16 +3994,16 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                         </button>
 
                         <form onSubmit={handleEditServiceSubmit} className="space-y-4 text-left">
-                          <h3 className="text-base font-bold text-white font-display border-b border-zinc-900 pb-2">Edit Service</h3>
+                          <h3 className="text-base font-bold text-white font-display border-b border-zinc-900 pb-2">Edit {serviceLabels.single}</h3>
 
                           <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Service Name</label>
+                            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">{serviceLabels.single} Name</label>
                             <input 
                               type="text" 
                               required
                               value={editingService.name || ""}
                               onChange={(e) => setEditingService({ ...editingService, name: e.target.value })}
-                              placeholder="e.g. Therapeutic Sports Massage"
+                              placeholder={`e.g. ${templateCode === "gym" ? "Premium Conditioning Bootcamp" : (templateCode === "restaurant" ? "Truffle Pasta" : (templateCode === "salon" ? "Hair Cut & Style" : "Intro Course")) }`}
                               className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400"
                             />
                           </div>
@@ -3968,7 +4049,7 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                             <textarea 
                               value={editingService.description || ""}
                               onChange={(e) => setEditingService({ ...editingService, description: e.target.value })}
-                              placeholder="Describe the treatment or class..."
+                              placeholder={serviceLabels.descPlaceholder}
                               rows={3}
                               className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-400 resize-none"
                             />
@@ -4127,9 +4208,9 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                         <LucideIcon name="Star" className="w-6 h-6" />
                       </div>
                       <div className="space-y-1 max-w-sm mx-auto">
-                        <h4 className="text-sm font-bold text-white">No Reviews Yet</h4>
+                        <h4 className="text-sm font-bold text-white">No {reviewsLabels.plural} Yet</h4>
                         <p className="text-xs text-zinc-500 leading-normal">
-                          Public reviews from verified customers will show up here.
+                          Public {reviewsLabels.plural.toLowerCase()} from verified customers will show up here.
                         </p>
                       </div>
                     </div>
@@ -5004,7 +5085,6 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
                           <option value="salon">Salon / Spa</option>
                           <option value="restaurant">Restaurant / Cafe</option>
                           <option value="clothing">Clothing / Retail</option>
-                          <option value="dentist">Dentist / Medical</option>
                         </select>
                       </div>
                       <div className="space-y-1.5">

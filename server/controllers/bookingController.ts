@@ -198,7 +198,7 @@ export async function updateBookingStatus(req: Request, res: Response, next: Nex
   }
 
   try {
-    const [result]: any = await query(
+    const result: any = await query(
       "UPDATE `bookings` SET `status` = ? WHERE `id` = ? AND `business_id` = ?",
       [status, id, businessId]
     );
