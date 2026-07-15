@@ -739,7 +739,7 @@ export default function GymTemplate({ onBackToHub, initialBrandName = "Pulse Ath
                         onChange={(e) => setSelectedTrainer(e.target.value)}
                         className="w-full bg-zinc-950 border border-zinc-850 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-zinc-700 transition-colors cursor-pointer"
                       >
-                        {TRAINERS.map((tr) => (
+                        {displayTrainers.map((tr) => (
                           <option key={tr.id} value={tr.name}>{tr.name}</option>
                         ))}
                       </select>

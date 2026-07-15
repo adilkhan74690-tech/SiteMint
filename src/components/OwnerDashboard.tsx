@@ -1512,6 +1512,7 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
           "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
+          business_id: businessId,
           customer_name: newReviewAuthor,
           rating: Number(newReviewRating),
           comment: newReviewComment,
