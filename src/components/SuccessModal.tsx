@@ -20,7 +20,7 @@ export default function SuccessModal({
   return (
     <AnimatePresence>
       <div 
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 max-sm:items-end max-sm:p-0"
         id="success-modal-overlay"
       >
         <motion.div
@@ -28,7 +28,7 @@ export default function SuccessModal({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ duration: 0.3 }}
-          className="relative w-full max-w-md overflow-hidden rounded-2xl border border-zinc-800 bg-[#09090B] p-6 text-white shadow-2xl flex flex-col items-center text-center space-y-6"
+          className="relative w-full max-w-md overflow-hidden rounded-2xl border border-zinc-800 bg-[#09090B] p-6 text-white shadow-2xl flex flex-col items-center text-center space-y-6 max-sm:rounded-b-none max-sm:rounded-t-3xl max-sm:max-h-[90vh] max-sm:overflow-y-auto max-sm:border-x-0 max-sm:border-b-0"
           id="success-modal-card"
         >
           {/* Animated Success Badge */}

@@ -1249,8 +1249,8 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
     let updatedStatus = "";
     if (action === "Shipped") updatedStatus = "processing";
     else if (action === "Delivered") updatedStatus = "completed";
-    else if (action === "Approve") updatedStatus = "completed";
-    else if (action === "Reject") updatedStatus = "cancelled";
+    else if (action === "Approve") updatedStatus = "approved";
+    else if (action === "Reject") updatedStatus = "rejected";
     try {
       const res = await fetch(`/api/checkout/orders/${id}/status`, {
         method: "PATCH",

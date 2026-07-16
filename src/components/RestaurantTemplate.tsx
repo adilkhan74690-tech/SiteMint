@@ -559,10 +559,10 @@ export default function RestaurantTemplate({ onBackToHub, initialBrandName = "L'
                     )}
                   </div>
                   <div className="max-h-60 overflow-y-auto space-y-2 scrollbar-thin">
-                    {customerNotifications.length === 0 ? (
+                    {customerNotifications.filter((n: any) => !n.is_read).length === 0 ? (
                       <p className="text-[11px] text-zinc-500 text-center py-4">No notifications yet.</p>
                     ) : (
-                      customerNotifications.map((n: any) => (
+                      customerNotifications.filter((n: any) => !n.is_read).map((n: any) => (
                         <div 
                           key={n.id} 
                           className={`p-2.5 rounded-xl border transition-all flex flex-col gap-1 ${
