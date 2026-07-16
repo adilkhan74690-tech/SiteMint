@@ -773,7 +773,7 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
       } else if (templateCode === "restaurant") {
         items.push(
           { name: "Services", label: "Menu Items", icon: "Utensils", badge: 0 },
-          { name: "Orders", label: "Takeout Orders", icon: "ShoppingCart", badge: orders.filter(o => o.status === "processing" || o.status === "pending").length },
+          { name: "Orders", label: "Takeout Orders", icon: "ShoppingCart", badge: orders.filter(o => o.status?.toLowerCase() === "pending").length },
           { name: "Bookings", label: "Table Reservations", icon: "Calendar", badge: bookings.filter(b => b.status === "Pending" || b.status === "pending").length },
           { name: "Media", label: "Gallery", icon: "Image", badge: 0 },
           { name: "Reviews", label: "Food Reviews", icon: "Star", badge: 0 }
@@ -781,7 +781,7 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
       } else if (templateCode === "clothing") {
         items.push(
           { name: "Products", label: "Products Catalog", icon: "Shirt", badge: 0 },
-          { name: "Orders", label: "Store Orders", icon: "ShoppingCart", badge: orders.filter(o => o.status === "processing" || o.status === "pending").length },
+          { name: "Orders", label: "Store Orders", icon: "ShoppingCart", badge: orders.filter(o => o.status?.toLowerCase() === "pending").length },
           { name: "Reviews", label: "Product Reviews", icon: "Star", badge: 0 }
         );
       } else if (templateCode === "salon") {
@@ -799,7 +799,7 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
           { name: "Services", label: "Services", icon: "Scissors", badge: 0 },
           { name: "Bookings", label: "Bookings", icon: "Calendar", badge: bookings.filter(b => b.status === "Pending" || b.status === "pending").length },
           { name: "Customers", label: "Customers", icon: "Users", badge: 0 },
-          { name: "Orders", label: "Orders", icon: "ShoppingCart", badge: orders.filter(o => o.status === "processing" || o.status === "pending").length },
+          { name: "Orders", label: "Orders", icon: "ShoppingCart", badge: orders.filter(o => o.status?.toLowerCase() === "pending").length },
           { name: "Reviews", label: "Reviews", icon: "Star", badge: 0 },
           { name: "Media", label: "Media", icon: "Image", badge: 0 }
         );
@@ -5366,137 +5366,7 @@ export default function OwnerDashboard({ userEmail, userRole, onLogout, onNaviga
               </motion.div>
             )}
 
-            {/* TAB: PAYMENTS */}
-            {activeTab === "Payments" && (
-              <motion.div
-                key="payments-tab"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="space-y-6 text-left"
-              >
-                <div className="p-6 bg-zinc-950/40 border border-zinc-900 rounded-2xl space-y-4">
-                  <div className="border-b border-zinc-900 pb-3 flex justify-between items-center">
-                    <div>
-                      <h3 className="text-base font-bold text-white font-display">Settlement Transactions</h3>
-                      <p className="text-xs text-zinc-500">Approve or reject customer direct UPI/card payments.</p>
-                    </div>
-                  </div>
 
-                  {paymentsList.length === 0 ? (
-                    <div className="p-12 text-center rounded-2xl border border-dashed border-zinc-800/80 bg-zinc-950/20 space-y-4">
-                      <div className="w-12 h-12 rounded-full bg-zinc-900/60 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-500">
-                        <LucideIcon name="CreditCard" className="w-6 h-6" />
-                      </div>
-                      <div className="space-y-1 max-w-sm mx-auto">
-                        <h4 className="text-sm font-bold text-white">No Payments Yet</h4>
-                        <p className="text-xs text-zinc-500 leading-normal">
-                          When customers submit payments, they will show up here for validation.
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs border-collapse">
-                        <thead>
-                          <tr className="border-b border-zinc-900 text-zinc-500 font-mono uppercase text-[10px]">
-                            <th className="pb-3 pr-2">Payment ID</th>
-                            <th className="pb-3 pr-2">Customer</th>
-                            <th className="pb-3 pr-2">Amount</th>
-                            <th className="pb-3 pr-2">Reference ID</th>
-                            <th className="pb-3 pr-2">Type</th>
-                            <th className="pb-3 pr-2">Status</th>
-                            <th className="pb-3 text-right">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-zinc-900/60 font-medium">
-                          {paymentsList.map((pay) => (
-                            <tr key={pay.id} className="text-zinc-300">
-                              <td className="py-3.5 pr-2 font-mono text-[10px]">{pay.id}</td>
-                              <td className="py-3.5 pr-2">
-                                <p className="font-bold text-white">{pay.first_name} {pay.last_name || ""}</p>
-                                <p className="text-[10px] text-zinc-500 font-mono">{pay.email}</p>
-                              </td>
-                              <td className="py-3.5 pr-2 font-mono text-emerald-400">₹{pay.amount}</td>
-                              <td className="py-3.5 pr-2 font-mono text-[10px] select-all">{pay.gateway_payment_id || "N/A"}</td>
-                              <td className="py-3.5 pr-2">
-                                {pay.booking_id ? (
-                                  <span className="text-[10px] bg-purple-500/10 text-purple-400 border border-purple-500/20 px-2 py-0.5 rounded">Booking #{pay.booking_id}</span>
-                                ) : (
-                                  <span className="text-[10px] bg-pink-500/10 text-pink-400 border border-pink-500/20 px-2 py-0.5 rounded">Order #{pay.order_id}</span>
-                                )}
-                              </td>
-                              <td className="py-3.5 pr-2">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${
-                                  pay.status === "captured" || pay.status === "completed" ? "bg-emerald-500/10 text-emerald-400" :
-                                  pay.status === "pending" ? "bg-amber-500/10 text-amber-400" : "bg-red-500/10 text-red-400"
-                                }`}>
-                                  {pay.status}
-                                </span>
-                              </td>
-                              <td className="py-3.5 text-right space-x-2 whitespace-nowrap">
-                                {pay.status === "pending" && (
-                                  <>
-                                    <button
-                                      onClick={async () => {
-                                        const token = localStorage.getItem("sitemint_token");
-                                        try {
-                                          const res = await fetch(`/api/checkout/payments/${pay.id}/approve`, {
-                                            method: "PATCH",
-                                            headers: {
-                                              "Content-Type": "application/json",
-                                              "Authorization": `Bearer ${token}`
-                                            },
-                                            body: JSON.stringify({ status: "captured" })
-                                          });
-                                          const data = await res.json();
-                                          if (!res.ok || !data.success) throw new Error(data.message || "Failed to approve payment.");
-                                          alert(data.message || "Payment approved and booking/order confirmed!");
-                                          fetchDashboardData();
-                                        } catch (err: any) {
-                                          alert(err.message);
-                                        }
-                                      }}
-                                      className="px-2.5 py-1 rounded bg-emerald-500 text-black hover:opacity-90 font-bold text-[10px] cursor-pointer"
-                                    >
-                                      Approve
-                                    </button>
-                                    <button
-                                      onClick={async () => {
-                                        const token = localStorage.getItem("sitemint_token");
-                                        try {
-                                          const res = await fetch(`/api/checkout/payments/${pay.id}/approve`, {
-                                            method: "PATCH",
-                                            headers: {
-                                              "Content-Type": "application/json",
-                                              "Authorization": `Bearer ${token}`
-                                            },
-                                            body: JSON.stringify({ status: "failed" })
-                                          });
-                                          const data = await res.json();
-                                          if (!res.ok || !data.success) throw new Error(data.message || "Failed to reject payment.");
-                                          alert(data.message || "Payment rejected and booking/order cancelled.");
-                                          fetchDashboardData();
-                                        } catch (err: any) {
-                                          alert(err.message);
-                                        }
-                                      }}
-                                      className="px-2.5 py-1 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold border border-red-500/20 text-[10px] cursor-pointer"
-                                    >
-                                      Reject
-                                    </button>
-                                  </>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            )}
 
             {/* TAB: ACTIVITY LOGS */}
             {activeTab === "Activity Logs" && (
